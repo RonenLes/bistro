@@ -1,0 +1,23 @@
+package db;
+
+import java.sql.*;
+import java.util.List;
+import java.util.ArrayList;
+
+public class OrderDB {
+
+	private DBManager dbManager;
+	
+	//SELECT statements
+	private static final String showAllOrders = "SELECT order_number, order_date, number_of_guests, confirmation_code, subscriber_id, date_of_placing_order FROM `Order`"
+	
+	public OrderDB() {
+		this.dbManager = DBManager.getInstance();
+	}
+	
+	public List<Order> readAllOrders() throws SQLException{
+		
+		List<Order> orders = new ArrayList<>();
+	}
+	
+}

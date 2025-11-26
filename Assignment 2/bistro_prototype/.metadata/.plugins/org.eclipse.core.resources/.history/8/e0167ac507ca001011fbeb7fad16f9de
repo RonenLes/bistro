@@ -1,0 +1,3 @@
+private final String dbUrl  = "jdbc:mysql://localhost:3306/bistro_p_db";
+private final String dbUser = "root";
+private final String dbPass = "G13BistroPj!";

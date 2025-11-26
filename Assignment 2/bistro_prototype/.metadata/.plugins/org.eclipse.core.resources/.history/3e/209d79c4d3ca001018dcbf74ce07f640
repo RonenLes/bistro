@@ -1,0 +1,24 @@
+package entities;
+
+import java.io.Serializable;
+import java.time.LocalDate;
+
+public class Reservation implements Serializable{
+	
+	private int reservationID;
+	private LocalDate reservationDate;
+	private int numberOfGuests;
+	private int confirmationCode;
+	private int subscriberId;
+	private LocalDate dateOfPlacingOrder;
+	
+	public Reservation(int reservationID,LocalDate reservationDate,int numberOfGuests,int confirmationCode,int subscriberId,LocalDate dateOfPlacingOrder) {
+		this.reservationID = reservationID;
+		this.reservationDate = reservationDate;
+		this.numberOfGuests = numberOfGuests;
+		this.confirmationCode = confirmationCode;
+		this.subscriberId = subscriberId;
+		this.dateOfPlacingOrder =dateOfPlacingOrder;
+	}
+
+}

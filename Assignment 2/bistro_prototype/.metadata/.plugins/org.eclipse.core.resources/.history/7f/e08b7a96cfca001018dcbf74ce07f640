@@ -1,0 +1,96 @@
+package db;
+
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.Properties;
+
+import java.io.InputStream;
+
+public class DBManager {
+
+	
+	private static DBManager dbInstance = null;
+	
+	private String dbUrl;
+	private String dbUser;
+	private String dbPass;
+	
+	private DBManager() {
+		
+		dbLoadProp(); // load database details
+			
+		//jdbc driver load
+		try {
+			
+			Class.forName("com.mysql.cj.jdbc.Driver");
+			System.out.println("JDBC driver loadded");
+			
+		} catch(ClassNotFoundException e) {
+			
+			System.err.println("JDBC driver not found : exiting all");
+			throw new RuntimeException("MySQL JDBC driver fail",e);
+		}
+	}
+	
+	
+	/**
+	 * static method to the DBManager single instance
+	 * @return instance of DBManager
+	 */
+	public static DBManager getInstance() {
+		if(dbInstance == null) dbInstance =new DBManager();
+		return dbInstance;
+	}
+	
+	
+	/**
+	 * establish new connection to the database
+	 * @return Connection object
+	 * @throws SQLException
+	 */
+	public Connection getConnection() throws SQLException{
+		return DriverManager.getConnection(dbUrl,dbUser,dbPass);
+	}
+	
+	public void closeConnection(Connection c) {
+		if(c!=null) {
+			try {
+				c.close();
+			}catch(SQLException e) {
+				System.err.println("error closing connection");
+			}
+		}
+	}
+	
+	//loading database detail
+	private void dbLoadProp() {
+		
+		try(InputStream input = getClass().getClassLoader().getResourceAsStream("dbDetails.properties")){
+			
+			if(input == null) {
+				System.err.println("ERROR: Configuration file 'dbDetails.properties' not found in the Classpath.");
+                throw new RuntimeException("Database configuration file is missing.");
+			}
+			
+			Properties props = new Properties();
+			props.load(input);
+			
+			this.dbUrl = props.getProperty("db_Url");
+			this.dbUser = props.getProperty("db_User");
+			this.dbPass = props.getProperty("db_Pass");
+			
+			
+		}catch(Exception e) {
+			System.err.println("Database property loading failed.");
+            e.printStackTrace();
+            throw new RuntimeException("Database initialization failed due to configuration errors.");
+        	}
+		}
+	
+	// שימו לב: יש להוסיף את הקוד הזה בתוך מחלקת DBManager.java
+
+	
+}
+

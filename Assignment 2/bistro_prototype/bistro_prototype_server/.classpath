@@ -13,5 +13,6 @@
 	</classpathentry>
 	<classpathentry combineaccessrules="false" kind="src" path="/OCSF"/>
 	<classpathentry kind="lib" path="libs/mysql-connector-j-9.5.0.jar"/>
+	<classpathentry kind="lib" path="resources"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

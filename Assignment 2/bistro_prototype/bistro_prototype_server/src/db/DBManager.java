@@ -64,7 +64,7 @@ public class DBManager {
 		}
 	}
 	
-	//loading database detail
+	//loading database detail from file placed in the resource folder
 	private void dbLoadProp() {
 		
 		try(InputStream input = getClass().getClassLoader().getResourceAsStream("dbDetails.properties")){
@@ -88,5 +88,6 @@ public class DBManager {
             throw new RuntimeException("Database initialization failed due to configuration errors.");
         	}
 		}
-	}
+		
+}
 

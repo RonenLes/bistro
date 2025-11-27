@@ -1,8 +1,6 @@
-INDEX VERSION 1.134+C:\Users\oaSIS\Desktop\GitHub\bistro\Assignment 2\bistro_prototype\.metadata\.plugins\org.eclipse.jdt.core
-2219000855.index
-451053331.index
-2644155802.index
-2712941965.index
+INDEX VERSION 1.134+C:\Users\nirro\Desktop\לימודים\פרוייקט אמצע\project\bistro\Assignment 2\bistro_prototype\.metadata\.plugins\org.eclipse.jdt.core
 1865797976.index
-1803392703.index
-2495738684.index
+2644155802.index
+2219000855.index
+4257909400.index
+2712941965.index

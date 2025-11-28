@@ -5,6 +5,7 @@ import common.*;
 
 public class BistroEchoServer extends AbstractServer  {
 	
+	private ReservationController reservationController;
 	
 	public BistroEchoServer(int port) {
 		super(port);
@@ -13,10 +14,36 @@ public class BistroEchoServer extends AbstractServer  {
 	@Override
 	protected void handleMessageFromClient(Object msg ,ConnectionToClient client) {
 		
+		
+		
 		if(msg instanceof ReservationRequest) {
-			ReservationRequest req = (ReservationRequest)msg;
+			ReservationRequest request = (ReservationRequest)msg;
 			
+			Object response;
+			
+			try {
+				response = reservationController.addReservation(request);
+				client.sendToClient(response);
+			}catch(Exception e) {
+				System.err.println("Error with requesting new reservations");
+				client.sendToClient(new Error("Falied to complete reservation request"+client.getInetAddress().getHostAddress()));
+			}
+		}
+		
+		if(msg instanceof EditReservationRequest) {
+			EditReservationRequest request = (EditReservationRequest)msg;
+			object response;
+			try {
+				response = reservationController.editReservation(request);
+				client.sendToClient(response);
+			}catch(Exception e) {
+				System.err.println("Error with requesting to edit reservation"+client.getInetAddress().getHostAddress());
+				client.sendToClient(new Error("Failed to edit reservation"));
+				
+			}
 		}
 		
 	}
+	
+	
 }

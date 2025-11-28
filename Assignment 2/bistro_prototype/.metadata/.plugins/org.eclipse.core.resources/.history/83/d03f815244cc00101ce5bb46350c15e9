@@ -1,0 +1,7 @@
+package common;
+
+public class ReservationResponse {
+
+	private boolean isReservationSuccess;
+	private String msg;
+}

@@ -5,18 +5,20 @@ import java.time.LocalDate;
 
 public class ReservationRequest implements Serializable{
 	
-	private String customerInfo;
+	private int subscriberId;
 	private LocalDate dateOfRequest;
 	private int dinersCount;
+	private LocalDate dateOfplacingRequest;
 	
-	public ReservationRequest(String customerInfro, LocalDate dateOfRequest, int dinersCount) {
-		this.customerInfo = customerInfro;
+	public ReservationRequest(int subscriberId, LocalDate dateOfRequest, int dinersCount) {
+		this.subscriberId = subscriberId;
 		this.dateOfRequest = dateOfRequest;
 		this.dinersCount = dinersCount;
+		this.dateOfplacingRequest = LocalDate.now();
 	}
 	
-	public String getCustomerInfo() {
-		return this.customerInfo;
+	public int getCustomerInfo() {
+		return this.subscriberId;
 	}
 	
 	public LocalDate getDateofRequest() {
@@ -25,5 +27,9 @@ public class ReservationRequest implements Serializable{
 	
 	public int getDinersCount() {
 		return this.dinersCount;
+	}
+	
+	public LocalDate getDateOfPlacingRequest() {
+		return this.dateOfplacingRequest;
 	}
 }

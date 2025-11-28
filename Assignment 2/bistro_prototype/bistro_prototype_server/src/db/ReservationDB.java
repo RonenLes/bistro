@@ -19,7 +19,7 @@ public class ReservationDB {
 	//SELECT statements
 	private static final String SELECT_AllOrders = "SELECT * FROM `reservations`";
 	private static final String SELECT_OrdersByDate = "SELECT * FROM `reservations` WHERE reservationDate = ?";
-	// UPDATE statement
+	private static final String SELECT_ByID = "SELECT 1 FROM `reservations` WHERE reservationID = ?";
 	// UPDATE statement
 	private static final String UPDATE_Guests_ByOrder = "UPDATE reservations SET numberOfGuests = ? WHERE reservationID = ?";
 	private static final String UPDATE_Date_ByOrder ="UPDATE `reservations` SET reservationDate = ? WHERE reservationID = ?";
@@ -42,7 +42,8 @@ public class ReservationDB {
 	 * @return true if new reservation successfully added 
 	 * @throws SQLException
 	 */
-	public boolean insertNewReservation(int reservationID,LocalDate reservationDate,int numberOfGuests,int confirmationCode,int subscriberId,LocalDate dateOfPlacingOrder) throws SQLException {
+	// updated reservationID to long for unique 10 digit id
+	public boolean insertNewReservation(long reservationID,LocalDate reservationDate,int numberOfGuests,int confirmationCode,int subscriberId,LocalDate dateOfPlacingOrder) throws SQLException {
 		
 		java.sql.Date sqlReservationDate = java.sql.Date.valueOf(reservationDate);
 		java.sql.Date sqlPlacingReservationDate = java.sql.Date.valueOf(dateOfPlacingOrder);
@@ -52,7 +53,7 @@ public class ReservationDB {
 			PreparedStatement pstmt = conn.prepareStatement(INSERT_newReservation);
 			
 			//insert the details we got from control into statement
-			pstmt.setInt(1, reservationID);
+			pstmt.setLong(1, reservationID);
 			pstmt.setDate(2,sqlReservationDate);
 			pstmt.setInt(3, numberOfGuests);
 			pstmt.setInt(4,confirmationCode);
@@ -174,6 +175,25 @@ public class ReservationDB {
 		}
 		
 		return reservationsList;
+	}
+	
+	/**
+	 * Checks the database to see if a given reservationID already exists.
+	 * @param id The 10-digit ID to check (long).
+	 * @return true if the ID exists, false otherwise.
+	 * @throws SQLException if a database access error occurs.
+	 */
+	public boolean doesReservationIdExist(long id) throws SQLException {
+	    try (Connection conn = dbManager.getConnection();
+	         PreparedStatement pstmt = conn.prepareStatement(SELECT_ByID)) {
+	        
+	        // ➡️ ACTION 3: Use setLong()
+	        pstmt.setLong(1, id); 
+	        
+	        try (ResultSet rs = pstmt.executeQuery()) {
+	            return rs.next(); // Returns true if a row was found
+	        }
+	    }
 	}
 	
 }

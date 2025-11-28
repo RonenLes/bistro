@@ -1,3 +1,0 @@
-dbUrl  = jdbc:mysql://localhost:3306/bistro_p_db
-dbUser = root
-dbPass = G13BistroPj!

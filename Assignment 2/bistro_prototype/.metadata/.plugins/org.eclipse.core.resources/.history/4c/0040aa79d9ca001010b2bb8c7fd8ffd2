@@ -1,7 +1,0 @@
-package server;
-
-import ocsf.server.*;
-
-public class BistroEchoServer extends AbstractServer  {
-
-}

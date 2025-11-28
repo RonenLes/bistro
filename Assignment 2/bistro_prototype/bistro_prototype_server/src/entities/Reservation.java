@@ -12,7 +12,7 @@ public class Reservation implements Serializable{
 	private int subscriberId;
 	private LocalDate dateOfPlacingOrder;
 	
-	public Reservation(int reservationID,LocalDate reservationDate,int numberOfGuests,int confirmationCode,int subscriberId,LocalDate dateOfPlacingOrder) {
+	public Reservation(long reservationID,LocalDate reservationDate,int numberOfGuests,int confirmationCode,int subscriberId,LocalDate dateOfPlacingOrder) {
 		this.reservationID = reservationID;
 		this.reservationDate = reservationDate;
 		this.numberOfGuests = numberOfGuests;
@@ -23,7 +23,7 @@ public class Reservation implements Serializable{
 	
 	
 	//getters----------------------------------------------------------------
-	public int getReservationID() {
+	public long getReservationID() {
 		return this.reservationID;
 	}
 	
@@ -48,7 +48,7 @@ public class Reservation implements Serializable{
 	}
 	
 	//setters------------------------------------------------------------------
-	public void setReservationID(int id) {
+	public void setReservationID(long id) {
 		this.reservationID=id;
 	}
 	

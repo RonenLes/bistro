@@ -1,2 +1,50 @@
-/bin/
-dbDetails.properties
+##############################
+## Eclipse/IDE Settings
+##############################
+# Ignore the IDE's project metadata files, but keep the .project and .classpath if needed for simple project import
+# .project      # Keep this if you want to easily import the project
+# .classpath    # Keep this if you want to easily import the project
+.settings/      # Contains local IDE settings that should not be shared
+.metadata/      # The workspace metadata (must be ignored)
+
+##############################
+## Compiled and Generated Files
+##############################
+# Standard output folder for compiled .class files in Eclipse
+bin/
+# Other build/output folders (if you were using build tools like Maven/Gradle)
+# target/
+# build/
+
+# Compiled Java class files
+*.class
+
+# Packaged files (JARs, WARs, etc.)
+*.jar
+*.war
+*.ear
+
+# Virtual machine crash logs
+hs_err_pid*
+
+##############################
+## Local/Temporary Files
+##############################
+# Temporary Eclipse/IDE files
+tmp/
+*.tmp
+*.bak
+*.swp
+*.log
+local.properties
+.loadpath
+
+##############################
+## OS Files
+##############################
+# macOS files
+.DS_Store
+
+# Windows files
+Thumbs.db
+Desktop.ini

@@ -10,16 +10,17 @@
     <fullyQualifiedTypeName name="java.sql.ResultSet"/>
     <fullyQualifiedTypeName name="java.sql.Statement"/>
     <fullyQualifiedTypeName name="java.lang.Package"/>
-    <fullyQualifiedTypeName name="entities.Reservation"/>
     <fullyQualifiedTypeName name="java.sql.Date"/>
     <fullyQualifiedTypeName name="java.sql.PreparedStatement"/>
     <fullyQualifiedTypeName name="java.sql.SQLException"/>
     <fullyQualifiedTypeName name="ocsf.server.AbstractServer"/>
     <fullyQualifiedTypeName name="server.BistroEchoServer"/>
     <fullyQualifiedTypeName name="ocsf.server.ConnectionToClient"/>
-    <fullyQualifiedTypeName name="java.io.Serializable"/>
     <fullyQualifiedTypeName name="common.ReservationRequest"/>
     <fullyQualifiedTypeName name="java.lang.Error"/>
     <fullyQualifiedTypeName name="java.time.LocalDate"/>
     <fullyQualifiedTypeName name="common.EditReservationRequest"/>
+    <fullyQualifiedTypeName name="entities.Reservation"/>
+    <fullyQualifiedTypeName name="com.mysql.cj.protocol.ServerCapabilities"/>
+    <fullyQualifiedTypeName name="java.io.Serializable"/>
 </qualifiedTypeNameHistroy>

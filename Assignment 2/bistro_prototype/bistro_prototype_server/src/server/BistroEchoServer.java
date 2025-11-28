@@ -1,7 +1,10 @@
 package server;
 
 import ocsf.server.*;
-import common.*;
+import requests.EditReservationRequest;
+import requests.ReservationRequest;
+
+import controllers.ReservationController;
 
 public class BistroEchoServer extends AbstractServer  {
 	
@@ -32,16 +35,17 @@ public class BistroEchoServer extends AbstractServer  {
 		
 		if(msg instanceof EditReservationRequest) {
 			EditReservationRequest request = (EditReservationRequest)msg;
-			object response;
+			Object response;
 			try {
 				response = reservationController.editReservation(request);
 				client.sendToClient(response);
 			}catch(Exception e) {
 				System.err.println("Error with requesting to edit reservation"+client.getInetAddress().getHostAddress());
-				client.sendToClient(new Error("Failed to edit reservation"));
-				
+				client.sendToClient(new Error("Failed to edit reservation"));				
 			}
 		}
+		
+		if(msg )
 		
 	}
 	

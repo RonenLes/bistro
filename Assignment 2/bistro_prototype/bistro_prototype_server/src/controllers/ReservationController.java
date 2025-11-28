@@ -10,10 +10,13 @@ import java.util.List;
 
 public class ReservationController {
 
-    private ReservationDB reservationDB;
+   
 
-    public ReservationController() {
-        this.reservationDB = new ReservationDB();
+   private ReservationDB reservationDB;
+	
+    
+    private ReservationController() {
+    	reservationDB = new ReservationDB();
     }
 
     // Print all reservations from DB

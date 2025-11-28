@@ -1,0 +1,81 @@
+package controllers;
+
+import db.ReservationDB;
+import entities.Reservation;
+
+import java.sql.Date;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class ReservationController {
+
+   
+
+    private ReservationDB reservationDB;
+    
+    private ReservationController() {
+    	reservationDB = new ReservationDB();
+    }
+
+    // Print all reservations from DB
+    public void printDB() throws SQLException {
+        List<Reservation> reservationsList = new ArrayList<>();
+        reservationsList = this.reservationDB.readAllReservations();
+
+        for (Reservation res : reservationsList) {
+            System.out.printf(
+                    "Reservation ID: %d | Arrival: %s | Guests: %d | Confirmation: %d | Subscriber: %d | Placed On: %s%n",
+                    res.getReservationID(),
+                    res.getReservationDate(),
+                    res.getNumberOfGuests(),
+                    res.getConfirmationCode(),
+                    res.getSubscriberId(),
+                    res.getDateOfPlacingOrder()
+            );
+        }
+    }
+
+ 
+    public boolean updateNumberOfGuests(int orderNumber, int newGuestAmount) {
+        try {
+            return reservationDB.updateNumberOfGuests(orderNumber, newGuestAmount);
+        } catch (SQLException e) {
+            return false;
+        }
+    }
+    public boolean updateOrderDate(int orderNumber, Date newDate) {
+        try {
+            return reservationDB.updateOrderDate(orderNumber, newDate);
+        } catch (SQLException e) {
+            return false;
+        }
+    }
+    /**
+     * Adds a reservation to the database.
+     * (You can call checkReservation(reservation) here if you want to validate first)
+     */
+    public boolean addReservation(Reservation reservation) {
+        try {
+            boolean inserted = reservationDB.insertNewReservation(
+                    reservation.getReservationID(),
+                    reservation.getReservationDate(),
+                    reservation.getNumberOfGuests(),
+                    reservation.getConfirmationCode(),
+                    reservation.getSubscriberId(),
+                    reservation.getDateOfPlacingOrder()
+            );
+
+            if (!inserted) {
+                System.err.println("Insert failed – no row affected.");
+            }
+
+            return inserted;
+
+        } catch (SQLException e) {
+            System.err.println("Database error while inserting reservation:");
+            e.printStackTrace();
+            return false;
+        }
+    }
+}

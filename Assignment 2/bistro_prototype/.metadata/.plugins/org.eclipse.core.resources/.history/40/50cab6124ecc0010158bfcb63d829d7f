@@ -1,0 +1,35 @@
+package common;
+
+import java.io.Serializable;
+import java.time.LocalDate;
+
+public class EditReservationRequest implements Serializable {
+
+	private int subscriberId;
+	private LocalDate dateToChange;
+	private int dinersToChange;
+	private LocalDate dateWhenChanging;
+	
+	public EditReservationRequest(int subscriberId,LocalDate datoToChange,int dinersToChange) {
+		this.subscriberId = subscriberId;
+		this.dateToChange = datoToChange;
+		this.dinersToChange = dinersToChange;
+		this.dateWhenChanging = LocalDate.now();
+	}
+	
+	public int getSubsriberId() {
+		return this.subscriberId;
+	}
+	
+	public LocalDate getDateToChange() {
+		return this.dateToChange;
+	}
+	
+	public int getDinersToChange() {
+		return this.dinersToChange;
+	}
+	
+	public LocalDate getDateWhenChanging() {
+		return this.dateWhenChanging;
+	}
+}

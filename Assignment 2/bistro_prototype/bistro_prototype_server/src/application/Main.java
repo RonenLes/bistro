@@ -1,4 +1,4 @@
-package application;   // or whatever your main package is
+/*package application;   // or whatever your main package is
 
 import controllers.ReservationController;
 
@@ -32,3 +32,4 @@ public class Main {
         }
     }
 }
+*/

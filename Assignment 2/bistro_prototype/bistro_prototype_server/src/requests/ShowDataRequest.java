@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 public class ShowDataRequest implements Serializable{
 	
-	private CommandType commandType;
+	private  CommandType commandType;
 	
 	public ShowDataRequest(CommandType commandType) {
 		this.commandType = commandType;

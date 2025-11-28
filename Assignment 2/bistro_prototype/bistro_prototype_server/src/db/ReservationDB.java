@@ -19,10 +19,12 @@ public class ReservationDB {
 	//SELECT statements
 	private static final String SELECT_AllOrders = "SELECT * FROM `reservations`";
 	private static final String SELECT_OrdersByDate = "SELECT * FROM `reservations` WHERE reservationDate = ?";
-	private static final String SELECT_ByID = "SELECT 1 FROM `reservations` WHERE reservationID = ?";
+	private static final String SELECT_ByID = "SELECT COUNT(*) FROM reservations WHERE reservationID = ?";
+	private static final String SELECT_howManyUniqueCodes = "SELECT COUNT(*) FROM reservations WHERE confirmationCode = ?";
+	
 	// UPDATE statement
-	private static final String UPDATE_Guests_ByOrder = "UPDATE reservations SET numberOfGuests = ? WHERE reservationID = ?";
-	private static final String UPDATE_Date_ByOrder ="UPDATE `reservations` SET reservationDate = ? WHERE reservationID = ?";
+	private static final String UPDATE_reservationByConfirmationCode= "UPDATE reservations SET numberOfGuests = ?, reservationDate = ? WHERE confirmationCode = ?";
+	
 
 
 
@@ -69,33 +71,21 @@ public class ReservationDB {
 		}	
 	}
 	
-	public boolean updateNumberOfGuests(int orderNumber, int newGuestAmount) throws SQLException {
-	    try (Connection conn = dbManager.getConnection();
-	         PreparedStatement pstmt = conn.prepareStatement(UPDATE_Guests_ByOrder)) {
-
-	        pstmt.setInt(1, newGuestAmount);
-	        pstmt.setInt(2, orderNumber);
-
-	        int rows = pstmt.executeUpdate();
-	        return rows == 1;  // true only if exactly one row was updated
-	    } catch (SQLException e) {
-	        System.err.println("Database error: could not update number of guests");
-	        throw e;
-	    }
-	}
-	public boolean updateOrderDate(int orderNumber, Date newDate) throws SQLException {
-	    try (Connection conn = dbManager.getConnection();
-	         PreparedStatement pstmt = conn.prepareStatement(UPDATE_Date_ByOrder)) {
-
-	        pstmt.setDate(1, newDate);
-	        pstmt.setInt(2, orderNumber);
-
-	        int rows = pstmt.executeUpdate();
-	        return rows == 1;  // true only if exactly one row was updated
-	    } catch (SQLException e) {
-	        System.err.println("Database error: could not update number of guests");
-	        throw e;
-	    }
+	public boolean updateReservation(int newGuests,LocalDate newDate,int confirmationCode) throws SQLException{
+		java.sql.Date sqlReservationDate = java.sql.Date.valueOf(newDate);
+		
+		try {
+			Connection conn = dbManager.getConnection();
+			PreparedStatement pstmt = conn.prepareStatement(UPDATE_reservationByConfirmationCode);
+			pstmt.setInt(1, newGuests);
+			pstmt.setDate(2,sqlReservationDate);
+			pstmt.setInt(3, confirmationCode);
+			int isAffected = pstmt.executeUpdate();
+			return isAffected ==1;
+		}catch(SQLException e) {
+			System.err.println("Database error: could not edit new reservation");
+			throw e;
+		}
 	}
 
 	/**
@@ -183,17 +173,42 @@ public class ReservationDB {
 	 * @return true if the ID exists, false otherwise.
 	 * @throws SQLException if a database access error occurs.
 	 */
-	public boolean doesReservationIdExist(long id) throws SQLException {
-	    try (Connection conn = dbManager.getConnection();
-	         PreparedStatement pstmt = conn.prepareStatement(SELECT_ByID)) {
+	public boolean isReservationIdExist(int id) throws SQLException {
+	    try {
+	        Connection conn = dbManager.getConnection();
+	        PreparedStatement pstmt = conn.prepareStatement(SELECT_ByID);
+	        pstmt.setInt(1, id);
+	        ResultSet rs = pstmt.executeQuery();
 	        
-	        // ➡️ ACTION 3: Use setLong()
-	        pstmt.setLong(1, id); 
-	        
-	        try (ResultSet rs = pstmt.executeQuery()) {
-	            return rs.next(); // Returns true if a row was found
+	        if(rs.next()) {
+	        	int count = rs.getInt(1);
+	        	return count >0;
 	        }
+	       
+	    }catch(SQLException e) {
+	    	System.err.println("Database error counting unique reservationID");
+			throw e;
 	    }
+	    return false;
+	}
+	
+	public boolean isConfirmationCodeUsed(int confirmationCode) throws SQLException {
+		
+		try {
+			Connection conn = dbManager.getConnection();
+			PreparedStatement pstmt = conn.prepareStatement(SELECT_howManyUniqueCodes);
+			pstmt.setInt(1,confirmationCode);
+			ResultSet rs=pstmt.executeQuery();
+			
+			if(rs.next()) {
+				int count = rs.getInt(1);
+				return count >0;
+			}
+		}catch(SQLException e) {
+			System.err.println("Database error counting unique codes");
+			throw e;
+		}
+		return false;
 	}
 	
 }

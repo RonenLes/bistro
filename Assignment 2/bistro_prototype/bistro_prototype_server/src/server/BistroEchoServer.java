@@ -21,7 +21,7 @@ public class BistroEchoServer extends AbstractServer  {
 	protected void handleMessageFromClient(Object msg ,ConnectionToClient client) {
 		
 		
-		
+		//handles reservation request by the client 
 		if(msg instanceof ReservationRequest) {
 			ReservationRequest request = (ReservationRequest)msg;
 			
@@ -32,7 +32,13 @@ public class BistroEchoServer extends AbstractServer  {
 				client.sendToClient(response);
 			}catch(Exception e) {
 				System.err.println("Error with requesting new reservations");
-				client.sendToClient(new Error("Falied to complete reservation request"+client.getInetAddress().getHostAddress()));
+				try {
+					client.sendToClient(new Error("Falied to complete reservation request"+client.getInetAddress().getHostAddress()));
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					System.err.println("Error processing reservation");
+					e1.printStackTrace();
+				}
 			}
 		}
 		
@@ -44,7 +50,13 @@ public class BistroEchoServer extends AbstractServer  {
 				client.sendToClient(response);
 			}catch(Exception e) {
 				System.err.println("Error with requesting to edit reservation"+client.getInetAddress().getHostAddress());
-				client.sendToClient(new Error("Failed to edit reservation"));				
+				try {
+					client.sendToClient(new Error("Failed to edit reservation"));
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					System.err.println("Error processing editing reservation");
+					e1.printStackTrace();
+				}				
 			}
 		}
 		
@@ -52,16 +64,24 @@ public class BistroEchoServer extends AbstractServer  {
 			ShowDataRequest request = (ShowDataRequest)msg;
 			Object response;
 			try {
-				response = reservationController.fetchAllReservations();
-				client.sendToClient(response);
-			}catch(Exception e) {
-				errorMsg("Error requsting all reservations", "Failed to retrieve reservations", client);
+				if(request.getCommandType().equals("READ_ALL_EXISTING_RESERVATIONWS")) {
+					response = reservationController.fetchAllReservations();
+					client.sendToClient(response);
+				}
+				
+				if(request.getCommandType().equals("READ_RESERVATIONS_BY_DATE")) {
+					
+				}
+			}catch(IOException e) {
+				
 			}
+				
+						
 		}
 		
 	}
 	
-	private void errorMsg(String msg1,String msg2,ConnectionToClient client) throws Exception {
+	private void errorMsg(String msg1,String msg2,ConnectionToClient client) throws IOException {
 		System.err.println(msg1+client.getInetAddress().getHostAddress());
 		client.sendToClient(new Error(msg2));				
 	}

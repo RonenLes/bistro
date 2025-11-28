@@ -8,13 +8,13 @@ public class ReservationResponse implements Serializable {
 
 	private boolean isReservationSuccess;
 	private String msg;
-	private Reservation reservation;
+	private int code;
 	
 	
-	public ReservationResponse(boolean isReservationSuccess, String msg, Reservation reservation) {
+	public ReservationResponse(boolean isReservationSuccess, String msg, int code) {
 		this.isReservationSuccess= isReservationSuccess;
 		this.msg= msg;
-		this.reservation = reservation;
+		this.code = code;
 	}
 	
 	public boolean getIsReservationSuccess() {
@@ -26,6 +26,6 @@ public class ReservationResponse implements Serializable {
 	}
 	
 	public int getConfirmationCode() {
-		return this.reservation.getConfirmationCode();
+		return this.code;
 	}
 }

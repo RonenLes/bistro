@@ -1,0 +1,69 @@
+package server;
+
+import ocsf.server.*;
+import requests.EditReservationRequest;
+import requests.ReservationRequest;
+import requests.ShowDataRequest;
+
+import java.io.IOException;
+
+import controllers.ReservationController;
+
+public class BistroEchoServer extends AbstractServer  {
+	
+	private ReservationController reservationController;
+	
+	public BistroEchoServer(int port) {
+		super(port);
+	}
+	
+	@Override
+	protected void handleMessageFromClient(Object msg ,ConnectionToClient client) {
+		
+		
+		//handles reservation request by the client 
+		if(msg instanceof ReservationRequest) {
+			ReservationRequest request = (ReservationRequest)msg;
+			
+			Object response;
+			
+			try {
+				response = reservationController.addReservation(request);
+				client.sendToClient(response);
+			}catch(Exception e) {
+				System.err.println("Error with requesting new reservations");
+				client.sendToClient(new Error("Falied to complete reservation request"+client.getInetAddress().getHostAddress()));
+			}
+		}
+		
+		if(msg instanceof EditReservationRequest) {
+			EditReservationRequest request = (EditReservationRequest)msg;
+			Object response;
+			try {
+				response = reservationController.editReservation(request);
+				client.sendToClient(response);
+			}catch(Exception e) {
+				System.err.println("Error with requesting to edit reservation"+client.getInetAddress().getHostAddress());
+				client.sendToClient(new Error("Failed to edit reservation"));				
+			}
+		}
+		
+		if(msg instanceof ShowDataRequest) {
+			ShowDataRequest request = (ShowDataRequest)msg;
+			Object response;
+			if(request.getCommandType().equals("READ_ALL_EXISTING_RESERVATIONWS"))
+				try {
+					response = reservationController.fetchAllReservations();
+					client.sendToClient(response);
+				}catch(Exception e) {
+					errorMsg("Error requsting all reservations", "Failed to retrieve reservations", client);
+				}
+		}
+		
+	}
+	
+	private void errorMsg(String msg1,String msg2,ConnectionToClient client) throws Exception {
+		System.err.println(msg1+client.getInetAddress().getHostAddress());
+		client.sendToClient(new Error(msg2));				
+	}
+}

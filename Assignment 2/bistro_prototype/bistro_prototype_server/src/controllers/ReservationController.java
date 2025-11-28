@@ -2,6 +2,7 @@ package controllers;
 
 import db.ReservationDB;
 import entities.Reservation;
+import requests.EditReservationRequest;
 import requests.ReservationRequest;
 import responses.ReservationResponse;
 import responses.ShowDataResponse;
@@ -10,6 +11,7 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class ReservationController {
 
@@ -40,24 +42,84 @@ public class ReservationController {
                            
     }
 
- 
-    public boolean updateNumberOfGuests(int orderNumber, int newGuestAmount) {
-        try {
-            return reservationDB.updateNumberOfGuests(orderNumber, newGuestAmount);
-        } catch (SQLException e) {
-            return false;
-        }
+    
+    /**
+     * method receiving an existing confirmation code and update the fields of the reservation
+     * @param request
+     * @return ReservationResponse 
+     */
+    public ReservationResponse editReservation(EditReservationRequest request) {
+    	
+    	try {
+    		boolean isEdited = reservationDB.updateReservation(request.getDinersToChange(), request.getDateToChange(), request.getConfirmationCode());
+    		
+    		if(isEdited) {
+    			return new ReservationResponse(true, "successfully edited", request.getConfirmationCode());
+    		}else {
+    			return new ReservationResponse(false, "failed to edit", request.getConfirmationCode());
+    		}
+    	}catch(SQLException e) {
+    		System.err.println("failed editing reservation");
+    		return new ReservationResponse(false,"failed to interact with database when editing", -1);
+    	}
     }
-    public boolean updateOrderDate(int orderNumber, Date newDate) {
-        try {
-            return reservationDB.updateOrderDate(orderNumber, newDate);
-        } catch (SQLException e) {
-            return false;
-        }
+    
+    /**
+     * method to insert new order into the database based on the detail filled by the client in the ReservationRequest object
+     * 
+     * @param request 
+     * @return ReservationResponse object
+     * @throws SQLException
+     */
+    public ReservationResponse addReservation(ReservationRequest request) throws SQLException {
+    	
+    	int newId = generateReservationID();
+    	int newCode = generateConfirmationCode();
+    	
+    	try {
+    		boolean isInsertSuccess = reservationDB.insertNewReservation(newId
+    				, request.getDateofRequest(), request.getDinersCount(), newCode, request.getCustomerInfo(), request.getDateOfPlacingRequest());
+    		
+    		if(isInsertSuccess) {
+    			return new ReservationResponse(true, "Reservation is successful", newCode);
+    		}else {
+    			return new ReservationResponse(false, "Reservation failed", -1);
+    		}
+    	}catch(SQLException e) {
+    		System.err.println("failed adding new reservation");
+    		return new ReservationResponse(false,"failed to interact with database", -1);
+    	}    	   	        
     }
     
     
-    public ReservationResponse addReservation(ReservationRequest request) {
-        
+    /**
+     * method to generate a new unique code for addReservation to use
+     * @return confirmationCode
+     * @throws SQLException
+     */
+    private int generateConfirmationCode() throws SQLException {
+    	int code;
+    	
+    	do {
+    		Random rand = new Random();
+    		code = 100000 + rand.nextInt(900000);
+    	}while(reservationDB.isConfirmationCodeUsed(code));
+    	return code;
+    }
+    
+    
+    /**
+     * method to generate a new reservationID code for addReservation to use
+     * @return reservationID
+     * @throws SQLException
+     */
+    private int generateReservationID() throws SQLException {
+    	int id;
+    	
+    	do {
+    		Random rand = new Random();
+    		id = 100000 + rand.nextInt(900000);
+    	}while(reservationDB.isReservationIdExist(id));
+    	return id;
     }
 }

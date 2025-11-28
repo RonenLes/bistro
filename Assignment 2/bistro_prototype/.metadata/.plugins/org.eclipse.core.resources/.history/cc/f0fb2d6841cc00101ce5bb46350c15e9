@@ -1,0 +1,15 @@
+package common;
+
+import java.time.LocalDate;
+
+public class EditReservationRequest {
+
+	private int subscriberId;
+	private LocalDate dateToChange;
+	private int dinersChange;
+	private LocalDate dateWhenChanging;
+	
+	public EditReservationRequest(int subscriberId,LocalDate datoToChange,int dinersChange,LocalDate dateWhenChanging) {
+		
+	}
+}

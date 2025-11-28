@@ -1,0 +1,15 @@
+package common;
+
+public class ReservationResponse {
+
+	private boolean isReservationSuccess;
+	private String msg;
+	private int confirmationCode;
+	
+	
+	public ReservationResponse(boolean isReservationSuccess, String msg, int confirmationCode) {
+		this.isReservationSuccess= isReservationSuccess;
+		this.msg= msg;
+		this.confirmationCode=confirmationCode;
+	}
+}

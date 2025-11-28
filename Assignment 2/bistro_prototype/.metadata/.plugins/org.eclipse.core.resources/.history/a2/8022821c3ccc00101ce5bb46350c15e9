@@ -1,0 +1,22 @@
+package server;
+
+import ocsf.server.*;
+import common.*;
+
+public class BistroEchoServer extends AbstractServer  {
+	
+	
+	public BistroEchoServer(int port) {
+		super(port);
+	}
+	
+	@Override
+	protected void handleMessageFromClient(Object msg ,ConnectionToClient client) {
+		
+		if(msg instanceof ReservationRequest) {
+			ReservationRequest req = (ReservationRequest)msg;
+			
+		}
+		
+	}
+}

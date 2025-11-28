@@ -1,28 +1,34 @@
-/*
-package application;
-	
-import javafx.application.Application;
-import javafx.stage.Stage;
-import javafx.scene.Scene;
-import javafx.scene.layout.BorderPane;
+package application;   // or whatever your main package is
 
+import controllers.ReservationController;
 
-public class Main extends Application {
-	@Override
-	public void start(Stage primaryStage) {
-		try {
-			BorderPane root = new BorderPane();
-			Scene scene = new Scene(root,400,400);
-			scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
-			primaryStage.setScene(scene);
-			primaryStage.show();
-		} catch(Exception e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public static void main(String[] args) {
-		launch(args);
-	}
+import java.sql.Date;
+import java.sql.SQLException;
+
+public class Main {
+    public static void main(String[] args) {
+
+        ReservationController controller = new ReservationController();
+
+        try {
+            System.out.println("=== BEFORE UPDATE ===");
+            controller.printDB();
+
+            int orderNumber = 1;          // <-- put an existing reservationID here
+            int newGuests   = 5;
+            Date newDate    = Date.valueOf("2025-01-30"); // yyyy-MM-dd
+
+            boolean guestsOk = controller.updateNumberOfGuests(orderNumber, newGuests);
+            System.out.println("Update guests result: " + guestsOk);
+
+            boolean dateOk = controller.updateOrderDate(orderNumber, newDate);
+            System.out.println("Update date result: " + dateOk);
+
+            System.out.println("\n=== AFTER UPDATE ===");
+            controller.printDB();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }
-*/

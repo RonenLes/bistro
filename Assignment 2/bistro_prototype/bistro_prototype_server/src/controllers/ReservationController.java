@@ -2,6 +2,9 @@ package controllers;
 
 import db.ReservationDB;
 import entities.Reservation;
+import requests.ReservationRequest;
+import responses.ReservationResponse;
+import responses.ShowDataResponse;
 
 import java.sql.Date;
 import java.sql.SQLException;
@@ -19,22 +22,22 @@ public class ReservationController {
     	reservationDB = new ReservationDB();
     }
 
-    // Print all reservations from DB
-    public void printDB() throws SQLException {
+    /**
+     * server uses this method to read all the reservations and send them to the client as an object
+     * containing all information  
+     * @return ShowDataResponse object 
+     */
+    public ShowDataResponse fetchAllReservations()  {
         List<Reservation> reservationsList = new ArrayList<>();
-        reservationsList = this.reservationDB.readAllReservations();
-
-        for (Reservation res : reservationsList) {
-            System.out.printf(
-                    "Reservation ID: %d | Arrival: %s | Guests: %d | Confirmation: %d | Subscriber: %d | Placed On: %s%n",
-                    res.getReservationID(),
-                    res.getReservationDate(),
-                    res.getNumberOfGuests(),
-                    res.getConfirmationCode(),
-                    res.getSubscriberId(),
-                    res.getDateOfPlacingOrder()
-            );
+        
+        try {
+        	reservationsList = this.reservationDB.readAllReservations();
+        	return new ShowDataResponse(true, reservationsList, "Successfully fetched " + reservationsList.size() + " Reservations.");
+        }catch(SQLException e) {
+        	System.err.println("Database error: failed to fetch all reservations");
+        	return new ShowDataResponse(false, null, "Database Error: Could not load reservation list.");
         }
+                           
     }
 
  
@@ -52,31 +55,9 @@ public class ReservationController {
             return false;
         }
     }
-    /**
-     * Adds a reservation to the database.
-     * (You can call checkReservation(reservation) here if you want to validate first)
-     */
-    public boolean addReservation(Reservation reservation) {
-        try {
-            boolean inserted = reservationDB.insertNewReservation(
-                    reservation.getReservationID(),
-                    reservation.getReservationDate(),
-                    reservation.getNumberOfGuests(),
-                    reservation.getConfirmationCode(),
-                    reservation.getSubscriberId(),
-                    reservation.getDateOfPlacingOrder()
-            );
-
-            if (!inserted) {
-                System.err.println("Insert failed – no row affected.");
-            }
-
-            return inserted;
-
-        } catch (SQLException e) {
-            System.err.println("Database error while inserting reservation:");
-            e.printStackTrace();
-            return false;
-        }
+    
+    
+    public ReservationResponse addReservation(ReservationRequest request) {
+        
     }
 }

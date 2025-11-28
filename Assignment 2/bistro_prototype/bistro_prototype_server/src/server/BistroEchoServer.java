@@ -3,6 +3,9 @@ package server;
 import ocsf.server.*;
 import requests.EditReservationRequest;
 import requests.ReservationRequest;
+import requests.ShowDataRequest;
+
+import java.io.IOException;
 
 import controllers.ReservationController;
 
@@ -45,9 +48,21 @@ public class BistroEchoServer extends AbstractServer  {
 			}
 		}
 		
-		if(msg )
+		if(msg instanceof ShowDataRequest) {
+			ShowDataRequest request = (ShowDataRequest)msg;
+			Object response;
+			try {
+				response = reservationController.fetchAllReservations();
+				client.sendToClient(response);
+			}catch(Exception e) {
+				errorMsg("Error requsting all reservations", "Failed to retrieve reservations", client);
+			}
+		}
 		
 	}
 	
-	
+	private void errorMsg(String msg1,String msg2,ConnectionToClient client) throws Exception {
+		System.err.println(msg1+client.getInetAddress().getHostAddress());
+		client.sendToClient(new Error(msg2));				
+	}
 }

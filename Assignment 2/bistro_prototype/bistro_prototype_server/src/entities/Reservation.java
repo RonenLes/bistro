@@ -5,7 +5,7 @@ import java.time.LocalDate;
 
 public class Reservation implements Serializable{
 	
-	private int reservationID;
+	private long reservationID;
 	private LocalDate reservationDate;
 	private int numberOfGuests;
 	private int confirmationCode;

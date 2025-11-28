@@ -19,7 +19,13 @@ public class ReservationDB {
 	//SELECT statements
 	private static final String SELECT_AllOrders = "SELECT * FROM `reservations`";
 	private static final String SELECT_OrdersByDate = "SELECT * FROM `reservations` WHERE reservationDate = ?";
-	
+	// UPDATE statement
+	// UPDATE statement
+	private static final String UPDATE_Guests_ByOrder = "UPDATE reservations SET numberOfGuests = ? WHERE reservationID = ?";
+	private static final String UPDATE_Date_ByOrder ="UPDATE `reservations` SET reservationDate = ? WHERE reservationID = ?";
+
+
+
 	public ReservationDB() {
 		this.dbManager = DBManager.getInstance();
 	}
@@ -62,7 +68,35 @@ public class ReservationDB {
 		}	
 	}
 	
-	
+	public boolean updateNumberOfGuests(int orderNumber, int newGuestAmount) throws SQLException {
+	    try (Connection conn = dbManager.getConnection();
+	         PreparedStatement pstmt = conn.prepareStatement(UPDATE_Guests_ByOrder)) {
+
+	        pstmt.setInt(1, newGuestAmount);
+	        pstmt.setInt(2, orderNumber);
+
+	        int rows = pstmt.executeUpdate();
+	        return rows == 1;  // true only if exactly one row was updated
+	    } catch (SQLException e) {
+	        System.err.println("Database error: could not update number of guests");
+	        throw e;
+	    }
+	}
+	public boolean updateOrderDate(int orderNumber, Date newDate) throws SQLException {
+	    try (Connection conn = dbManager.getConnection();
+	         PreparedStatement pstmt = conn.prepareStatement(UPDATE_Date_ByOrder)) {
+
+	        pstmt.setDate(1, newDate);
+	        pstmt.setInt(2, orderNumber);
+
+	        int rows = pstmt.executeUpdate();
+	        return rows == 1;  // true only if exactly one row was updated
+	    } catch (SQLException e) {
+	        System.err.println("Database error: could not update number of guests");
+	        throw e;
+	    }
+	}
+
 	/**
 	 * method to read all the reservations in the data base and put them in a list for ReservaionControl
 	 * @return list of all existing reservations

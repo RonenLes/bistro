@@ -71,4 +71,14 @@ public class Reservation implements Serializable{
 	public void setDateOfPlacingOrder(LocalDate date) {
 		this.dateOfPlacingOrder=date;
 	}
+	
+	//toString
+	public String toString() {
+		return "reservationID: " + reservationID +
+				" reservation date: " + reservationDate.toString() + 
+				" number of guests: " + numberOfGuests +
+				" confrimation code: " + confirmationCode + 
+				" subscriber id: " + subscriberId +
+				" date of placing the order: " + dateOfPlacingOrder.toString();
+	}
 }

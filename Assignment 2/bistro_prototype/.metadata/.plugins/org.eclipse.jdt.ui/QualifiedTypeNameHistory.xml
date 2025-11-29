@@ -22,10 +22,11 @@
     <fullyQualifiedTypeName name="java.io.Serializable"/>
     <fullyQualifiedTypeName name="java.util.Random"/>
     <fullyQualifiedTypeName name="requests.EditReservationRequest"/>
-    <fullyQualifiedTypeName name="java.sql.PreparedStatement"/>
-    <fullyQualifiedTypeName name="java.sql.SQLException"/>
     <fullyQualifiedTypeName name="java.io.IOException"/>
     <fullyQualifiedTypeName name="responses.ShowDataResponse"/>
     <fullyQualifiedTypeName name="responses.ReservationResponse"/>
     <fullyQualifiedTypeName name="entities.Reservation"/>
+    <fullyQualifiedTypeName name="java.sql.PreparedStatement"/>
+    <fullyQualifiedTypeName name="java.sql.SQLException"/>
+    <fullyQualifiedTypeName name="requests.CommandType"/>
 </qualifiedTypeNameHistroy>

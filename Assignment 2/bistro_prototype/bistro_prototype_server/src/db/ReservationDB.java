@@ -17,8 +17,7 @@ public class ReservationDB {
 														"VALUES (?, ?, ?, ?, ?, ?)";
 	
 	//SELECT statements
-	private static final String SELECT_AllOrders = "SELECT * FROM `reservations`";
-	private static final String SELECT_OrdersByDate = "SELECT * FROM `reservations` WHERE reservationDate = ?";
+	private static final String SELECT_AllOrders = "SELECT * FROM `reservations`";	
 	private static final String SELECT_ByID = "SELECT COUNT(*) FROM reservations WHERE reservationID = ?";
 	private static final String SELECT_howManyUniqueCodes = "SELECT COUNT(*) FROM reservations WHERE confirmationCode = ?";
 	private static final String SELECT_reservationByConfirmationCode = "SELECT * FROM reservations WHERE confirmationCode = ?";
@@ -125,52 +124,7 @@ public class ReservationDB {
 		}
 		return reservationsList;
 	}
-	
-	/**
-	 * 
-	 * @param date of the desired reservation
-	 * @return list of reservation of the desired date
-	 * @throws SQLException
-	 */
-	
-	/*
-	public List<Reservation> readReservationsByDate(Date date) throws SQLException{
-		
-		List<Reservation> reservationsList = new ArrayList<>();
-		
-		try {
 			
-			Connection conn = dbManager.getConnection();
-			PreparedStatement pstmt = conn.prepareStatement(SELECT_OrdersByDate);
-			pstmt.setDate(1, date);
-			ResultSet rs = pstmt.executeQuery();
-			
-			while(rs.next()) {
-				
-				java.sql.Date sqlReservationDate = rs.getDate("reservationDate");
-				java.sql.Date sqlPlacingReservationDate = rs.getDate("dateOfPlacingOrder");
-				
-				Reservation res = new Reservation(
-						rs.getInt("reservationID"),
-						sqlReservationDate.toLocalDate(),
-						rs.getInt("numberOfGuests"),
-						rs.getInt("confirmationCode"),
-						rs.getInt("subscriberId"),
-						sqlPlacingReservationDate.toLocalDate()
-				);
-				
-				reservationsList.add(res);
-			}			
-			
-		}catch(SQLException e) {
-			System.err.println("Database error: could not fetch orders by date");
-			throw e;
-		}
-		
-		return reservationsList;
-	}
-	*/
-	
 	/**
 	 * Checks the database to see if a given reservationID already exists.
 	 * @param id The 10-digit ID to check (long).
@@ -215,8 +169,33 @@ public class ReservationDB {
 		return false;
 	}
 	
-	public Reservation findReservationByCode(int confirmationCode) {
-		
-	}
-	
+	/**
+	 * method to finidng specific 
+	 * @param confirmationCode
+	 * @return Reservation object
+	 * @throws SQLException
+	 */
+	public Reservation findReservationByCode(int confirmationCode) throws SQLException {
+		Reservation reservation = null;
+		try {
+			Connection conn = dbManager.getConnection();
+			PreparedStatement pstmt = conn.prepareStatement(SELECT_reservationByConfirmationCode);
+			pstmt.setInt(1, confirmationCode);
+			ResultSet rs = pstmt.executeQuery();
+			
+			if(rs.next()) {
+				 reservation= new Reservation(
+						rs.getInt("reservationID"),
+						rs.getDate("reservationDate").toLocalDate(),
+						rs.getInt("numberOfGuests"),
+						rs.getInt("confirmationCode"),
+						rs.getInt("subscriberId"),
+						rs.getDate("dateOfPlacingOrder").toLocalDate());
+			}
+		}catch(SQLException e) {
+			System.err.println("Database error Could not find reservation by code");
+			throw e;
+		}
+		return reservation;
+	}		
 }

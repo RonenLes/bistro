@@ -20,7 +20,7 @@ public class ReservationController {
    private ReservationDB reservationDB;
 	
     
-    private ReservationController() {
+    public ReservationController() {
     	reservationDB = new ReservationDB();
     }
 
@@ -38,13 +38,25 @@ public class ReservationController {
         }catch(SQLException e) {
         	System.err.println("Database error: failed to fetch all reservations");
         	return new ShowDataResponse(false, null, "Database Error: Could not load reservation list.");
-        }
-                           
+        }                           
     }
     
+    /**
+     * method to fetch specific reservation with confirmation code
+     * @param confrimationCode
+     * @return ShowDataResponse
+     */
     public ShowDataResponse fetchReservationsByConfirmationCode(int confrimationCode) {
+    	List<Reservation> reservationsList = new ArrayList<>();
     	
-    	Reservation
+    	try {
+			Reservation r = reservationDB.findReservationByCode(confrimationCode);
+			reservationsList.add(r);
+			return new ShowDataResponse(true,reservationsList,"Successfully fetched the reservation");
+		} catch (SQLException e) {
+			System.err.println("Database error: failed to fetch all reservations");
+        	return new ShowDataResponse(false, reservationsList , "Database Error: Could not load reservation.");
+		}
     	
     }
 

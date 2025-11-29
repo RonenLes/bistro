@@ -5,12 +5,18 @@ import java.io.Serializable;
 public class ShowDataRequest implements Serializable{
 	
 	private  CommandType commandType;
+	private int confirmationCode;
 	
-	public ShowDataRequest(CommandType commandType) {
+	public ShowDataRequest(CommandType commandType,int confirmationCode) {
 		this.commandType = commandType;
+		this.confirmationCode = confirmationCode;
 	}
 	
 	public CommandType getCommandType() {
 		return this.commandType;
+	}
+	
+	public int getCode() {
+		return this.confirmationCode;
 	}
 }

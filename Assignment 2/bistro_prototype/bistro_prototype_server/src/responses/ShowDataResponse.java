@@ -13,11 +13,13 @@ public class ShowDataResponse implements Serializable{
 	private List<Reservation> reservationList;
 	private String msg;
 	
-	public ShowDataResponse(boolean isSuccess, List reservationList,String msg) {
+	public ShowDataResponse(boolean isSuccess, List<Reservation> reservationList,String msg) {
 		this.isSuccess = isSuccess;
 		this.reservationList = reservationList;
 		this.msg=msg;		
 	}
+	
+	
 	
 	public boolean getIsSuccess() {
 		return this.isSuccess;

@@ -1,6 +1,7 @@
 package server;
 
 import ocsf.server.*;
+import requests.CommandType;
 import requests.EditReservationRequest;
 import requests.ReservationRequest;
 import requests.ShowDataRequest;
@@ -21,7 +22,7 @@ public class BistroEchoServer extends AbstractServer  {
 	protected void handleMessageFromClient(Object msg ,ConnectionToClient client) {
 		
 		
-		//handles reservation request by the client 
+		//handles reservation request by the client with a specific button
 		if(msg instanceof ReservationRequest) {
 			ReservationRequest request = (ReservationRequest)msg;
 			
@@ -42,6 +43,7 @@ public class BistroEchoServer extends AbstractServer  {
 			}
 		}
 		
+		//when on edit page after the user entered confirmation code and the desired reservation was presented this method will be used 
 		if(msg instanceof EditReservationRequest) {
 			EditReservationRequest request = (EditReservationRequest)msg;
 			Object response;
@@ -60,26 +62,31 @@ public class BistroEchoServer extends AbstractServer  {
 			}
 		}
 		
+		//request that shows any data 
 		if(msg instanceof ShowDataRequest) {
-			ShowDataRequest request = (ShowDataRequest)msg;
+			ShowDataRequest request = (ShowDataRequest)msg;			
 			Object response;
+			
 			try {
-				if(request.getCommandType().equals("READ_ALL_EXISTING_RESERVATIONWS")) {
+				//show all existing reservations only for show for the grade
+				if(request.getCommandType().equals(CommandType.READ_ALL_EXISTING_RESERVATIONWS)) {
 					response = reservationController.fetchAllReservations();
 					client.sendToClient(response);
 				}
 				
-				if(request.getCommandType().equals("READ_RESERVATIONS_BY_DATE_AND_CODE")) {
-					response = reservationController.fetchReservationsByConfirmationCode(int confirmationCode);
+				//show the reservation by confirmation code so the user can edit
+				if(request.getCommandType().equals(CommandType.READ_RESERVATIONS_BY_CODE)) {
+					
+					response = reservationController.fetchReservationsByConfirmationCode(request.getCode());
 				}
 			}catch(IOException e) {
-				
-			}
-				
-						
-		}
-		
+				System.err.println("Error processing editing reservation");
+				e.printStackTrace();
+			}										
+		}		
 	}
+	
+	
 	
 	
 }

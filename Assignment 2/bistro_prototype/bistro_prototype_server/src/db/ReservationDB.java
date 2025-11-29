@@ -21,6 +21,7 @@ public class ReservationDB {
 	private static final String SELECT_OrdersByDate = "SELECT * FROM `reservations` WHERE reservationDate = ?";
 	private static final String SELECT_ByID = "SELECT COUNT(*) FROM reservations WHERE reservationID = ?";
 	private static final String SELECT_howManyUniqueCodes = "SELECT COUNT(*) FROM reservations WHERE confirmationCode = ?";
+	private static final String SELECT_reservationByConfirmationCode = "SELECT * FROM reservations WHERE confirmationCode = ?";
 	
 	// UPDATE statement
 	private static final String UPDATE_reservationByConfirmationCode= "UPDATE reservations SET numberOfGuests = ?, reservationDate = ? WHERE confirmationCode = ?";
@@ -131,6 +132,8 @@ public class ReservationDB {
 	 * @return list of reservation of the desired date
 	 * @throws SQLException
 	 */
+	
+	/*
 	public List<Reservation> readReservationsByDate(Date date) throws SQLException{
 		
 		List<Reservation> reservationsList = new ArrayList<>();
@@ -166,6 +169,7 @@ public class ReservationDB {
 		
 		return reservationsList;
 	}
+	*/
 	
 	/**
 	 * Checks the database to see if a given reservationID already exists.
@@ -209,6 +213,10 @@ public class ReservationDB {
 			throw e;
 		}
 		return false;
+	}
+	
+	public Reservation findReservationByCode(int confirmationCode) {
+		
 	}
 	
 }

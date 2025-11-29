@@ -9,8 +9,8 @@ dbDetails.properties
 # 2. ECLIPSE AND BUILD OUTPUT FILES
 # -------------------------------------
 # Eclipse project metadata files (often committed by mistake)
-.project
-.classpath
+
+
 .settings/
 
 # Compilation output folder (MUST be ignored)

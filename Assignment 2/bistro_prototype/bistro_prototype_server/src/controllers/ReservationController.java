@@ -41,6 +41,12 @@ public class ReservationController {
         }
                            
     }
+    
+    public ShowDataResponse fetchReservationsByConfirmationCode(int confrimationCode) {
+    	
+    	Reservation
+    	
+    }
 
     
     /**

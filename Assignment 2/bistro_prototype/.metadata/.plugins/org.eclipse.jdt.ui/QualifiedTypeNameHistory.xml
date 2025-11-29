@@ -18,13 +18,14 @@
     <fullyQualifiedTypeName name="java.lang.Error"/>
     <fullyQualifiedTypeName name="java.time.LocalDate"/>
     <fullyQualifiedTypeName name="common.EditReservationRequest"/>
-    <fullyQualifiedTypeName name="entities.Reservation"/>
     <fullyQualifiedTypeName name="com.mysql.cj.protocol.ServerCapabilities"/>
     <fullyQualifiedTypeName name="java.io.Serializable"/>
     <fullyQualifiedTypeName name="java.util.Random"/>
     <fullyQualifiedTypeName name="requests.EditReservationRequest"/>
     <fullyQualifiedTypeName name="java.sql.PreparedStatement"/>
-    <fullyQualifiedTypeName name="responses.ReservationResponse"/>
     <fullyQualifiedTypeName name="java.sql.SQLException"/>
     <fullyQualifiedTypeName name="java.io.IOException"/>
+    <fullyQualifiedTypeName name="responses.ShowDataResponse"/>
+    <fullyQualifiedTypeName name="responses.ReservationResponse"/>
+    <fullyQualifiedTypeName name="entities.Reservation"/>
 </qualifiedTypeNameHistroy>

@@ -69,8 +69,8 @@ public class BistroEchoServer extends AbstractServer  {
 					client.sendToClient(response);
 				}
 				
-				if(request.getCommandType().equals("READ_RESERVATIONS_BY_DATE")) {
-					
+				if(request.getCommandType().equals("READ_RESERVATIONS_BY_DATE_AND_CODE")) {
+					response = reservationController.fetchReservationsByConfirmationCode(int confirmationCode);
 				}
 			}catch(IOException e) {
 				
@@ -81,8 +81,5 @@ public class BistroEchoServer extends AbstractServer  {
 		
 	}
 	
-	private void errorMsg(String msg1,String msg2,ConnectionToClient client) throws IOException {
-		System.err.println(msg1+client.getInetAddress().getHostAddress());
-		client.sendToClient(new Error(msg2));				
-	}
+	
 }

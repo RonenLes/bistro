@@ -1,52 +1,27 @@
-/bin/
+# -------------------------------------
+# 1. SECRETS AND CONFIGURATION (Mandatory)
+# -------------------------------------
+# Exclude the file containing the DB password
 dbDetails.properties
-##############################
-## Eclipse/IDE Settings
-##############################
-# Ignore the IDE's project metadata files, but keep the .project and .classpath if needed for simple project import
-# .project      # Keep this if you want to easily import the project
-# .classpath    # Keep this if you want to easily import the project
-.settings/      # Contains local IDE settings that should not be shared
-.metadata/      # The workspace metadata (must be ignored)
+*.env
 
-##############################
-## Compiled and Generated Files
-##############################
-# Standard output folder for compiled .class files in Eclipse
-bin/
-# Other build/output folders (if you were using build tools like Maven/Gradle)
-# target/
-# build/
+# -------------------------------------
+# 2. ECLIPSE AND BUILD OUTPUT FILES
+# -------------------------------------
+# Eclipse project metadata files (often committed by mistake)
+.project
+.classpath
+.settings/
 
-# Compiled Java class files
-*.class
+# Compilation output folder (MUST be ignored)
+/bin/ 
 
-# Packaged files (JARs, WARs, etc.)
+# Final compiled application files (JARs)
 *.jar
 *.war
-*.ear
+*.zip
 
-# Virtual machine crash logs
-hs_err_pid*
-
-##############################
-## Local/Temporary Files
-##############################
-# Temporary Eclipse/IDE files
-tmp/
-*.tmp
-*.bak
-*.swp
-*.log
-local.properties
-.loadpath
-
-##############################
-## OS Files
-##############################
-# macOS files
-.DS_Store
-
-# Windows files
-Thumbs.db
-Desktop.ini
+# -------------------------------------
+# 3. EXTERNAL LIBRARIES AND RESOURCES
+# -------------------------------------
+# Exclude the physical folder where external JARs are stored

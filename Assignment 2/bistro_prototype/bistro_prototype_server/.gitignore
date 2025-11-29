@@ -16,6 +16,8 @@ dbDetails.properties
 # Compilation output folder (MUST be ignored)
 /bin/ 
 .classpath
+.project
+
 # Final compiled application files (JARs)
 *.jar
 *.war

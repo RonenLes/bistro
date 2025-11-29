@@ -17,7 +17,7 @@ public class ReservationRequest implements Serializable{
 		this.dateOfplacingRequest = LocalDate.now();
 	}
 	
-	public int getCustomerInfo() {
+	public int getSubscriberId() {
 		return this.subscriberId;
 	}
 	

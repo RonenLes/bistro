@@ -21,7 +21,7 @@ public class ReservationResponse implements Serializable {
 		return this.isReservationSuccess;
 	}
 	
-	public String msg() {
+	public String getMsg() {
 		return this.msg;
 	}
 	

@@ -50,10 +50,10 @@ public class ReservationDB {
 		java.sql.Date sqlReservationDate = java.sql.Date.valueOf(reservationDate);
 		java.sql.Date sqlPlacingReservationDate = java.sql.Date.valueOf(dateOfPlacingOrder);
 		
-		try {
+		try (
 			Connection conn = dbManager.getConnection();
-			PreparedStatement pstmt = conn.prepareStatement(INSERT_newReservation);
-			
+			PreparedStatement pstmt = conn.prepareStatement(INSERT_newReservation))
+		{
 			//insert the details we got from control into statement
 			pstmt.setLong(1, reservationID);
 			pstmt.setDate(2,sqlReservationDate);
@@ -74,9 +74,9 @@ public class ReservationDB {
 	public boolean updateReservation(int newGuests,LocalDate newDate,int confirmationCode) throws SQLException{
 		java.sql.Date sqlReservationDate = java.sql.Date.valueOf(newDate);
 		
-		try {
-			Connection conn = dbManager.getConnection();
-			PreparedStatement pstmt = conn.prepareStatement(UPDATE_reservationByConfirmationCode);
+		try (Connection conn = dbManager.getConnection();
+			PreparedStatement pstmt = conn.prepareStatement(UPDATE_reservationByConfirmationCode))			
+			{
 			pstmt.setInt(1, newGuests);
 			pstmt.setDate(2,sqlReservationDate);
 			pstmt.setInt(3, confirmationCode);
@@ -97,10 +97,11 @@ public class ReservationDB {
 		
 		List<Reservation> reservationsList = new ArrayList<>();
 		
-		try {
-			Connection conn = dbManager.getConnection();
+		try (Connection conn = dbManager.getConnection();
 			Statement stmt = conn.createStatement();
-			ResultSet rs = stmt.executeQuery(SELECT_AllOrders);
+			ResultSet rs = stmt.executeQuery(SELECT_AllOrders);)			
+			{
+		
 			
 			while(rs.next()) {
 				
@@ -132,9 +133,9 @@ public class ReservationDB {
 	 * @throws SQLException if a database access error occurs.
 	 */
 	public boolean isReservationIdExist(int id) throws SQLException {
-	    try {
-	        Connection conn = dbManager.getConnection();
-	        PreparedStatement pstmt = conn.prepareStatement(SELECT_ByID);
+	    try (Connection conn = dbManager.getConnection();
+	        PreparedStatement pstmt = conn.prepareStatement(SELECT_ByID))	        
+	        {
 	        pstmt.setInt(1, id);
 	        ResultSet rs = pstmt.executeQuery();
 	        
@@ -152,9 +153,9 @@ public class ReservationDB {
 	
 	public boolean isConfirmationCodeUsed(int confirmationCode) throws SQLException {
 		
-		try {
-			Connection conn = dbManager.getConnection();
-			PreparedStatement pstmt = conn.prepareStatement(SELECT_howManyUniqueCodes);
+		try (Connection conn = dbManager.getConnection();
+			PreparedStatement pstmt = conn.prepareStatement(SELECT_howManyUniqueCodes))			
+			{
 			pstmt.setInt(1,confirmationCode);
 			ResultSet rs=pstmt.executeQuery();
 			
@@ -177,9 +178,9 @@ public class ReservationDB {
 	 */
 	public Reservation findReservationByCode(int confirmationCode) throws SQLException {
 		Reservation reservation = null;
-		try {
-			Connection conn = dbManager.getConnection();
-			PreparedStatement pstmt = conn.prepareStatement(SELECT_reservationByConfirmationCode);
+		try (Connection conn = dbManager.getConnection();
+			PreparedStatement pstmt = conn.prepareStatement(SELECT_reservationByConfirmationCode))			
+			{
 			pstmt.setInt(1, confirmationCode);
 			ResultSet rs = pstmt.executeQuery();
 			

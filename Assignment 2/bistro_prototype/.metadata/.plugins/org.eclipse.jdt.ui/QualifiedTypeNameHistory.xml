@@ -19,7 +19,6 @@
     <fullyQualifiedTypeName name="java.time.LocalDate"/>
     <fullyQualifiedTypeName name="common.EditReservationRequest"/>
     <fullyQualifiedTypeName name="com.mysql.cj.protocol.ServerCapabilities"/>
-    <fullyQualifiedTypeName name="java.io.Serializable"/>
     <fullyQualifiedTypeName name="java.util.Random"/>
     <fullyQualifiedTypeName name="requests.EditReservationRequest"/>
     <fullyQualifiedTypeName name="java.io.IOException"/>
@@ -29,4 +28,8 @@
     <fullyQualifiedTypeName name="java.sql.PreparedStatement"/>
     <fullyQualifiedTypeName name="java.sql.SQLException"/>
     <fullyQualifiedTypeName name="requests.CommandType"/>
+    <fullyQualifiedTypeName name="java.util.Collection"/>
+    <fullyQualifiedTypeName name="controllers.ReservationController"/>
+    <fullyQualifiedTypeName name="java.io.Serializable"/>
+    <fullyQualifiedTypeName name="responses.ErrorResponse"/>
 </qualifiedTypeNameHistroy>

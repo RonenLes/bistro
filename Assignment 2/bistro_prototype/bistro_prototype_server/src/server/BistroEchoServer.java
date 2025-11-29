@@ -2,9 +2,10 @@ package server;
 
 import ocsf.server.*;
 import requests.CommandType;
-import requests.EditReservationRequest;
-import requests.ReservationRequest;
-import requests.ShowDataRequest;
+import requests.*;
+import responses.ErrorResponse;
+
+
 
 import java.io.IOException;
 
@@ -16,6 +17,7 @@ public class BistroEchoServer extends AbstractServer  {
 	
 	public BistroEchoServer(int port) {
 		super(port);
+		reservationController = new ReservationController();
 	}
 	
 	@Override
@@ -34,7 +36,7 @@ public class BistroEchoServer extends AbstractServer  {
 			}catch(Exception e) {
 				System.err.println("Error with requesting new reservations");
 				try {
-					client.sendToClient(new Error("Falied to complete reservation request"+client.getInetAddress().getHostAddress()));
+					client.sendToClient(new ErrorResponse("Falied to complete reservation request"+client.getInetAddress().getHostAddress()));
 				} catch (IOException e1) {
 					// TODO Auto-generated catch block
 					System.err.println("Error processing reservation");
@@ -53,10 +55,10 @@ public class BistroEchoServer extends AbstractServer  {
 			}catch(Exception e) {
 				System.err.println("Error with requesting to edit reservation"+client.getInetAddress().getHostAddress());
 				try {
-					client.sendToClient(new Error("Failed to edit reservation"));
+					client.sendToClient(new ErrorResponse("Failed to edit reservation"));
 				} catch (IOException e1) {
 					// TODO Auto-generated catch block
-					System.err.println("Error processing editing reservation");
+					System.err.println("Error sending edit error to client");
 					e1.printStackTrace();
 				}				
 			}
@@ -69,19 +71,24 @@ public class BistroEchoServer extends AbstractServer  {
 			
 			try {
 				//show all existing reservations only for show for the grade
-				if(request.getCommandType().equals(CommandType.READ_ALL_EXISTING_RESERVATIONWS)) {
+				if(request.getCommandType()==CommandType.READ_ALL_EXISTING_RESERVATIONWS) {
 					response = reservationController.fetchAllReservations();
 					client.sendToClient(response);
 				}
 				
 				//show the reservation by confirmation code so the user can edit
-				if(request.getCommandType().equals(CommandType.READ_RESERVATIONS_BY_CODE)) {
+				if(request.getCommandType() == CommandType.READ_RESERVATIONS_BY_CODE) {
 					
 					response = reservationController.fetchReservationsByConfirmationCode(request.getCode());
 				}
 			}catch(IOException e) {
-				System.err.println("Error processing editing reservation");
-				e.printStackTrace();
+				System.err.println("Error showing reservations by code");
+				try {
+					client.sendToClient(new ErrorResponse("Cant fetch reservation"));
+				} catch (IOException e1) {
+					System.err.println("Failed to send client an error object");
+					e1.printStackTrace();
+				}
 			}										
 		}		
 	}

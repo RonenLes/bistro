@@ -5,12 +5,12 @@ import java.time.LocalDate;
 
 public class Reservation implements Serializable{
 	
-	private long reservationID;
+	private final int reservationID;
 	private LocalDate reservationDate;
 	private int numberOfGuests;
-	private int confirmationCode;
+	private final int confirmationCode;
 	private int subscriberId;
-	private LocalDate dateOfPlacingOrder;
+	private final LocalDate dateOfPlacingOrder;
 	
 	public Reservation(int reservationID,LocalDate reservationDate,int numberOfGuests,int confirmationCode,int subscriberId,LocalDate dateOfPlacingOrder) {
 		this.reservationID = reservationID;
@@ -23,7 +23,7 @@ public class Reservation implements Serializable{
 	
 	
 	//getters----------------------------------------------------------------
-	public long getReservationID() {
+	public int getReservationID() {
 		return this.reservationID;
 	}
 	
@@ -48,9 +48,7 @@ public class Reservation implements Serializable{
 	}
 	
 	//setters------------------------------------------------------------------
-	public void setReservationID(long id) {
-		this.reservationID=id;
-	}
+	
 	
 	public void setReservationDate(LocalDate date) {
 		this.reservationDate=date;
@@ -60,17 +58,13 @@ public class Reservation implements Serializable{
 		this.numberOfGuests=guests;
 	}
 	
-	public void setConfirmationCode(int code) {
-		this.confirmationCode=code;
-	}
+	
 	
 	public void setSubscriberId(int id) {
 		this.subscriberId=id;
 	}
 	
-	public void setDateOfPlacingOrder(LocalDate date) {
-		this.dateOfPlacingOrder=date;
-	}
+	
 	
 	//toString
 	public String toString() {

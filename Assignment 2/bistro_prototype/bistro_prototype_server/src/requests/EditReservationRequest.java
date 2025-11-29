@@ -8,11 +8,11 @@ public class EditReservationRequest implements Serializable {
 	private int confirmationCode;
 	private LocalDate dateToChange;
 	private int dinersToChange;
-	private LocalDate dateWhenChanging;
+	private final LocalDate dateWhenChanging;
 	
-	public EditReservationRequest(int confirmationCode,LocalDate datoToChange,int dinersToChange) {
+	public EditReservationRequest(int confirmationCode,LocalDate dateToChange,int dinersToChange) {
 		this.confirmationCode = confirmationCode;
-		this.dateToChange = datoToChange;
+		this.dateToChange = dateToChange;
 		this.dinersToChange = dinersToChange;
 		this.dateWhenChanging = LocalDate.now();
 	}

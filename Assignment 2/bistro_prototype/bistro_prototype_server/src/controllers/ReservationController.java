@@ -29,10 +29,9 @@ public class ReservationController {
      * containing all information  
      * @return ShowDataResponse object 
      */
-    public ShowDataResponse fetchAllReservations()  {
-        List<Reservation> reservationsList = new ArrayList<>();
-        
+    public ShowDataResponse fetchAllReservations()  {                
         try {
+        	List<Reservation> reservationsList = new ArrayList<>();
         	reservationsList = this.reservationDB.readAllReservations();
         	return new ShowDataResponse(true, reservationsList, "Successfully fetched " + reservationsList.size() + " Reservations.");
         }catch(SQLException e) {
@@ -47,15 +46,13 @@ public class ReservationController {
      * @return ShowDataResponse
      */
     public ShowDataResponse fetchReservationsByConfirmationCode(int confrimationCode) {
-    	List<Reservation> reservationsList = new ArrayList<>();
-    	
+    	   	
     	try {
-			Reservation r = reservationDB.findReservationByCode(confrimationCode);
-			reservationsList.add(r);
-			return new ShowDataResponse(true,reservationsList,"Successfully fetched the reservation");
+			Reservation r = reservationDB.findReservationByCode(confrimationCode);			
+			return new ShowDataResponse(true,java.util.Collections.singletonList(r),"Successfully fetched the reservation");
 		} catch (SQLException e) {
 			System.err.println("Database error: failed to fetch all reservations");
-        	return new ShowDataResponse(false, reservationsList , "Database Error: Could not load reservation.");
+        	return new ShowDataResponse(false, null , "Database Error: Could not load reservation.");
 		}
     	
     }
@@ -96,7 +93,7 @@ public class ReservationController {
     	
     	try {
     		boolean isInsertSuccess = reservationDB.insertNewReservation(newId
-    				, request.getDateofRequest(), request.getDinersCount(), newCode, request.getCustomerInfo(), request.getDateOfPlacingRequest());
+    				, request.getDateofRequest(), request.getDinersCount(), newCode, request.getSubscriberId(), request.getDateOfPlacingRequest());
     		
     		if(isInsertSuccess) {
     			return new ReservationResponse(true, "Reservation is successful", newCode);

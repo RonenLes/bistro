@@ -7,9 +7,8 @@ import requests.ReservationRequest;
 import responses.ReservationResponse;
 import responses.ShowDataResponse;
 
-import java.sql.Date;
+
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -31,8 +30,7 @@ public class ReservationController {
      */
     public ShowDataResponse fetchAllReservations()  {                
         try {
-        	List<Reservation> reservationsList = new ArrayList<>();
-        	reservationsList = this.reservationDB.readAllReservations();
+        	List<Reservation> reservationsList = reservationDB.readAllReservations();
         	return new ShowDataResponse(true, reservationsList, "Successfully fetched " + reservationsList.size() + " Reservations.");
         }catch(SQLException e) {
         	System.err.println("Database error: failed to fetch all reservations");
@@ -48,12 +46,20 @@ public class ReservationController {
     public ShowDataResponse fetchReservationsByConfirmationCode(int confrimationCode) {
     	   	
     	try {
-			Reservation r = reservationDB.findReservationByCode(confrimationCode);			
-			return new ShowDataResponse(true,java.util.Collections.singletonList(r),"Successfully fetched the reservation");
-		} catch (SQLException e) {
-			System.err.println("Database error: failed to fetch all reservations");
-        	return new ShowDataResponse(false, null , "Database Error: Could not load reservation.");
-		}
+            Reservation r = reservationDB.findReservationByCode(confrimationCode);
+
+            if (r == null) {
+                return new ShowDataResponse(false, null, 
+                        "No reservation found for confirmation code: " + confrimationCode);
+            }
+
+            return new ShowDataResponse(true, 
+                    java.util.Collections.singletonList(r),
+                    "Successfully fetched the reservation.");
+        } catch (SQLException e) {
+            System.err.println("Database error: failed to fetch reservation by code");
+            return new ShowDataResponse(false, null, "Database Error: Could not load reservation.");
+        }
     	
     }
 
@@ -86,12 +92,11 @@ public class ReservationController {
      * @return ReservationResponse object
      * @throws SQLException
      */
-    public ReservationResponse addReservation(ReservationRequest request) throws SQLException {
-    	
-    	int newId = generateReservationID();
-    	int newCode = generateConfirmationCode();
-    	
+    public ReservationResponse addReservation(ReservationRequest request)  {
+    	    	    	
     	try {
+    		int newId = generateReservationID();
+        	int newCode = generateConfirmationCode();
     		boolean isInsertSuccess = reservationDB.insertNewReservation(newId
     				, request.getDateofRequest(), request.getDinersCount(), newCode, request.getSubscriberId(), request.getDateOfPlacingRequest());
     		

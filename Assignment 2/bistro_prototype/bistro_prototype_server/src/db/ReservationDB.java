@@ -18,12 +18,12 @@ public class ReservationDB {
 	
 	//SELECT statements
 	private static final String SELECT_AllOrders = "SELECT * FROM `reservations`";	
-	private static final String SELECT_ByID = "SELECT COUNT(*) FROM reservations WHERE reservationID = ?";
-	private static final String SELECT_howManyUniqueCodes = "SELECT COUNT(*) FROM reservations WHERE confirmationCode = ?";
-	private static final String SELECT_reservationByConfirmationCode = "SELECT * FROM reservations WHERE confirmationCode = ?";
+	private static final String SELECT_ByID = "SELECT COUNT(*) FROM `reservations` WHERE reservationID = ?";
+	private static final String SELECT_howManyUniqueCodes = "SELECT COUNT(*) FROM `reservations` WHERE confirmationCode = ?";
+	private static final String SELECT_reservationByConfirmationCode = "SELECT * FROM `reservations` WHERE confirmationCode = ?";
 	
 	// UPDATE statement
-	private static final String UPDATE_reservationByConfirmationCode= "UPDATE reservations SET numberOfGuests = ?, reservationDate = ? WHERE confirmationCode = ?";
+	private static final String UPDATE_reservationByConfirmationCode= "UPDATE `reservations` SET numberOfGuests = ?, reservationDate = ? WHERE confirmationCode = ?";
 	
 
 
@@ -45,7 +45,7 @@ public class ReservationDB {
 	 * @throws SQLException
 	 */
 	// updated reservationID to long for unique 10 digit id
-	public boolean insertNewReservation(long reservationID,LocalDate reservationDate,int numberOfGuests,int confirmationCode,int subscriberId,LocalDate dateOfPlacingOrder) throws SQLException {
+	public boolean insertNewReservation(int reservationID,LocalDate reservationDate,int numberOfGuests,int confirmationCode,int subscriberId,LocalDate dateOfPlacingOrder) throws SQLException {
 		
 		java.sql.Date sqlReservationDate = java.sql.Date.valueOf(reservationDate);
 		java.sql.Date sqlPlacingReservationDate = java.sql.Date.valueOf(dateOfPlacingOrder);
@@ -55,7 +55,7 @@ public class ReservationDB {
 			PreparedStatement pstmt = conn.prepareStatement(INSERT_newReservation))
 		{
 			//insert the details we got from control into statement
-			pstmt.setLong(1, reservationID);
+			pstmt.setInt(1, reservationID);
 			pstmt.setDate(2,sqlReservationDate);
 			pstmt.setInt(3, numberOfGuests);
 			pstmt.setInt(4,confirmationCode);

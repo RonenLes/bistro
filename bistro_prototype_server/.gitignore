@@ -1,0 +1,29 @@
+# -------------------------------------
+# 1. SECRETS AND CONFIGURATION (Mandatory)
+# -------------------------------------
+# Exclude the file containing the DB password
+dbDetails.properties
+*.env
+
+# -------------------------------------
+# 2. ECLIPSE AND BUILD OUTPUT FILES
+# -------------------------------------
+# Eclipse project metadata files (often committed by mistake)
+
+
+.settings/
+
+# Compilation output folder (MUST be ignored)
+/bin/ 
+.classpath
+.project
+
+# Final compiled application files (JARs)
+*.jar
+*.war
+*.zip
+
+# -------------------------------------
+# 3. EXTERNAL LIBRARIES AND RESOURCES
+# -------------------------------------
+# Exclude the physical folder where external JARs are stored

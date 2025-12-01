@@ -1,11 +1,12 @@
 package gui;
 
-import java.awt.TextArea;
+
 import requests.*;
 import java.time.LocalDate;
 
 import controllers.ClientController;
 import javafx.scene.control.DatePicker;
+import javafx.scene.control.TextArea;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -42,7 +43,7 @@ public class ReservationFormController {
 	private Button btnBack;
 	
 	@FXML
-	private TextArea textAreaSub;
+	private TextArea txtSub;
 
 	public void setClientController(ClientController clientController) {
 	    this.clientController = clientController;
@@ -86,7 +87,7 @@ public class ReservationFormController {
 	    
 	    //get subscriber id
 	    int subscriberId = 0;
-	    String subText = textAreaSub.getText().trim();
+	    String subText = txtSub.getText().trim();
 	    if (!subText.isEmpty()) {
 	        try {
 	            subscriberId = Integer.parseInt(subText);

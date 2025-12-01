@@ -78,7 +78,7 @@ public class MainScreenController {
 	@FXML
 	private void moveToShowAll(ActionEvent event) {
 		try {
-			FXMLLoader loader = new FXMLLoader(getClass().getResource("/gui/ShowAllReservationForm.fxml"));
+			FXMLLoader loader = new FXMLLoader(getClass().getResource("/gui/ShowAllForm.fxml"));
 			Parent root = loader.load();
 			
 			ShowAllReservationFormController controller = loader.getController();

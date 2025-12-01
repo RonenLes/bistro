@@ -46,8 +46,13 @@ public class EditReservationFormController {
 	 
 	 @FXML 
 	 private Button btnExit;
-	 
 
+	 @FXML
+	 private Label lblDate;
+	 
+	 @FXML
+	 private Label lblGuest;
+	 
 	public void setClientController(ClientController clientController) {
 	    this.clientController = clientController;
 	}
@@ -56,7 +61,7 @@ public class EditReservationFormController {
         return activeInstance;
     }
 	
-	
+	@FXML
 	private void initialize() {
 		activeInstance = this;
 
@@ -64,6 +69,8 @@ public class EditReservationFormController {
         datePick.setVisible(false);
         dinerPick.setVisible(false);
         btnSave.setVisible(false);
+        lblDate.setVisible(false);
+        lblGuest.setVisible(false);
 
         // populate diners ComboBox
         dinerPick.getItems().addAll(1, 2, 3, 4, 5, 6, 7, 8);
@@ -101,6 +108,8 @@ public class EditReservationFormController {
             datePick.setVisible(false);
             dinerPick.setVisible(false);
             btnSave.setVisible(false);
+            lblDate.setVisible(false);
+            lblGuest.setVisible(false);
 
             return;
         }
@@ -115,10 +124,12 @@ public class EditReservationFormController {
         datePick.setVisible(true);
         dinerPick.setVisible(true);
         btnSave.setVisible(true);
+        lblDate.setVisible(true);
+        lblGuest.setVisible(true);
     }
 	
 	@FXML
-	private void saveChange(ActionEvent event) {
+	private void saveChanges(ActionEvent event) {
 		if (clientController == null) {
             showAlert("Error", "Client not connected.", Alert.AlertType.ERROR);
             return;

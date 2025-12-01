@@ -22,7 +22,6 @@
     <fullyQualifiedTypeName name="java.util.Random"/>
     <fullyQualifiedTypeName name="requests.EditReservationRequest"/>
     <fullyQualifiedTypeName name="java.io.IOException"/>
-    <fullyQualifiedTypeName name="responses.ShowDataResponse"/>
     <fullyQualifiedTypeName name="responses.ReservationResponse"/>
     <fullyQualifiedTypeName name="entities.Reservation"/>
     <fullyQualifiedTypeName name="java.sql.PreparedStatement"/>
@@ -32,4 +31,14 @@
     <fullyQualifiedTypeName name="controllers.ReservationController"/>
     <fullyQualifiedTypeName name="java.io.Serializable"/>
     <fullyQualifiedTypeName name="responses.ErrorResponse"/>
+    <fullyQualifiedTypeName name="responses.ShowDataResponse"/>
+    <fullyQualifiedTypeName name="controllers.ClientController"/>
+    <fullyQualifiedTypeName name="java.lang.Exception"/>
+    <fullyQualifiedTypeName name="javafx.scene.control.DatePicker"/>
+    <fullyQualifiedTypeName name="javafx.scene.control.ComboBox"/>
+    <fullyQualifiedTypeName name="java.awt.TextArea"/>
+    <fullyQualifiedTypeName name="requests.ReservationRequest"/>
+    <fullyQualifiedTypeName name="javafx.event.ActionEvent"/>
+    <fullyQualifiedTypeName name="javafx.scene.control.TextArea"/>
+    <fullyQualifiedTypeName name="javafx.scene.control.Label"/>
 </qualifiedTypeNameHistroy>

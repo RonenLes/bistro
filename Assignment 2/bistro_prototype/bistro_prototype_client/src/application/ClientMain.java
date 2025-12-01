@@ -8,11 +8,16 @@ public class ClientMain {
 
         boolean connected = false;
 
-        ClientController controller = new ClientController(null);
-        BistroClient client = new BistroClient("localhost", 3000, controller);
+        // 1. Create the client (no controller yet)
+        BistroClient client = new BistroClient("localhost", 3000);
 
-        controller = new ClientController(client);
+        // 2. Create the controller with the client
+        ClientController controller = new ClientController(client);
 
+        // 3. Inject controller back into the client
+        client.setClientController(controller);
+
+        // 4. Open connection
         try {
             client.openConnection();
             connected = true;
@@ -20,7 +25,7 @@ public class ClientMain {
             System.out.println("Connection failed: " + e.getMessage());
         }
 
-        // Start UI and pass the controller and connection result
+        // 5. Start JavaFX UI with the controller & connection status
         ClientUI.startUI(controller, connected);
     }
 }

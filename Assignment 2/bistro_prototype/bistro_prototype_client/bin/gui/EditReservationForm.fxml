@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.Pane?>
+
+<AnchorPane prefHeight="584.0" prefWidth="591.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <Pane layoutX="-304.0" prefHeight="200.0" prefWidth="490.0">
+         <children>
+            <Label layoutX="327.0" layoutY="70.0" text="Enter Confirmation code:" />
+         </children>
+      </Pane>
+      <TextArea fx:id="txtCode" layoutX="186.0" layoutY="54.0" prefHeight="57.0" prefWidth="250.0" />
+      <DatePicker fx:id="datePick" layoutX="244.0" layoutY="190.0" prefHeight="45.0" prefWidth="76.0" />
+      <ComboBox fx:id="dinerPick" layoutX="251.0" layoutY="280.0" prefHeight="17.0" prefWidth="63.0" />
+      <Button fx:id="btnSearch" layoutX="471.0" layoutY="70.0" mnemonicParsing="false" onAction="#searchReservation" text="Search" />
+      <Label layoutX="119.0" layoutY="190.0" prefHeight="45.0" prefWidth="102.0" text="Choose Date:" />
+      <Label layoutX="82.0" layoutY="284.0" text="Choose number of guests:" />
+      <Button fx:id="btnSave" layoutX="185.0" layoutY="373.0" mnemonicParsing="false" onAction="#saveChanges" prefHeight="64.0" prefWidth="195.0" text="Save changes" />
+      <Button fx:id="btnBack" layoutX="35.0" layoutY="510.0" mnemonicParsing="false" onAction="#backToMain" prefHeight="33.0" prefWidth="76.0" text="back" />
+      <Button fx:id="btnExit" layoutX="459.0" layoutY="516.0" mnemonicParsing="false" onAction="#exit" prefHeight="33.0" prefWidth="76.0" text="Exit" />
+   </children>
+</AnchorPane>

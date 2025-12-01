@@ -2,6 +2,8 @@ package controllers;
 
 import application.BistroClient;
 import application.ClientUI;
+import gui.EditReservationFormController;
+import gui.ShowAllReservationFormController;
 import responses.*;
 
 public class ClientController {
@@ -12,20 +14,40 @@ public class ClientController {
         this.client = client;
     }
 
-    //    SERVER to CLIENT (responses)
     public void handleServerResponse(Object msg) {
 
-        if (msg instanceof ErrorResponse)
+        if (msg instanceof ErrorResponse) {
             ClientUI.handleError((ErrorResponse) msg);
+        }
 
-        else if (msg instanceof ShowDataResponse)
-            ClientUI.handleShowData((ShowDataResponse) msg);
+        else if (msg instanceof ShowDataResponse) {
+            ShowDataResponse res = (ShowDataResponse) msg;
 
-        else if (msg instanceof ReservationResponse)
+         
+            ShowAllReservationFormController showAllCtrl = ShowAllReservationFormController.getActiveInstance();
+            if (showAllCtrl != null) {
+                showAllCtrl.handleShowDataFromServer(res);
+                return;
+            }
+
+            
+            EditReservationFormController editCtrl = EditReservationFormController.getActiveInstance();
+            if (editCtrl != null) {
+                editCtrl.handleShowDataFromServer(res);
+                return;
+            }
+
+            
+            ClientUI.handleShowData(res);
+        }
+
+        else if (msg instanceof ReservationResponse) {
             ClientUI.handleReservationResponse((ReservationResponse) msg);
+        }
 
-        else
+        else {
             System.out.println("Unknown server message: " + msg);
+        }
     }
 
     //    CLIENT UI to SERVER (requests)
@@ -39,5 +61,13 @@ public class ClientController {
         } catch (Exception e) {
             System.out.println("Send error: " + e.getMessage());
         }
+    }
+    
+    public void closeClient() {
+    	try {
+    		this.client.closeConnection();
+    	}catch(Exception e) {
+    		System.err.println("Failed to close client: " + e.getMessage());
+    	}
     }
 }

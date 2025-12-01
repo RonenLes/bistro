@@ -4,12 +4,12 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.Pane?>
 
-
-<AnchorPane prefHeight="504.0" prefWidth="589.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/21">
+<AnchorPane prefHeight="504.0" prefWidth="589.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="gui.MainScreenController">
    <children>
       <Pane prefHeight="200.0" prefWidth="200.0" />
-      <Button layoutX="209.0" layoutY="100.0" mnemonicParsing="false" prefHeight="73.0" prefWidth="146.0" text="Make Reservation" />
-      <Button layoutX="209.0" layoutY="216.0" mnemonicParsing="false" prefHeight="73.0" prefWidth="146.0" text="Edit Reservation" />
-      <Button layoutX="183.0" layoutY="333.0" mnemonicParsing="false" prefHeight="73.0" prefWidth="206.0" text="Show All Existing Reservations " />
+      <Button fx:id="btnMoveToRes" layoutX="209.0" layoutY="100.0" mnemonicParsing="false" onAction="#moveToReservation" prefHeight="73.0" prefWidth="146.0" text="Make Reservation" />
+      <Button fx:id="btnMoveToEdit" layoutX="209.0" layoutY="216.0" mnemonicParsing="false" onAction="#moveToEdit" prefHeight="73.0" prefWidth="146.0" text="Edit Reservation" />
+      <Button fx:id="btnMoveShowAll" layoutX="183.0" layoutY="333.0" mnemonicParsing="false" onAction="#moveToShowAll" prefHeight="73.0" prefWidth="206.0" text="Show All Existing Reservations " />
+      <Button fx:id="btnExt" layoutX="509.0" layoutY="456.0" mnemonicParsing="false" onAction="#exitMainScreen" text="Exit" />
    </children>
 </AnchorPane>

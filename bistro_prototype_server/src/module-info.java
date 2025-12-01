@@ -1,0 +1,7 @@
+/*
+module bistro_prototype_server {
+	requires javafx.controls;
+	
+	opens application to javafx.graphics, javafx.fxml;
+}
+*/

@@ -1,5 +1,8 @@
 package application;
 
+import java.io.InputStream;
+import java.util.Properties;
+
 import controllers.ClientController;
 import ocsf.client.AbstractClient;
 
@@ -8,8 +11,12 @@ public class BistroClient extends AbstractClient {
     private ClientController controller;
 
     public BistroClient(String host, int port) {
+    	
         super(host, port);
+        
     }
+     
+    
 
     public void setClientController(ClientController controller) {
         this.controller = controller;

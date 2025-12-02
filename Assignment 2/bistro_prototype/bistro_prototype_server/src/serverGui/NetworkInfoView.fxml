@@ -4,42 +4,20 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox alignment="CENTER" prefHeight="428.0" prefWidth="471.0" spacing="10.0"
-      xmlns="http://javafx.com/javafx/25"
-      xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="serverGui.NetworkInfoController">
+<VBox alignment="CENTER" prefHeight="428.0" prefWidth="471.0" spacing="10.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="serverGui.NetworkInfoController">
 
     <children>
 
-        <Label alignment="CENTER"
-               prefHeight="30.0"
-               prefWidth="350.0"
-               text="Network Information" />
+        <Label alignment="CENTER" prefHeight="30.0" prefWidth="350.0" text="Network Information" />
 
-        <Button alignment="CENTER"
-                contentDisplay="CENTER"
-                mnemonicParsing="false"
-                onAction="#showConnectionInfo"
-                prefHeight="67.0"
-                prefWidth="180.0"
-                text="Show Connection Info" />
+        <Button fx:id="btnStart" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#showConnectionInfo" prefHeight="67.0" prefWidth="180.0" text="Show Connection Info" />
 
        
-        <Label fx:id="hostLabel"
-               alignment="CENTER"
-               contentDisplay="CENTER"
-               prefHeight="30.0"
-               prefWidth="350.0"
-               wrapText="true"
-               text="HOST" />
+        <Label fx:id="hostLabel" alignment="CENTER" contentDisplay="CENTER" prefHeight="30.0" prefWidth="350.0" text="HOST" wrapText="true" />
 
     
-        <Label fx:id="ipLabel"
-               alignment="CENTER"
-               prefHeight="30.0"
-               prefWidth="350.0"
-               wrapText="true"
-               text="IP" />
-
+        <Label fx:id="ipLabel" alignment="CENTER" prefHeight="30.0" prefWidth="350.0" text="IP" wrapText="true" />
+		
+		<Button fx:id="btnExt" layoutX="520.0" layoutY="450.0" prefHeight="30.0" prefWidth="50.0" text="Exit" onAction="#exitServerScreen" />
     </children>
 </VBox>

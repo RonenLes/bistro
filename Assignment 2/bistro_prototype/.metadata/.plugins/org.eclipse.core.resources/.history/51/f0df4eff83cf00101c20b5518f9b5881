@@ -1,0 +1,55 @@
+package application;
+
+import java.io.InputStream;
+import java.util.Properties;
+
+import controllers.ClientController;
+import ocsf.client.AbstractClient;
+
+public class BistroClient extends AbstractClient {
+
+    private ClientController controller;
+    private String theHost;
+
+    public BistroClient(String host, int port) {
+        super(host, port);
+        
+    }
+    
+    private void setHostFromFile() {
+try(InputStream input = getClass().getClassLoader().getResourceAsStream("dbDetailsLaptop.properties")){
+			
+			if(input == null) {
+				System.err.println("ERROR: Configuration file 'dbDetailsLaptop.properties' not found in the Classpath.");
+                throw new RuntimeException("Database configuration file is missing.");
+			}
+			
+			Properties props = new Properties();
+			props.load(input);
+			
+			this.dbUrl = props.getProperty("db_Url");
+			
+			
+			
+			
+		}catch(Exception e) {
+			System.err.println("Database property loading failed.");
+            e.printStackTrace();
+            throw new RuntimeException("Database initialization failed due to configuration errors.");
+        	}
+		}
+    }
+
+    public void setClientController(ClientController controller) {
+        this.controller = controller;
+    }
+
+    @Override
+    protected void handleMessageFromServer(Object msg) {
+        if (controller != null) {
+            controller.handleServerResponse(msg);
+        } else {
+            System.err.println("No ClientController set to handle server messages.");
+        }
+    }
+}

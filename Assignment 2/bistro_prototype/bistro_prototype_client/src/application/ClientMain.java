@@ -1,5 +1,8 @@
 package application;
 
+import java.io.InputStream;
+import java.util.Properties;
+
 import controllers.ClientController;
 
 public class ClientMain {
@@ -7,25 +10,44 @@ public class ClientMain {
     public static void main(String[] args) {
 
         boolean connected = false;
+        String host = "localhost"; 
 
-        // Create the client 
-        BistroClient client = new BistroClient("localhost", 3000);
+        try (InputStream input =ClientMain.class.getClassLoader().getResourceAsStream("dbDetailsLaptop.properties")) {
+                                                           
+            if (input == null) {
+                System.err.println("ERROR: Configuration file 'dbDetailsLaptop.properties' not found in the classpath.");
+            } else {
+                Properties props = new Properties();
+                props.load(input);
 
-        // Create the controller with the client
+                String fromFile = props.getProperty("hostIP");
+                if (fromFile != null && !fromFile.isBlank()) {
+                    host = fromFile.trim();
+                }
+
+                System.out.println("Using host from properties: " + host);
+            }
+
+        } catch (Exception e) {
+            System.err.println("Host IP property loading failed.");
+            e.printStackTrace();
+        }
+
+
+        BistroClient client = new BistroClient(host, 3000);
+
         ClientController controller = new ClientController(client);
 
-        // Inject controller back into the client
         client.setClientController(controller);
 
-        // Open connection
         try {
             client.openConnection();
             connected = true;
+            System.out.println("Connected to server on " + host + ":3000");
         } catch (Exception e) {
             System.out.println("Connection failed: " + e.getMessage());
         }
 
-        // Start JavaFX UI with the controller & connection status
         ClientUI.startUI(controller, connected);
     }
 }

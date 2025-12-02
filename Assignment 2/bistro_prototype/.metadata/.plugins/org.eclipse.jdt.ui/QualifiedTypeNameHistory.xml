@@ -41,4 +41,5 @@
     <fullyQualifiedTypeName name="javafx.event.ActionEvent"/>
     <fullyQualifiedTypeName name="javafx.scene.control.TextArea"/>
     <fullyQualifiedTypeName name="javafx.scene.control.Label"/>
+    <fullyQualifiedTypeName name="java.lang.RuntimeException"/>
 </qualifiedTypeNameHistroy>

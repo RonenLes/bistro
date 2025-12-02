@@ -1,17 +1,38 @@
 package server;
 
-public class ServerMain {
+import serverGui.NetworkInfoController;
+import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+import server.BistroEchoServer;
+
+public class ServerMain extends Application {
+
+    private static BistroEchoServer server;
 
     public static void main(String[] args) {
-        int port = 3000;  // אותו פורט שבו הלקוח מתחבר
-
-        BistroEchoServer server = new BistroEchoServer(port);
-
+        server = new BistroEchoServer(3000);
         try {
             server.listen();
-            System.out.println("Bistro Server is now running on port " + port + "...");
+            System.out.println("Server started on port " + server.getPort());
         } catch (Exception e) {
-            System.err.println("Error starting server: " + e.getMessage());
+            System.err.println("Failed to start server: " + e.getMessage());
         }
+
+        launch(args);
+    }
+
+    @Override
+    public void start(Stage primaryStage) throws Exception {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/serverGui/NetworkInfoView.fxml"));
+        Scene scene = new Scene(loader.load());
+
+        NetworkInfoController controller = loader.getController();
+        controller.setServer(server);
+
+        primaryStage.setTitle("Bistro Server - Network Info");
+        primaryStage.setScene(scene);
+        primaryStage.show();
     }
 }

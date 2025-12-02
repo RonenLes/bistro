@@ -1,6 +1,7 @@
 package server;
 
 import ocsf.server.*;
+import java.net.InetAddress;
 import requests.*;
 import responses.ErrorResponse;
 import controllers.ReservationController;
@@ -10,11 +11,38 @@ import java.io.IOException;
 public class BistroEchoServer extends AbstractServer  {
 
     private final ReservationController reservationController;
-
+    private String lastClientIp="no client connected yet";
+    
     public BistroEchoServer(int port) {
         super(port);
         reservationController = new ReservationController();
     }
+    
+    public String getServerHostName() {
+	    try {
+	        return InetAddress.getLocalHost().getHostName();
+	    } catch (Exception e) {
+	        return "Unknown";
+	    }
+	}
+    
+    @Override
+	protected void clientConnected(ConnectionToClient client) {
+	        lastClientIp = client.getInetAddress().getHostAddress();
+	        System.out.println("Client connected from: " + lastClientIp);
+	}
+    
+    public String getLastClientIp() {
+        return lastClientIp;
+ }
+    
+    public String getServerIpAddress() {
+	    try {
+	        return InetAddress.getLocalHost().getHostAddress();
+	    } catch (Exception e) {
+	        return "Unknown";
+	    }
+	}
 
     @Override
     protected void handleMessageFromClient(Object msg, ConnectionToClient client) {

@@ -1,0 +1,37 @@
+package gui;
+
+import controllers.ClientController;
+import entities.Reservation;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Node;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.control.DateCell;
+import javafx.event.ActionEvent;
+import javafx.stage.Stage;
+import requests.CommandType;
+import requests.EditReservationRequest;
+import requests.ShowDataRequest;
+import responses.ShowDataResponse;
+
+import java.time.LocalDate;
+
+public class EditReservationFormController {
+	
+	
+	private ClientController clientController;
+	
+	 @FXML private TextArea txtCode;
+	 @FXML private DatePicker datePick;
+	 @FXML private ComboBox<Integer> dinerPick;
+	 @FXML private Button btnSearch;
+	 @FXML private Button btnSave;
+	 @FXML private Button btnBack;
+	 @FXML private Button btnExit;
+
+	public void setClientController(ClientController clientController) {
+	    this.clientController = clientController;
+	}
+}

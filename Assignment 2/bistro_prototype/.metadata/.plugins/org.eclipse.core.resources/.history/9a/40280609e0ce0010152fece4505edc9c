@@ -1,0 +1,61 @@
+package gui;
+
+import controllers.ClientController;
+import entities.Reservation;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Node;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.event.ActionEvent;
+import javafx.stage.Stage;
+import requests.CommandType;
+import requests.ShowDataRequest;
+import responses.ShowDataResponse;
+
+public class ShowAllReservationFormController {
+
+	
+	private ClientController clientController;
+	private static ShowAllReservationFormController activeInstance;
+	
+	@FXML
+	private Button btnRefresh;
+	
+	@FXML
+	private Button btnExit;
+	
+	@FXML
+	private Button btnBack;
+	
+	@FXML
+	private TextArea txtAllRev;
+	
+	public void setClientController(ClientController clientController) {
+	    this.clientController = clientController;
+	}
+	
+	@FXML
+	private void initialize() {
+		activeInstance = this;
+	}
+	
+	private void requestAllReservations() {
+        if (clientController == null) {
+            appendText("Client not connected to server.\n");
+            return;
+        }
+
+        ShowDataRequest req =
+                new ShowDataRequest(CommandType.READ_ALL_EXISTING_RESERVATIONWS, 0);
+
+        clientController.handleMessageFromClientUI(req);
+    }
+	
+	private void appendText(String text) {
+        if (txtAllRev != null) {
+        	txtAllRev.appendText(text);
+        }
+    }
+}

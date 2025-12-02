@@ -1,0 +1,5 @@
+package serverGui;
+
+public class NetworkInfoController {
+
+}

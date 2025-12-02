@@ -1,0 +1,99 @@
+package server;
+
+import ocsf.server.*;
+import requests.CommandType;
+import requests.*;
+import responses.ErrorResponse;
+
+
+
+import java.io.IOException;
+
+import controllers.ReservationController;
+
+public class BistroEchoServer extends AbstractServer  {
+	
+	private ReservationController reservationController;
+	
+	public BistroEchoServer(int port) {
+		super(port);
+		reservationController = new ReservationController();
+	}
+	
+	@Override
+	protected void handleMessageFromClient(Object msg ,ConnectionToClient client) {
+		
+		
+		//handles reservation request by the client with a specific button
+		if(msg instanceof ReservationRequest) {
+			ReservationRequest request = (ReservationRequest)msg;
+			
+			Object response;
+			
+			try {
+				response = reservationController.addReservation(request);
+				client.sendToClient(response);
+			}catch(Exception e) {
+				System.err.println("Error with requesting new reservations");
+				try {
+					client.sendToClient(new ErrorResponse("Falied to complete reservation request"+client.getInetAddress().getHostAddress()));
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					System.err.println("Error processing reservation");
+					e1.printStackTrace();
+				}
+			}
+		}
+		
+		//when on edit page after the user entered confirmation code and the desired reservation was presented this method will be used 
+		if(msg instanceof EditReservationRequest) {
+			EditReservationRequest request = (EditReservationRequest)msg;
+			Object response;
+			try {
+				response = reservationController.editReservation(request);
+				client.sendToClient(response);
+			}catch(Exception e) {
+				System.err.println("Error with requesting to edit reservation"+client.getInetAddress().getHostAddress());
+				try {
+					client.sendToClient(new ErrorResponse("Failed to edit reservation"));
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					System.err.println("Error processing editing reservation");
+					e1.printStackTrace();
+				}				
+			}
+		}
+		
+		//request that shows any data 
+		if(msg instanceof ShowDataRequest) {
+			ShowDataRequest request = (ShowDataRequest)msg;			
+			Object response;
+			
+			try {
+				//show all existing reservations only for show for the grade
+				if(request.getCommandType().equals(CommandType.READ_ALL_EXISTING_RESERVATIONWS)) {
+					response = reservationController.fetchAllReservations();
+					client.sendToClient(response);
+				}
+				
+				//show the reservation by confirmation code so the user can edit
+				if(request.getCommandType() == CommandType.READ_RESERVATIONS_BY_CODE) {
+					
+					response = reservationController.fetchReservationsByConfirmationCode(request.getCode());
+				}
+			}catch(IOException e) {
+				System.err.println("Error showing reservations by code");
+				try {
+					client.sendToClient(new ErrorResponse("Cant fetch reservation"));
+				} catch (IOException e1) {
+					System.err.println("Failed to send client an error object");
+					e1.printStackTrace();
+				}
+			}										
+		}		
+	}
+	
+	
+	
+	
+}

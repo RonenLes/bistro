@@ -1,0 +1,16 @@
+package gui;
+
+import controllers.ClientController;
+import javafx.scene.control.DatePicker;
+
+
+
+public class ReservationFormController {
+
+	
+	private ClientController clientController;
+
+	public void setClientController(ClientController clientController) {
+	    this.clientController = clientController;
+	}
+}

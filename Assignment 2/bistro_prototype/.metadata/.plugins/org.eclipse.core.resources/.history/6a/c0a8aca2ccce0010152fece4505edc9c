@@ -1,0 +1,11 @@
+package gui;
+
+import controllers.ClientController;
+
+public class ReservationFormController {
+
+	
+	public void setClientController(ClientController clientController) {
+	    this.clientController = clientController;
+	}
+}

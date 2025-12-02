@@ -1,0 +1,33 @@
+package application;
+
+import controllers.ClientController;
+
+public class ClientMain {
+
+    public static void main(String[] args) {
+
+    	boolean connected = false;
+
+        // Create controller reference but pass client later
+        ClientController controller;
+
+        // Create client BUT without controller first (temporary null)
+        BistroClient client = new BistroClient("localhost", 3000, null);
+
+        // Now create controller with the client
+        controller = new ClientController(client);
+
+        // And NOW inject controller into the client
+        client.setClientController(controller);
+
+        try {
+            client.openConnection();
+            connected = true;
+        } catch (Exception e) {
+            System.out.println("Connection failed: " + e.getMessage());
+        }
+
+        // Start UI and pass the controller and connection flag
+        ClientUI.startUI(controller, connected);
+    }
+}

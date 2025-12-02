@@ -1,0 +1,19 @@
+package application;
+
+import server.BistroEchoServer;
+
+public class ServerMain {
+
+    public static void main(String[] args) {
+        int port = 3000;  // אותו פורט שבו הלקוח מתחבר
+
+        BistroEchoServer server = new BistroEchoServer(port);
+
+        try {
+            server.listen();
+            System.out.println("Bistro Server is now running on port " + port + "...");
+        } catch (Exception e) {
+            System.err.println("Error starting server: " + e.getMessage());
+        }
+    }
+}

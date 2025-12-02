@@ -14,6 +14,24 @@
     <libraryInfo home="C:\Program Files\Java\jdk-25" version="25.0.1"/>
     <libraryInfo home="C:\Users\oaSIS\.p2\pool\plugins\org.eclipse.justj.openjdk.hotspot.jre.full.win32.x86_64_21.0.6.v20250130-0529\jre" version="21.0.6"/>
     <libraryInfo home="C:\Program Files\Java\jdk-21" version="21.0.9"/>
+    <libraryInfo home="C:\Program Files\Java\jre1.8.0_431" version="1.8.0_431">
+        <bootpath>
+            <entry path="C:\Program Files\Java\jre1.8.0_431\lib\resources.jar"/>
+            <entry path="C:\Program Files\Java\jre1.8.0_431\lib\rt.jar"/>
+            <entry path="C:\Program Files\Java\jre1.8.0_431\lib\jsse.jar"/>
+            <entry path="C:\Program Files\Java\jre1.8.0_431\lib\jce.jar"/>
+            <entry path="C:\Program Files\Java\jre1.8.0_431\lib\charsets.jar"/>
+            <entry path="C:\Program Files\Java\jre1.8.0_431\lib\jfr.jar"/>
+            <entry path="C:\Program Files\Java\jre1.8.0_431\classes"/>
+        </bootpath>
+        <extensionDirs>
+            <entry path="C:\Program Files\Java\jre1.8.0_431\lib\ext"/>
+            <entry path="C:\WINDOWS\Sun\Java\lib\ext"/>
+        </extensionDirs>
+        <endorsedDirs>
+            <entry path="C:\Program Files\Java\jre1.8.0_431\lib\endorsed"/>
+        </endorsedDirs>
+    </libraryInfo>
     <libraryInfo home="C:\Program Files\BellSoft\LibericaJDK-17-Full" version="17.0.14"/>
     <libraryInfo home="C:\Program Files\Java\jre1.8.0_471" version="1.8.0_471">
         <bootpath>

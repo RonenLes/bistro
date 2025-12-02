@@ -1,6 +1,7 @@
 package serverGui;
 
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import server.BistroEchoServer;
 
@@ -13,6 +14,9 @@ public class NetworkInfoController {
     private Label ipLabel;     
 
     private BistroEchoServer server;
+    
+    @FXML
+    private Button btnStart;
 
    
     public void setServer(BistroEchoServer server) {
@@ -20,6 +24,11 @@ public class NetworkInfoController {
     }
 
    
+    @FXML
+    private void initialize() {
+    	this.btnStart.setText("Start Server");
+    }
+    
     @FXML
     private void showConnectionInfo() {
 
@@ -31,7 +40,7 @@ public class NetworkInfoController {
         String serverHost = server.getServerHostName();
         String serverIp   = server.getServerIpAddress();
         String clientIp = server.getLastClientIp();
-
+        this.btnStart.setText("Show info");
         hostLabel.setText("Server Host: " + serverHost + " (" + serverIp + ")");
         ipLabel.setText("Client IP: " + clientIp);
     }

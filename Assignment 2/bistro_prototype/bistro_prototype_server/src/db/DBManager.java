@@ -67,10 +67,10 @@ public class DBManager {
 	//loading database detail from file placed in the resource folder
 	private void dbLoadProp() {
 		
-		try(InputStream input = getClass().getClassLoader().getResourceAsStream("dbDetails.properties")){
+		try(InputStream input = getClass().getClassLoader().getResourceAsStream("dbDetailsLaptop.properties")){
 			
 			if(input == null) {
-				System.err.println("ERROR: Configuration file 'dbDetails.properties' not found in the Classpath.");
+				System.err.println("ERROR: Configuration file 'dbDetailsLaptop.properties' not found in the Classpath.");
                 throw new RuntimeException("Database configuration file is missing.");
 			}
 			
@@ -80,6 +80,7 @@ public class DBManager {
 			this.dbUrl = props.getProperty("db_Url");
 			this.dbUser = props.getProperty("db_User");
 			this.dbPass = props.getProperty("db_Pass");
+			
 			
 			
 		}catch(Exception e) {

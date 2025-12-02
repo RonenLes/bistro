@@ -14,5 +14,5 @@
     <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="application.ClientMain"/>
     <stringAttribute key="org.eclipse.jdt.launching.MODULE_NAME" value="bistro_prototype_client"/>
     <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="bistro_prototype_client"/>
-    <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="--module-path &quot;C:\Users\oaSIS\Desktop\javafx-sdk-25.0.1\lib&quot; --add-modules javafx.controls,javafx.fxml --enable-native-access=javafx.graphics --sun-misc-unsafe-memory-access=allow"/>
+    <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="--module-path &quot;C:\Users\Ronen\Desktop\javafx-sdk-25.0.1\lib&quot; --add-modules javafx.controls,javafx.fxml --enable-native-access=javafx.graphics --sun-misc-unsafe-memory-access=allow"/>
 </launchConfiguration>

@@ -1,8 +1,12 @@
 package serverGui;
 
+import javafx.application.Platform;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.stage.Stage;
 import server.BistroEchoServer;
 
 public class NetworkInfoController {
@@ -27,6 +31,23 @@ public class NetworkInfoController {
     @FXML
     private void initialize() {
     	this.btnStart.setText("Start Server");
+    }
+    
+    @FXML
+    private void exitServerScreen(ActionEvent event) {
+        try {
+            if (server != null) {
+                server.stopListening();   
+                server.close();           
+                System.out.println("Server stopped and closed.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error closing server: " + e.getMessage());
+        }
+        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        stage.close();
+        Platform.exit();
+        System.exit(0);
     }
     
     @FXML

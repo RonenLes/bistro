@@ -80,7 +80,10 @@ public class DBManager {
 			this.dbUrl = props.getProperty("db_Url");
 			this.dbUser = props.getProperty("db_User");
 			this.dbPass = props.getProperty("db_Pass");
-			
+			System.out.println(this.dbUrl);
+			System.out.println(this.dbUser);
+			System.out.println(this.dbPass);
+
 			
 			
 		}catch(Exception e) {

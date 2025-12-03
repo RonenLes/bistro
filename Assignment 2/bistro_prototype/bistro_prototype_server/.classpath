@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="src" path="resources"/>
 	<classpathentry kind="con" path="org.eclipse.fx.ide.jdt.core.JAVAFX_CONTAINER">
 		<attributes>
 			<attribute name="module" value="true"/>
@@ -14,7 +13,7 @@
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/javaFX_R_laptop">
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/javaFX">
 		<attributes>
 			<attribute name="module" value="true"/>
 		</attributes>

@@ -53,8 +53,8 @@ public class ShowAllReservationFormController {
             return;
         }
 
-        ShowDataRequest req =
-                new ShowDataRequest(CommandType.READ_ALL_EXISTING_RESERVATIONWS, 0);
+        ShowDataRequest req =  new ShowDataRequest(CommandType.READ_ALL_EXISTING_RESERVATIONWS, 0);
+              
 
         clientController.handleMessageFromClientUI(req);
     }

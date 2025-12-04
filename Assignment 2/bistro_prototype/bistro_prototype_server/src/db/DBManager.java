@@ -80,7 +80,7 @@ public class DBManager {
 	                input = new FileInputStream(externalFile);
 	            } else {
 	                System.out.println("External DB file not found. Loading default bundled file.");
-	                input = getClass().getClassLoader().getResourceAsStream("dbDetails.properties");
+	                input = getClass().getClassLoader().getResourceAsStream("dbDetailsLaptop.properties");
 
 	                if (input == null) {
 	                    throw new RuntimeException("dbDetails.properties not found internally or externally!");

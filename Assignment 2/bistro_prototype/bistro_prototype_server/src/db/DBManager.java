@@ -5,7 +5,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
-
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 
 public class DBManager {
@@ -64,33 +65,37 @@ public class DBManager {
 		}
 	}
 	
-	//loading database detail from file placed in the resource folder
+	//loading database detail from file placed in the resource folder or external files when program is jar
 	private void dbLoadProp() {
 		
-		try(InputStream input = getClass().getClassLoader().getResourceAsStream("dbDetailsLaptop.properties")){
-			
-			if(input == null) {
-				System.err.println("ERROR: Configuration file 'dbDetailsLaptop.properties' not found in the Classpath.");
-                throw new RuntimeException("Database configuration file is missing.");
-			}
-			
-			Properties props = new Properties();
-			props.load(input);
-			
-			this.dbUrl = props.getProperty("db_Url");
-			this.dbUser = props.getProperty("db_User");
-			this.dbPass = props.getProperty("db_Pass");
-			System.out.println(this.dbUrl);
-			System.out.println(this.dbUser);
-			System.out.println(this.dbPass);
+		 Properties props = new Properties();
 
-			
-			
-		}catch(Exception e) {
-			System.err.println("Database property loading failed.");
-            e.printStackTrace();
-            throw new RuntimeException("Database initialization failed due to configuration errors.");
-        	}
+	        try {
+	            File externalFile = new File("dbDetails.properties");
+
+	            InputStream input;
+
+	            if (externalFile.exists()) {
+	                System.out.println("Loading DB config from external file: " + externalFile.getAbsolutePath());
+	                input = new FileInputStream(externalFile);
+	            } else {
+	                System.out.println("External DB file not found. Loading default bundled file.");
+	                input = getClass().getClassLoader().getResourceAsStream("dbDetails.properties");
+
+	                if (input == null) {
+	                    throw new RuntimeException("dbDetails.properties not found internally or externally!");
+	                }
+	            }
+
+	            props.load(input);
+
+	            this.dbUrl = props.getProperty("db_Url");
+	            this.dbUser = props.getProperty("db_User");
+	            this.dbPass = props.getProperty("db_Pass");
+
+	        } catch (Exception e) {
+	            throw new RuntimeException("Failed to load database configuration.", e);
+	        }
 		}
 		
 }

@@ -16,37 +16,39 @@ public class ClientController {
 
     public void handleServerResponse(Object msg) {
 
-        if (msg instanceof ErrorResponse) {
-            ClientUI.handleError((ErrorResponse) msg);
-        }
-
-        else if (msg instanceof ShowDataResponse) {
-            ShowDataResponse res = (ShowDataResponse) msg;
-
-         
-            ShowAllReservationFormController showAllCtrl = ShowAllReservationFormController.getActiveInstance();
-            if (showAllCtrl != null) {
-                showAllCtrl.handleShowDataFromServer(res);
-                return;
+    	try {
+            if (msg instanceof ErrorResponse) {
+                ClientUI.handleError((ErrorResponse) msg);
             }
 
-            
-            EditReservationFormController editCtrl = EditReservationFormController.getActiveInstance();
-            if (editCtrl != null) {
-                editCtrl.handleShowDataFromServer(res);
-                return;
+            else if (msg instanceof ShowDataResponse) {
+                ShowDataResponse res = (ShowDataResponse) msg;
+
+                ShowAllReservationFormController showAllCtrl = ShowAllReservationFormController.getActiveInstance();
+                if (showAllCtrl != null) {
+                    showAllCtrl.handleShowDataFromServer(res);
+                    return;
+                }
+
+                EditReservationFormController editCtrl = EditReservationFormController.getActiveInstance();
+                if (editCtrl != null) {
+                    editCtrl.handleShowDataFromServer(res);
+                    return;
+                }
+
+                ClientUI.handleShowData(res);
             }
 
-            
-            ClientUI.handleShowData(res);
-        }
+            else if (msg instanceof ReservationResponse) {
+                ClientUI.handleReservationResponse((ReservationResponse) msg);
+            }
 
-        else if (msg instanceof ReservationResponse) {
-            ClientUI.handleReservationResponse((ReservationResponse) msg);
-        }
-
-        else {
-            System.out.println("Unknown server message: " + msg);
+            else {
+                System.out.println("Unknown server message: " + msg);
+            }
+        } catch (Exception e) {
+        	System.err.println("failed handleServerResponse");
+            e.printStackTrace();
         }
     }
 

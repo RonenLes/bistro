@@ -97,7 +97,7 @@ public class ReservationFormController {
 	        }
 	    }
 	    
-	    ReservationRequest request = new ReservationRequest(subscriberId, visitDate, subscriberId);
+	    ReservationRequest request = new ReservationRequest(subscriberId, visitDate, diners);
 	    clientController.handleMessageFromClientUI(request);
 	    btnGuests.setValue(null);
 	    	    

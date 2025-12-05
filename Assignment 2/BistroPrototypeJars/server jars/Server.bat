@@ -1,5 +1,5 @@
 @echo off
-cd /d "C:\Users\oaSIS\Desktop\Bistro_jars\Bistro_Prototype_server"
+cd /d "C:\Users\oaSIS\Desktop\BistroJars\server jars"
 
 rem --- JavaFX SDK home ---
 set FX_HOME=C:\Users\oaSIS\Desktop\javafx-sdk-25.0.1

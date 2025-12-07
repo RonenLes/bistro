@@ -1,0 +1,8 @@
+1)  Each folder contains a file named dbDetails.properties
+     edit the contents of the file accordingly:
+     Inside the server folder you only need to edit the url , user, password.
+     Inside the client folder you edit the hostIP .
+
+2) In each bat file change the lines:
+	cd/d - to the directory of the jars
+	set FX_HOME - to directory of the whole javaFX sdk dirctory

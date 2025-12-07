@@ -53,8 +53,7 @@ public class ClientUI extends Application {
                         Alert.AlertType.ERROR);
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception e) {            
             showAlert("Fatal Error", "Failed to load main screen.", Alert.AlertType.ERROR);
         }
     }

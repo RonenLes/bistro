@@ -1,5 +1,6 @@
 package application;
 
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Properties;
 
@@ -9,41 +10,59 @@ public class ClientMain {
 
     public static void main(String[] args) {
 
-        boolean connected = false;
-        String host = "localhost"; 
+    	boolean connected = false;
+        String host = "localhost";   // default host
+        int port = 3000;             // default port
 
-        try (InputStream input =ClientMain.class.getClassLoader().getResourceAsStream("dbDetailsLaptop.properties")) {
-                                                           
-            if (input == null) {
-                System.err.println("ERROR: Configuration file 'dbDetailsLaptop.properties' not found in the classpath.");
-            } else {
-                Properties props = new Properties();
-                props.load(input);
+        Properties props = new Properties();
+        boolean loaded = false;
 
-                String fromFile = props.getProperty("hostIP");
-                if (fromFile != null && !fromFile.isBlank()) {
-                    host = fromFile.trim();
+        try {
+        	//try reading host from external file
+            try (InputStream external = new FileInputStream("dbDetails.properties")) {
+                props.load(external);
+                System.out.println("Loaded EXTERNAL details file.");
+                loaded = true;
+            } catch (Exception e) {
+                System.out.println("External file not found. Trying INTERNAL file...");
+            }
+            //try reading host from resource files
+            if (!loaded) {
+                try (InputStream internal = ClientMain.class.getClassLoader()
+                        .getResourceAsStream("dbDetailsLaptop.properties")) {
+
+                    if (internal != null) {
+                        props.load(internal);
+                        System.out.println("Loaded INTERNAL details file.");
+                        loaded = true;
+                    }
                 }
-
-                System.out.println("Using host from properties: " + host);
             }
 
+            if (!loaded) {
+                System.err.println("No details file found. Using defaults.");
+            }
+
+            String propHost = props.getProperty("hostIP");
+            if (propHost != null && !propHost.isBlank()) {
+                host = propHost.trim();
+            }
+
+            System.out.println("Using host: " + host);
+
         } catch (Exception e) {
-            System.err.println("Host IP property loading failed.");
-            e.printStackTrace();
+            System.err.println("Failed loading details: " + e.getMessage());
         }
 
-
-        BistroClient client = new BistroClient(host, 3000);
-
+        //initialize client and client controller
+        BistroClient client = new BistroClient(host, port);
         ClientController controller = new ClientController(client);
-
         client.setClientController(controller);
 
         try {
             client.openConnection();
             connected = true;
-            System.out.println("Connected to server on " + host + ":3000");
+            System.out.println("Connected to server on " + host + ":" + port);
         } catch (Exception e) {
             System.out.println("Connection failed: " + e.getMessage());
         }

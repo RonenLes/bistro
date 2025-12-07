@@ -1,5 +1,7 @@
 package serverGui;
 
+import java.io.IOException;
+
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -21,6 +23,12 @@ public class NetworkInfoController {
     
     @FXML
     private Button btnStart;
+    
+    @FXML
+    private Label lblPort;
+    
+    @FXML
+    private Button btnExt;
 
    
     public void setServer(BistroEchoServer server) {
@@ -45,6 +53,12 @@ public class NetworkInfoController {
             System.err.println("Error closing server: " + e.getMessage());
         }
         Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        try {
+			server.close();
+		} catch (IOException e) {
+			
+			System.err.println("failed to close server");
+		}
         stage.close();
         Platform.exit();
         System.exit(0);
@@ -61,6 +75,9 @@ public class NetworkInfoController {
         String serverHost = server.getServerHostName();
         String serverIp   = server.getServerIpAddress();
         String clientIp = server.getLastClientIp();
+        Integer port = server.getPort();
+        String serverPort = port.toString();
+        this.lblPort.setText("Server Port: "+serverPort);
         this.btnStart.setText("Show info");
         hostLabel.setText("Server Host: " + serverHost + " (" + serverIp + ")");
         ipLabel.setText("Client IP: " + clientIp);

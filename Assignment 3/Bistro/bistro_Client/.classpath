@@ -16,5 +16,7 @@
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry combineaccessrules="false" kind="src" path="/bistro_Common"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/OCSF"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

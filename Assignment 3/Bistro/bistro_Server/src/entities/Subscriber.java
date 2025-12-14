@@ -9,22 +9,22 @@ import java.time.LocalDate;
 public class Subscriber {
 	
 	private String subscriberID;
-	private String username;
-	private String email;
-	private String phoneNumber;
+	private String userID;	
 	private int cardCode;
+	private String phoneNumber;
+	private String email;
 	private LocalDate dateOfJoining;
-	
-	
-
-	public Subscriber(String subscriberID, String username, String email, String phoneNumber, int cardCode,
+	public Subscriber() {
+		
+	}
+	public Subscriber(String subscriberID, String userID, int cardCode, String phoneNumber, String email,
 			LocalDate dateOfJoining) {
 		super();
 		this.subscriberID = subscriberID;
-		this.username = username;
-		this.email = email;
-		this.phoneNumber = phoneNumber;
+		this.userID = userID;
 		this.cardCode = cardCode;
+		this.phoneNumber = phoneNumber;
+		this.email = email;
 		this.dateOfJoining = dateOfJoining;
 	}
 	public String getSubscriberID() {
@@ -33,23 +33,11 @@ public class Subscriber {
 	public void setSubscriberID(String subscriberID) {
 		this.subscriberID = subscriberID;
 	}
-	public String getUsername() {
-		return username;
+	public String getUserID() {
+		return userID;
 	}
-	public void setUsername(String username) {
-		this.username = username;
-	}
-	public String getEmail() {
-		return email;
-	}
-	public void setEmail(String email) {
-		this.email = email;
-	}
-	public String getPhoneNumber() {
-		return phoneNumber;
-	}
-	public void setPhoneNumber(String phoneNumber) {
-		this.phoneNumber = phoneNumber;
+	public void setUserID(String userID) {
+		this.userID = userID;
 	}
 	public int getCardCode() {
 		return cardCode;
@@ -57,10 +45,26 @@ public class Subscriber {
 	public void setCardCode(int cardCode) {
 		this.cardCode = cardCode;
 	}
+	public String getPhoneNumber() {
+		return phoneNumber;
+	}
+	public void setPhoneNumber(String phoneNumber) {
+		this.phoneNumber = phoneNumber;
+	}
+	public String getEmail() {
+		return email;
+	}
+	public void setEmail(String email) {
+		this.email = email;
+	}
 	public LocalDate getDateOfJoining() {
 		return dateOfJoining;
 	}
 	public void setDateOfJoining(LocalDate dateOfJoining) {
 		this.dateOfJoining = dateOfJoining;
 	}
+	
+	
+	
+	
 }

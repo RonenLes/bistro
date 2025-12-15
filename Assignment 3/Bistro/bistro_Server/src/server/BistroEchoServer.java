@@ -4,6 +4,7 @@ import ocsf.server.*;
 
 import requests.*;
 import responses.*;
+import serverGUI.ServerMainScreenControl;
 
 import java.net.InetAddress;
 import java.util.Map;
@@ -13,20 +14,26 @@ import controllers.*;
 
 public class BistroEchoServer extends AbstractServer {
 	
+	private ServerSession serverSession;
 	private final Map<ConnectionToClient,ClientSession> loggedUsers = new ConcurrentHashMap<>();
+	private final ServerMainScreenControl serverGUI;
 	
 	//controllers
 	private final UserControl userControl;
 	 
 	
-	public BistroEchoServer(int port) {
+	public BistroEchoServer(int port,ServerMainScreenControl serverGUI) {
 		super(port);
 		
-		ServerSession serverSession  = new ServerSession();
+		serverSession  = new ServerSession();
+		this.serverGUI = serverGUI;
 		
 		userControl = new UserControl();
 	}
 		
+	public ServerSession getCurrentSession() {
+		return this.serverSession;
+	}
 	
 	@Override
 	protected void clientConnected(ConnectionToClient client) {
@@ -55,9 +62,12 @@ public class BistroEchoServer extends AbstractServer {
 			
 			switch(request.getCommand()) {
 				
-			case LOGIN->{
+			case "LOGIN"->{
 				
 			}
+				
+				
+			
 			
 			
 			}//end switch

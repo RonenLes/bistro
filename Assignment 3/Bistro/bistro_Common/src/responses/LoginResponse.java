@@ -9,8 +9,7 @@ public class LoginResponse {
 	
 	public LoginResponse() {}
 	
-	public LoginResponse(String userID, String role, String employeeID, String subscriberID) {
-		super();
+	public LoginResponse(String userID, String role, String employeeID, String subscriberID) {		
 		this.userID = userID;
 		this.role = role;
 		this.employeeID = employeeID;

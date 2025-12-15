@@ -5,6 +5,6 @@ package controllers;
  * 1.handle login request - check for manager/subscriber and respond accordingly 
  */
 
-public class CustomerControl {
+public class UserControl {
 
 }

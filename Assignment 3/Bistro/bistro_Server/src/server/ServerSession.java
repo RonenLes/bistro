@@ -2,6 +2,12 @@ package server;
 
 import java.net.InetAddress;
 
+
+/**
+ * Represents runtime information about the server instance.
+ * A ServerSession stores metadata such as the server's IP address,
+ * host name, and startup time.
+ */
 public class ServerSession {
 	
 	private String hostIP;

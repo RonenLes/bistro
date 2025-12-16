@@ -1,31 +1,31 @@
 package server;
 
+/**
+ * Represents a session associated with a connected client.
+ * A ClientSession stores runtime information about a client connection,
+ * including its IP address and authenticated user details after login.
+ */
+
 public class ClientSession {
 	
 	private String ip;
 	private String userID;
+	private String username;
+    private String role;
 	
 	public ClientSession() {}
 
 	public ClientSession(String ip) {
 		this.ip = ip;
-		this.userID =null;
 	}
 
-	public void setUserID(String userID) {
-		this.userID = userID;
-	}
+	public String getIp() { return ip; }
+    public String getUserId() { return userID; }
+    public String getUsername() { return username; }
+    public String getRole() { return role; }
 
-	public String getIp() {
-		return ip;
-	}
-
-	public String getUserID() {
-		return userID;
-	}
-	
-	public String toString() {
-		return ip;
-	}
+    public void setUserId(String userId) { this.userID = userId; }
+    public void setUsername(String username) { this.username = username; }
+    public void setRole(String role) { this.role = role; }
 	
 }

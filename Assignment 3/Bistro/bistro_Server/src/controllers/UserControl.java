@@ -1,10 +1,28 @@
 package controllers;
 
-/**
- * METHODS TO IMPLEMENT: USE GENERIC REQUEST AND RESPONSE CLASS
- * 1.handle login request - check for manager/subscriber and respond accordingly 
- */
+import java.sql.SQLException;
+import database.UserDAO;
+import entities.User;
+import responses.LoginResponse;
+import responses.Response;
+import requests.LoginRequest;
 
 public class UserControl {
+	private final UserDAO userDAO;
+	
+	public UserControl(UserDAO userDAO) {this.userDAO=userDAO;} //constructor for tests
+			
+	public UserControl() {this(new UserDAO());} //constructors for server use
 
+
+    public Response<LoginResponse> login(LoginRequest req) throws SQLException {
+        User user = userDAO.getUserByUsernameAndPassword(req.getUsername(), req.getPassword());
+
+        if (user == null) {
+            return new Response<>(false, "Invalid username or password", null);
+        }
+
+        LoginResponse data = new LoginResponse(user.getUserID(), user.getRole(),null,null);
+        return new Response<>(true, "Login successful", data);
+    }
 }

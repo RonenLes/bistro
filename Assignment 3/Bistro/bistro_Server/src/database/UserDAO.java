@@ -9,40 +9,44 @@ import java.time.LocalDate;
 
 /**
  * METHODS THIS CLASS HAS:
- * 1.getUserByUsername - fetching user with username from database
+ * 1.getUserByUsernameAndPassword - fetching user with username and password from database
  */
 public class UserDAO {
 
 	//SELECT statements
-	private final String SELECT_userByUsername = "SELECT * FROM `user` WHERE username = ?";
-	
-	
-	/**
-	 * method to retrieve user from database so the control can check role and existence 
-	 * @param username
-	 * @return User entity
-	 * @throws SQLException
-	 */
-	public User getUserByUsername(String username) throws SQLException{
-		User user  = null;
+		private static final String SELECT_LOGIN ="SELECT userID, role FROM `user` WHERE username=? AND password=?";
+
 		
-		try(Connection conn = DBManager.getConnection();
-			PreparedStatement ps = conn.prepareStatement(SELECT_userByUsername)){
-			
-			ps.setString(1, username);
-			
-			ResultSet rs = ps.executeQuery();
-			
-			if(rs.next()) {
-				user = new User(
-						rs.getString("userID"),
-						rs.getString("username"),
-						rs.getString("password"),
-						rs.getString("role"));
-			}
-		}catch(Exception e) {
-			System.err.println("Database error Could not find username");			
+		/**
+		 * @param username- username field
+		 * @param password- password field
+		 * @return the user with matching username and password,null if there are no matches.
+		 * @throws SQLException if there is a database error
+		 */
+		public User getUserByUsernameAndPassword(String username, String password) throws SQLException
+		{
+
+		    try (Connection conn = DBManager.getConnection();
+		         PreparedStatement ps = conn.prepareStatement(SELECT_LOGIN)) {
+
+		        ps.setString(1, username);
+		        ps.setString(2, password);
+
+		        ResultSet rs = ps.executeQuery();
+
+		        if (rs.next()) {
+		            return new User(
+		                rs.getString("userID"),
+		                rs.getString("username"),
+		                null,
+		                rs.getString("role")
+		            );
+		        }
+
+		    } catch (SQLException e) {
+		        System.err.println("DB error during login");
+		    }
+
+		    return null; 
 		}
-		return user;
-	}
 }

@@ -2,7 +2,13 @@ package serverGUI;
 
 import javafx.beans.property.*;
 
-
+/**
+ * Represents a single row in the server GUI client table.
+ * This class acts as a JavaFX view-model and wraps client connection
+ * and authentication details using observable properties.
+ * 
+ * 
+ */
 public class ClientTableRow {
 	
 	private final SimpleStringProperty userID = new SimpleStringProperty("-");

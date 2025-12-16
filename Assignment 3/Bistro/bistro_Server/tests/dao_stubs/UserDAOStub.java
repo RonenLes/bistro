@@ -20,7 +20,10 @@ public class UserDAOStub extends UserDAO {
 	
 	@Override
 	public User getUserByUsernameAndPassword(String username, String password) {
-		return userToReturn;
+		if(username.equals(userToReturn.getUsername()) && password.equals(userToReturn.getPassword())) {
+			return userToReturn;
+		}
+		return null;
 	}
 		
 }

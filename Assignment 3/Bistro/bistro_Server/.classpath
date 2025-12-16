@@ -23,12 +23,32 @@
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="libs/HikariCP-7.0.2.jar"/>
-	<classpathentry kind="lib" path="libs/slf4j-api-2.0.0.jar"/>
-	<classpathentry kind="lib" path="libs/slf4j-simple-2.0.0.jar"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/bistro_Common"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/OCSF"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/5">
+	<classpathentry kind="lib" path="libs/HikariCP-7.0.2.jar">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="libs/slf4j-api-2.0.0.jar">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="libs/slf4j-simple-2.0.0.jar">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry combineaccessrules="false" kind="src" path="/bistro_Common">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry combineaccessrules="false" kind="src" path="/OCSF">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4">
 		<attributes>
 			<attribute name="module" value="true"/>
 		</attributes>

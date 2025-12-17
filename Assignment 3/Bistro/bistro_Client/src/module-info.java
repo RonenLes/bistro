@@ -9,6 +9,7 @@ module bistro_Client {
 	requires javafx.graphics;
 	requires javafx.fxml;
 	requires javafx.controls;
+	requires bistro_Common;
 	
 	opens main_screen to javafx.fxml;
 	//for later

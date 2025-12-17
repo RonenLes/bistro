@@ -1,7 +1,7 @@
 package client;
 
 import controllers.ClientController;
-import main_screen.DesktopUI;
+import main_screen.MainScreenController;
 
 public class ClientMain {
 
@@ -29,6 +29,6 @@ public class ClientMain {
         }
 
         // launch JavaFX UI
-        DesktopUI.launchUI(controller, connected);
+        MainScreenController.launchUI(controller, connected);
     }
 }

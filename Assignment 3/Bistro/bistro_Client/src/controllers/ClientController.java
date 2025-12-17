@@ -1,6 +1,8 @@
 package controllers;
 
 import client.BistroEchoClient;
+import requests.LoginRequest;
+import responses.LoginResponse;
 
 /**
  * Central application controller for the Bistro Echo Client.
@@ -15,6 +17,8 @@ public class ClientController {
 
     private final BistroEchoClient client;
     private ClientUIHandler ui;
+    private boolean connected;
+
 
     public ClientController(BistroEchoClient client) {
         this.client = client;
@@ -38,12 +42,15 @@ public class ClientController {
             safeUiError("Client Error", "Tried to send a null request.");
             return;
         }
+        if (!connected) {
+            safeUiWarning("Offline Mode", "Not connected to server. This action is unavailable.");
+            return;
+        }
 
         try {
             client.sendToServer(request);
         } catch (Exception e) {
-            safeUiError("Connection Error",
-                    "Failed to send request to server.\n" + e.getMessage());
+            safeUiError("Connection Error", "Failed to send request to server.\n" + e.getMessage());
         }
     }
 
@@ -58,22 +65,59 @@ public class ClientController {
 
     /** Called ONLY by BistroEchoClient.handleMessageFromServer(msg) */
     public void handleServerResponse(Object msg) {
-        if (msg == null) {
-            safeUiWarning("Server", "Received empty message.");
+        if (msg instanceof LoginResponse res) {
+            if (res.isSuccess()) safeUiInfo("Login", "Welcome " + res.getUsername());
+            else safeUiWarning("Login Failed", res.getErrorMessage());
             return;
         }
-
-        // If you have common response base types, route them here with instanceof
-        // Examples:
-        //
-        // if (msg instanceof ErrorResponse err) { safeUiError("Error", err.toString()); return; }
-        // if (msg instanceof ReservationResponse res) { safeUiInfo("Reservation", res.toString()); return; }
-        // if (msg instanceof ShowDataResponse data) { ui.showPayload(data); return; }
-
-        // For now (works immediately):
         uiPayload(msg);
     }
+    
+    // Login and information verification
+    public void requestLogin(String usernameRaw, String passwordRaw) {
+        String username = usernameRaw == null ? "" : usernameRaw.trim();
+        String password = passwordRaw == null ? "" : passwordRaw;
 
+        String err = validateUsername(username);
+        if (err != null) { safeUiWarning("Login", err); return; }
+
+        err = validatePassword(password);
+        if (err != null) { safeUiWarning("Login", err); return; }
+        //TODO temp, remove
+        if (!connected) {
+            boolean ok = username.equals("niko") && password.equals("123456");
+            if (ok) safeUiInfo("Login", "Welcome " + username + " (demo)");
+            else safeUiError("Login Failed", "Invalid username/password (demo).");
+            return;
+        }
+        //END
+        // Build request from your common library
+        sendRequest(new LoginRequest(username, password));
+    }
+    
+    // helper function for requestLogin
+    private String validateUsername(String u) {
+        if (u.isEmpty()) return "Username is required.";
+        if (u.length() < 3 || u.length() > 20) return "Username must be 3-20 characters.";
+        if (u.contains(" ")) return "Username cannot contain spaces.";
+        if (!u.matches("[A-Za-z0-9._-]+")) return "Username can only contain letters, numbers, . _ -";
+        return null;
+    }
+    // helper function for requestLogin
+    private String validatePassword(String p) {
+        if (p.isEmpty()) return "Password is required.";
+        if (p.length() < 6 || p.length() > 64) return "Password must be 6-64 characters.";
+        // don’t over-restrict passwords; allow symbols/spaces if you want
+        return null;
+    }
+    // END
+
+    public void handleConnectionLost(String message) {
+        if (ui != null) {
+            ui.showError("Connection Lost", message);
+        }
+    }
+    
     // Safe UI calls
 
     private void safeUiInfo(String title, String message) {
@@ -95,4 +139,9 @@ public class ClientController {
         if (ui != null) ui.showPayload(payload);
         else System.out.println("[PAYLOAD] " + payload);
     } 
+    
+    // Setters
+    public void setConnected(boolean connected) {
+        this.connected = connected;
+    }
 }

@@ -46,11 +46,16 @@ public class BistroEchoClient extends AbstractClient {
     @Override
     protected void connectionClosed() {
         System.out.println("[BistroEchoClient] Connection closed");
+        if (controller != null) {
+            controller.handleConnectionLost("Connection to server was closed.");
+        }
     }
 
     @Override
     protected void connectionException(Exception exception) {
-        System.err.println("[BistroEchoClient] Connection error: "
-                + exception.getMessage());
+        System.err.println("[BistroEchoClient] Connection error: " + exception.getMessage());
+        if (controller != null) {
+            controller.handleConnectionLost("Connection error: " + exception.getMessage());
+        }
     }
 }

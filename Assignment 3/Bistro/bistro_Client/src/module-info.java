@@ -1,5 +1,18 @@
 module bistro_Client {
+	exports customer_screen;
+	exports subscriber_screen;
+	exports manager_screen;
+	exports client;
+	exports main_screen;
+
+	requires ocsf;
+	requires javafx.graphics;
+	requires javafx.fxml;
 	requires javafx.controls;
 	
-	opens application to javafx.graphics, javafx.fxml;
+	opens main_screen to javafx.fxml;
+	//for later
+	opens customer_screen to javafx.fxml;
+	opens manager_screen to javafx.fxml;
+	opens subscriber_screen to javafx.fxml;
 }

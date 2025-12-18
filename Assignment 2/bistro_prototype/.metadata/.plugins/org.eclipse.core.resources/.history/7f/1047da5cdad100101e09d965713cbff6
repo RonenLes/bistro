@@ -1,0 +1,77 @@
+package application;
+
+import java.io.InputStream;
+import java.util.Properties;
+
+import controllers.ClientController;
+
+public class ClientMain {
+
+    public static void main(String[] args) {
+
+    	boolean connected = false;
+        String host = "localhost";   // default host
+        int port = 3000;             // default port
+
+        Properties props = new Properties();
+        boolean loaded = false;
+
+        try {
+
+            // 1️⃣ Try external file first
+            try (InputStream external = new FileInputStream("dbDetailsLaptop.properties")) {
+                props.load(external);
+                System.out.println("Loaded EXTERNAL configuration file.");
+                loaded = true;
+            } catch (Exception e) {
+                System.out.println("External config not found. Trying INTERNAL config...");
+            }
+
+            // 2️⃣ If external not found → try internal
+            if (!loaded) {
+                try (InputStream internal = ClientMain.class.getClassLoader()
+                        .getResourceAsStream("dbDetailsLaptop.properties")) {
+
+                    if (internal != null) {
+                        props.load(internal);
+                        System.out.println("Loaded INTERNAL configuration file.");
+                        loaded = true;
+                    }
+                }
+            }
+
+            if (!loaded) {
+                System.err.println("⚠ No configuration file found. Using defaults.");
+            }
+
+            // 3️⃣ Read host from properties (if exists)
+            String propHost = props.getProperty("hostIP");
+            if (propHost != null && !propHost.isBlank()) {
+                host = propHost.trim();
+            }
+
+            System.out.println("Using host: " + host);
+
+        } catch (Exception e) {
+            System.err.println("Failed loading configuration: " + e.getMessage());
+        }
+
+
+        // --- Create client and controller ---
+        BistroClient client = new BistroClient(host, port);
+        ClientController controller = new ClientController(client);
+        client.setClientController(controller);
+
+        // --- Connect to server ---
+        try {
+            client.openConnection();
+            connected = true;
+            System.out.println("Connected to server on " + host + ":" + port);
+        } catch (Exception e) {
+            System.out.println("Connection failed: " + e.getMessage());
+        }
+
+        // --- Start UI ---
+        ClientUI.startUI(controller, connected);
+    }
+}

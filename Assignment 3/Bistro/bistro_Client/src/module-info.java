@@ -5,7 +5,7 @@ module bistro_Client {
 	exports client;
 	exports main_screen;
 
-	requires ocsf;
+	requires OCSF;
 	requires javafx.graphics;
 	requires javafx.fxml;
 	requires javafx.controls;

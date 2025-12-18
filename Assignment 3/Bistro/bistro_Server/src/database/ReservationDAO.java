@@ -4,6 +4,8 @@ import entities.Reservation;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**
@@ -18,21 +20,23 @@ public class ReservationDAO {
 	
 	//INSERT statement
 	private static final String INSERT_newReservation = "INSERT INTO `reservation` " + 
-															"(reservationDate, status, partySize, confirmationCode, guestContact, userID, startTime) "+
-															"VALUES (?, ?, ?, ?, ?, ?, ?)";
+															"(reservationDate, status, partySize, allocatedCapacity, confirmationCode, guestContact, userID, startTime) "+
+															"VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 	
 	//SELECT statements
 	private static final String SELECT_howManyUniqueCodes = "SELECT COUNT(*) FROM `reservations` WHERE confirmationCode = ?";
 	private static final String SELECT_reservationByConfirmationCode = "SELECT * FROM `reservation` WHERE confirmationCode = ?";
-	private static final String SELECT_amountOfUsedSeats ="SELECT COALESCE(SUM(partySize),0) AS usedSeats\r\n"
-			+ "        FROM reservation\r\n"
-			+ "        WHERE reservationDate = ?\r\n"
-			+ "          AND status IN ('NEW','CONFIRMED')\r\n"
-			+ "          AND (? < ADDTIME(startTime, '02:00:00') AND ? > startTime)";
-	
+	private static final String SELECT_amountOfUsedSeats ="""
+	        SELECT allocatedCapacity, COUNT(*) AS booked
+	        FROM reservation
+	        WHERE reservationDate = ?
+	          AND status IN ('NEW','CONFIRMED')
+	          AND (? < ADDTIME(startTime, '02:00:00') AND ? > startTime)
+	        GROUP BY allocatedCapacity
+	        """;
 	
 	// UPDATE statement
-	private static final String UPDATE_reservationByConfirmationCode= "UPDATE `reservation` SET partySize = ?, reservationDate = ?,startTime = ? WHERE confirmationCode = ?";
+	private static final String UPDATE_reservationByConfirmationCode= "UPDATE `reservation` SET partySize = ?, allocatedCapacity = ?, reservationDate = ?,startTime = ? WHERE confirmationCode = ?";
 	
 	/**
 	 * method searching reservation by a unique code and updating the reservation 
@@ -42,16 +46,17 @@ public class ReservationDAO {
 	 * @return if found the reservation and succeded  
 	 * @throws SQLException
 	 */
-	public boolean updateReservation(int newGuests,LocalDate newDate,int confirmationCode,LocalTime newTime) throws SQLException{
+	public boolean updateReservation(int newGuests,LocalDate newDate,int confirmationCode,LocalTime newTime,int newAllocation) throws SQLException{
 		java.sql.Date sqlReservationDate = java.sql.Date.valueOf(newDate);
 		
 		try (Connection conn = DBManager.getConnection();
 			PreparedStatement pstmt = conn.prepareStatement(UPDATE_reservationByConfirmationCode))			
 			{
 			pstmt.setInt(1, newGuests);
-			pstmt.setDate(2,sqlReservationDate);
-			pstmt.setTime(3, java.sql.Time.valueOf(newTime));
-			pstmt.setInt(4, confirmationCode);
+			pstmt.setInt(2, newAllocation);
+			pstmt.setDate(3,sqlReservationDate);
+			pstmt.setTime(4, java.sql.Time.valueOf(newTime));
+			pstmt.setInt(5, confirmationCode);
 			int isAffected = pstmt.executeUpdate();
 			return isAffected ==1;
 		}catch(SQLException e) {
@@ -87,9 +92,10 @@ public class ReservationDAO {
 			pstmt.setString(2, status);
 			pstmt.setInt(3,numberOfGuests);
 			pstmt.setInt(4,confirmationCode);
-			pstmt.setString(5, guest);
-			pstmt.setString(6, userID);
-			pstmt.setTime(7, java.sql.Time.valueOf(startTime));
+			pstmt.setInt(5,confirmationCode);
+			pstmt.setString(6, guest);
+			pstmt.setString(7, userID);
+			pstmt.setTime(8, java.sql.Time.valueOf(startTime));
 			
 			int isInserted = pstmt.executeUpdate();
 			return isInserted==1; //return 'true' if indeed new reservation added and only 1 row was affected
@@ -100,33 +106,6 @@ public class ReservationDAO {
 		}	
 	}
 	
-	
-	/**
-	 * Calculates the total number of seats already reserved for a given date
-	 * and time window.
-	 * 
-	 * This method is typically used to determine availability before creating
-	 * or updating a reservation.
-	 * @param date the reservation date to check
-	 * @param startTime the start time of the requested reservation
-	 * @param end the end time of the requested reservation
-	 * @return the total number of seats already reserved during the given time window
-	 * @throws SQLException
-	 */
-	public int getUsedSeats(LocalDate date, LocalTime startTime, LocalTime end) throws SQLException{
-		 try (Connection conn = DBManager.getConnection();
-		         PreparedStatement ps = conn.prepareStatement(SELECT_amountOfUsedSeats)) {
-
-		        ps.setDate(1, java.sql.Date.valueOf(date));
-		        ps.setTime(2, java.sql.Time.valueOf(startTime));
-		        ps.setTime(3, java.sql.Time.valueOf(end));
-
-		        try (ResultSet rs = ps.executeQuery()) {
-		            rs.next();
-		            return rs.getInt("usedSeats");
-		        }
-		    }
-	}
 	
 	
 	/**
@@ -153,4 +132,26 @@ public class ReservationDAO {
 		}
 		return false;
 	}
+	
+	
+	public Map<Integer, Integer> getBookedTablesByCapacity(LocalDate date, LocalTime start, LocalTime end)throws SQLException {
+	        	    
+	    Map<Integer, Integer> booked = new HashMap<>();
+
+	    try (Connection conn = DBManager.getConnection();
+	         PreparedStatement ps = conn.prepareStatement(SELECT_amountOfUsedSeats)) {
+
+	        ps.setDate(1, java.sql.Date.valueOf(date));
+	        ps.setTime(2, java.sql.Time.valueOf(start));
+	        ps.setTime(3, java.sql.Time.valueOf(end));
+
+	        try (ResultSet rs = ps.executeQuery()) {
+	            while (rs.next()) {
+	                booked.put(rs.getInt("allocatedCapacity"), rs.getInt("booked"));
+	            }
+	        }
+	    }
+	    return booked;
+	}
+
 }

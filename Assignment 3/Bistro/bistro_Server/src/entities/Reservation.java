@@ -9,6 +9,7 @@ public class Reservation {
 	private LocalDate reservationDate;
 	private String status; //'NEW', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW
 	private int partySize;
+	private int allocatedCapacity;
 	private int confirmationCode;
 	private String guestContact;
 	private String userID;
@@ -16,13 +17,13 @@ public class Reservation {
 	
 	
 	
-	public Reservation(String reservationID, LocalDate reservationDate, String status, int partySize,
+	public Reservation(String reservationID, LocalDate reservationDate, String status, int partySize,int allocatedCapacity,
 			int confirmationCode, String guestContact, String userID, LocalTime startTime) {
-		super();
 		this.reservationID = reservationID;
 		this.reservationDate = reservationDate;
 		this.status = status;
 		this.partySize = partySize;
+		this.allocatedCapacity= allocatedCapacity;
 		this.confirmationCode = confirmationCode;
 		this.guestContact = guestContact;
 		this.userID = userID;

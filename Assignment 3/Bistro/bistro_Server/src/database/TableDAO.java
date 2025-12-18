@@ -1,6 +1,9 @@
 package database;
 
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
+
 import entities.Table;
 
 public class TableDAO {
@@ -11,15 +14,16 @@ public class TableDAO {
 	//SELECT
 	private final String SELECT_sumOfTotalSeats ="SELECT SUM(capacity) AS totalCap FROM `restaurant_table`";
 	private final String SELECT_tableByTableNumber = "SELECT * FROM `table` WHERE tableNumber = ?";
-	private final String SELECT_availableTable = "SELECT t.tableID, t.tableNumber\r\n" //to find the now available table TO_DO in table receive run
-			+ "FROM `table` t\r\n"
-			+ "WHERE t.capacity >= ?\r\n"
-			+ "  AND t.tableID NOT IN (\r\n"
-			+ "      SELECT s.tableID\r\n"
-			+ "      FROM seating s\r\n"
-			+ "      WHERE s.checkOutTime IS NULL\r\n"
-			+ "  )\r\n"
-			+ "ORDER BY t.capacity ASC, t.tableNumber ASC\r\n"
+	private final String SELECT_tablesByCapacity = "SELECT capacity, COUNT(*) AS total FROM restaurant_table GROUP BY capacity";								
+	private final String SELECT_availableTable = "SELECT t.tableID, t.tableNumber " //to find the now available table TO_DO in table receive run
+			+ "FROM `table` "
+			+ "WHERE t.capacity >= ?"
+			+ " AND t.tableID NOT IN ("
+			+ " SELECT s.tableID"
+			+ " FROM seating s"
+			+ " WHERE s.checkOutTime IS NULL"
+			+ " )"
+			+ "ORDER BY t.capacity ASC, t.tableNumber ASC"
 			+ "LIMIT 1;";
 	
 	//UPDATE
@@ -67,5 +71,24 @@ public class TableDAO {
 		}
 	}
 	
+	/**
+	 * method to count how many table for each capacity
+	 * @return a map that connects capacity to the amount of tables for it
+	 * @throws SQLException
+	 */
+	public Map<Integer, Integer> getTotalTablesByCapacity() throws SQLException {	    
+	    Map<Integer, Integer> totals = new HashMap<>();
+
+	    try (Connection conn = DBManager.getConnection();
+	         PreparedStatement ps = conn.prepareStatement(SELECT_tablesByCapacity);
+	         ResultSet rs = ps.executeQuery()) {
+
+	        while (rs.next()) {
+	            totals.put(rs.getInt("capacity"), rs.getInt("total"));
+	        }
+	    }
+	    return totals;
+	}
+
 	
 }

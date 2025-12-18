@@ -6,10 +6,10 @@ import java.time.LocalTime;
 public class OpeningHours {
 
 	private LocalDate date;
-	private String day;
+	private String day; // Sunday,Monday,Tuesday,Wednesday, 
 	private LocalTime openTime;
 	private LocalTime closeTime;
-	private String occasion;
+	private String occasion;// STRIKE , HOLIDAY ,WAR, CLOSED 
 	
 	
 	public OpeningHours(LocalDate date, String day, LocalTime openTime, LocalTime closeTime, String occasion) {		

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<StackPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="terminal_screen.TerminalCheckInController">
+   <children>
+      <VBox prefHeight="200.0" prefWidth="0.0" />
+      <VBox alignment="CENTER" prefHeight="260.0" prefWidth="396.0" spacing="12.0">
+         <children>
+            <Label text="Check-in">
+               <font>
+                  <Font size="24.0" />
+               </font>
+            </Label>
+            <TextField fx:id="reservationNumberField" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="25.0" prefWidth="344.0" />
+            <Button mnemonicParsing="false" onAction="#onEnter" prefHeight="41.0" prefWidth="130.0" text="Enter" />
+            <Label fx:id="statusLabel" alignment="CENTER" prefHeight="65.0" prefWidth="364.0" text="status" textFill="RED">
+               <font>
+                  <Font size="18.0" />
+               </font>
+            </Label>
+         </children>
+      </VBox>
+   </children>
+</StackPane>

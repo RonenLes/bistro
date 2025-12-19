@@ -13,11 +13,11 @@ public class Reservation {
 	private String guestContact;
 	private String userID;
 	private LocalTime startTime;
-	private int duration;
+	
 	
 	
 	public Reservation(String reservationID, LocalDate reservationDate, String status, int partySize,
-			int confirmationCode, String guestContact, String userID, LocalTime startTime, int duration) {
+			int confirmationCode, String guestContact, String userID, LocalTime startTime) {
 		super();
 		this.reservationID = reservationID;
 		this.reservationDate = reservationDate;
@@ -27,7 +27,6 @@ public class Reservation {
 		this.guestContact = guestContact;
 		this.userID = userID;
 		this.startTime = startTime;
-		this.duration = duration;
 	}
 
 
@@ -71,9 +70,6 @@ public class Reservation {
 	}
 
 
-	public int getDuration() {
-		return duration;
-	}
 	
 	
 }

@@ -49,29 +49,31 @@ public class ReservationControl {
 	}
 	
 	
-	public Response<?> handleReservationRequest(ReservationRequest req){
-		if (req == null) return new Response<>(false, "Request is missing", null);
-		if (req.getType() == null) {
+	public Response<?> handleReservationRequest(ReservationRequest req) {
+
+	    if (req == null) {
+	        return new Response<>(false, "Request is missing", null);
+	    }
+
+	    if (req.getType() == null) {
 	        return new Response<>(false, "Phase is missing", null);
 	    }
 
 	    return switch (req.getType()) {
 
 	        case FIRST_PHASE -> {
-	        	try {
-	        		String err = validateFirstPhase(req);
-	        		if (err != null) {
-	        		    yield new Response<>(false, err, null);
-	        		}
-	                List<LocalTime> availableTimes =getAvailableTimes(req.getReservationDate(), req.getPartySize());
+	            try {
+	                List<LocalTime> availableTimes =
+	                        getAvailableTimes(req.getReservationDate(), req.getPartySize());
 
-	                
-	                if (!availableTimes.isEmpty()) {
+	                // 1) Availability exists
+	                if (availableTimes != null && !availableTimes.isEmpty()) {
 	                    ReservationResponse rr = new ReservationResponse(
 	                            ReservationResponse.ReservationResponseType.FIRST_PHASE_SHOW_AVAILABILITY,
-	                            availableTimes,null,null);
-	                  
-
+	                            availableTimes,
+	                            null,
+	                            null
+	                    );
 	                    yield new Response<>(true, "Available times found", rr);
 	                }
 
@@ -79,7 +81,7 @@ public class ReservationControl {
 	                Map<LocalDate, List<LocalTime>> suggestions =
 	                        getSuggestionsForNextDays(req.getReservationDate(), req.getPartySize());
 
-	                boolean hasAnySuggestion =
+	                boolean hasAnySuggestion = suggestions != null &&
 	                        suggestions.values().stream().anyMatch(list -> list != null && !list.isEmpty());
 
 	                // 2a) Suggestions exist
@@ -87,9 +89,9 @@ public class ReservationControl {
 	                    ReservationResponse rr = new ReservationResponse(
 	                            ReservationResponse.ReservationResponseType.FIRST_PHASE_SHOW_SUGGESTIONS,
 	                            null,
-	                            suggestions,null
+	                            suggestions,
+	                            null
 	                    );
-
 	                    yield new Response<>(true, "No availability on requested date, showing suggestions", rr);
 	                }
 
@@ -100,16 +102,15 @@ public class ReservationControl {
 	                        null,
 	                        null
 	                );
-
 	                yield new Response<>(true, "No availability or suggestions found", rr);
 
-	            }
-	            
-	            catch (IllegalArgumentException e) {
+	            } catch (IllegalArgumentException e) {
+	                // roundToCapacity can throw this
 	                System.err.println("Party too large");
 	                yield new Response<>(false, "Party too large", null);
 
 	            } catch (Exception e) {
+	                // DB errors etc.
 	                System.err.println("Failed to interact with DB");
 	                yield new Response<>(false, "Failed to interact with DB", null);
 	            }
@@ -117,9 +118,9 @@ public class ReservationControl {
 
 	        case SECOND_PHASE -> {
 	            try {
-	                String err = validateSecondPhase(req);
-	                if (err != null) {
-	                    yield new Response<>(false, err, null);
+	                // Minimal anti-crash checks (not “business validation”)
+	                if (req.getReservationDate() == null || req.getStartTime() == null) {
+	                    yield new Response<>(false, "Missing reservation date/time", null);
 	                }
 
 	                LocalDate date = req.getReservationDate();
@@ -136,7 +137,7 @@ public class ReservationControl {
 	                int confirmationCode = generateUniqueConfirmationCode();
 
 	                boolean hasUser = req.getUserID() != null && !req.getUserID().isBlank();
-	                String userId = hasUser ? req.getUserID() : null; 
+	                String userId = hasUser ? req.getUserID() : null;
 	                String guestContact = hasUser ? null : req.getGuestContact();
 
 	                boolean inserted = reservationDAO.insertNewReservation(
@@ -154,10 +155,9 @@ public class ReservationControl {
 	                    yield new Response<>(false, "Failed to create reservation", null);
 	                }
 
-	                // Send notification using NotificationControl (non-real sending)
+	                // Non-real sending via NotificationControl
 	                sendConfirmationNotification(req, confirmationCode);
 
-	                // Return confirmation code to client
 	                ReservationResponse rr = new ReservationResponse(
 	                        ReservationResponse.ReservationResponseType.SECOND_PHASE_CONFIRMED,
 	                        null,
@@ -165,7 +165,6 @@ public class ReservationControl {
 	                        confirmationCode
 	                );
 	                yield new Response<>(true, "Reservation created", rr);
-
 
 	            } catch (IllegalArgumentException e) {
 	                yield new Response<>(false, "Party too large", null);
@@ -176,49 +175,10 @@ public class ReservationControl {
 	        }
 	    };
 	}
+
 	
-	private String validateFirstPhase(ReservationRequest req) {
-
-	    if (req.getReservationDate() == null)
-	        return "Reservation date is missing";
-	    
-	    if (req.getPartySize() <= 0)
-	        return "Party size must be positive";
-
-	    boolean hasUser = req.getUserID() != null && !req.getUserID().isBlank();
-	    if (!hasUser) {
-	        if (req.getGuestContact() == null || req.getGuestContact().isBlank())
-	            return "Guest contact is missing";
-	    }
-
-	    return null;
-	}
 	
-	/**
-	 * Validates the required fields for SECOND_PHASE.
-	 * Returns null if valid, otherwise returns an error message.
-	 */
-	private String validateSecondPhase(ReservationRequest req) {
-
-	    if (req.getReservationDate() == null)
-	        return "Reservation date is missing";
-
-	    if (req.getPartySize() <= 0)
-	        return "Party size must be positive";
-
-	    // Client must pick a time in SECOND_PHASE
-	    if (req.getStartTime() == null) // <-- change if your field name is different
-	        return "Chosen time is missing";
-
-	    boolean hasUser = req.getUserID() != null && !req.getUserID().isBlank();
-	    if (!hasUser) {
-	        // Guest must provide contact info
-	        if (req.getGuestContact() == null || req.getGuestContact().isBlank())
-	            return "Guest contact is missing";
-	    }
-
-	    return null;
-	}
+	
 	/**
 	 * Checks if there is still availability for the given date/time/capacity.
 	 */
@@ -336,7 +296,7 @@ public class ReservationControl {
 	    }
 	}
 
-
+	
 
 	
 	

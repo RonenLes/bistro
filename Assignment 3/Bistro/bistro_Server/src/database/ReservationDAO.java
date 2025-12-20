@@ -36,34 +36,39 @@ public class ReservationDAO {
 	        """;
 	
 	// UPDATE statement
-	private static final String UPDATE_reservationByConfirmationCode= "UPDATE `reservation` SET partySize = ?, allocatedCapacity = ?, reservationDate = ?,startTime = ? WHERE confirmationCode = ?";
+	private static final String UPDATE_RESERVATION_BY_CONFIRMATION_CODE =
+	        "UPDATE `reservation` " +
+	        "SET reservationDate = ?, status = ?, partySize = ?, guestContact = ?, userID = ?, startTime = ? " +
+	        "WHERE confirmationCode = ?";
+
 	
-	/**
-	 * method searching reservation by a unique code and updating the reservation 
-	 * @param newGuests
-	 * @param newDate
-	 * @param confirmationCode
-	 * @return if found the reservation and succeded  
-	 * @throws SQLException
-	 */
-	public boolean updateReservation(int newGuests,LocalDate newDate,int confirmationCode,LocalTime newTime,int newAllocation) throws SQLException{
-		java.sql.Date sqlReservationDate = java.sql.Date.valueOf(newDate);
-		
-		try (Connection conn = DBManager.getConnection();
-			PreparedStatement pstmt = conn.prepareStatement(UPDATE_reservationByConfirmationCode))			
-			{
-			pstmt.setInt(1, newGuests);
-			pstmt.setInt(2, newAllocation);
-			pstmt.setDate(3,sqlReservationDate);
-			pstmt.setTime(4, java.sql.Time.valueOf(newTime));
-			pstmt.setInt(5, confirmationCode);
-			int isAffected = pstmt.executeUpdate();
-			return isAffected ==1;
-		}catch(SQLException e) {
-			System.err.println("Database error: could not edit new reservation");
-			throw e;
-		}
+	
+	public boolean updateReservation(LocalDate reservationDate,String status,int partySize,int confirmationCode,
+	        String guestContact,
+	        String userID,
+	        LocalTime startTime
+	) throws SQLException {
+
+	    try (Connection conn = DBManager.getConnection();
+	         PreparedStatement ps = conn.prepareStatement(UPDATE_RESERVATION_BY_CONFIRMATION_CODE)) {
+
+	        ps.setDate(1, java.sql.Date.valueOf(reservationDate));
+	        ps.setString(2, status);
+	        ps.setInt(3, partySize);
+	        ps.setString(4, guestContact); // can be null
+	        ps.setString(5, userID);       // can be null
+	        ps.setTime(6, startTime != null ? java.sql.Time.valueOf(startTime) : null);
+	        ps.setInt(7, confirmationCode);
+
+	        int affected = ps.executeUpdate();
+	        return affected == 1;
+
+	    } catch (SQLException e) {
+	        System.err.println("DB error updating reservation by confirmationCode=" + confirmationCode);
+	        throw e;
+	    }
 	}
+
 	
 	/**
 	 * method to add a new reservation
@@ -130,7 +135,41 @@ public class ReservationDAO {
 		return false;
 	}
 	
-	
+	public Reservation getReservationByConfirmationCode(int confirmationCode) throws SQLException {
+
+	    try (Connection conn = DBManager.getConnection();
+	         PreparedStatement ps = conn.prepareStatement(SELECT_reservationByConfirmationCode)) {
+
+	        ps.setInt(1, confirmationCode);
+
+	        try (ResultSet rs = ps.executeQuery()) {
+
+	            if (!rs.next()) {
+	                return null; // No reservation with this confirmation code
+	            }
+
+	            return new Reservation(
+	                rs.getString("reservationID"),
+	                rs.getDate("reservationDate").toLocalDate(),
+	                rs.getString("status"),
+	                rs.getInt("partySize"),
+	                rs.getInt("confirmationCode"),
+	                rs.getString("guestContact"),  // may be null
+	                rs.getString("userID"),        // may be null
+	                rs.getTime("startTime") != null
+	                        ? rs.getTime("startTime").toLocalTime()
+	                        : null
+	            );
+	        }
+
+	    } catch (SQLException e) {
+	        System.err.println(
+	            "DB error fetching reservation by confirmationCode=" + confirmationCode
+	        );
+	        throw e;
+	    }
+	}
+
 	public Map<Integer, Integer> getBookedTablesByCapacity(LocalDate date, LocalTime start, LocalTime end)throws SQLException {
 		
 	    Map<Integer, Integer> booked = new HashMap<>();

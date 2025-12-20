@@ -65,45 +65,41 @@ public class ReservationDAO {
 	}
 	
 	/**
-	 * method to add a new reservation
-	 * @param reservationID
-	 * @param reservationDate
-	 * @param numberOfGuests
-	 * @param confirmationCode
-	 * @param subscriberId
-	 * @param dateOfPlacingOrder
-	 * @return true if succedded 
-	 * @throws SQLException
-	 */
-	public boolean insertNewReservation(LocalDate reservationDate,int numberOfGuests,
-			int confirmationCode,String userID,LocalTime startTime,String status,String guest) throws SQLException {
-		
-		java.sql.Date sqlReservationDate = java.sql.Date.valueOf(reservationDate);
-		
-		
-		try (
-			Connection conn = DBManager.getConnection();
-			PreparedStatement pstmt = conn.prepareStatement(INSERT_newReservation))
-		{
-			//insert the details we got from control into statement
-			
-			pstmt.setDate(1,sqlReservationDate);
-			pstmt.setString(2, status);
-			pstmt.setInt(3,numberOfGuests);
-			pstmt.setInt(4,confirmationCode);
-			pstmt.setInt(5,confirmationCode);
-			pstmt.setString(6, guest);
-			pstmt.setString(7, userID);
-			pstmt.setTime(8, java.sql.Time.valueOf(startTime));
-			
-			int isInserted = pstmt.executeUpdate();
-			return isInserted==1; //return 'true' if indeed new reservation added and only 1 row was affected
-			
-		}catch(SQLException e) {
-			System.err.println("Database error: could not insert new reservation");
-			throw e;
-		}	
-	}
+    
+	method to add a new reservation
+	@param reservationID
+	@param reservationDate
+	@param numberOfGuests
+	@param confirmationCode
+	@param subscriberId
+	@param dateOfPlacingOrder
+	@return true if succedded
+	@throws SQLException*/
+	public boolean insertNewReservation(LocalDate reservationDate,int numberOfGuests,int allocatedCapacity,
+	        int confirmationCode,String userID,LocalTime startTime,String status,String guest) throws SQLException {
+
+	        java.sql.Date sqlReservationDate = java.sql.Date.valueOf(reservationDate);
+
+	        try (Connection conn = DBManager.getConnection();
+	             PreparedStatement pstmt = conn.prepareStatement(INSERT_newReservation)) {
+
+	            pstmt.setDate(1, sqlReservationDate);
+	            pstmt.setString(2, status);
+	            pstmt.setInt(3, numberOfGuests);
+	            pstmt.setInt(4, allocatedCapacity);
+	            pstmt.setInt(5, confirmationCode);
+	            pstmt.setString(6, guest);
+	            pstmt.setString(7, userID);
+	            pstmt.setTime(8, java.sql.Time.valueOf(startTime));
+
+	            int isInserted = pstmt.executeUpdate();
+	            return isInserted == 1;
+
+	        } catch (SQLException e) {
+	            System.err.println("Database error: could not insert new reservation");
+	            throw e;
+	        }
+	    }
 	
 	
 	

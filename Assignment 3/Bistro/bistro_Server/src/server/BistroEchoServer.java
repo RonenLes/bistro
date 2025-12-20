@@ -102,35 +102,20 @@ public class BistroEchoServer extends AbstractServer {
 		
 	    try {
 	        Object decoded = msg;
-	        if (msg instanceof byte[] bytes) {
-	            decoded = KryoUtil.deserialize(bytes);
-	        }
+	        if (msg instanceof byte[] bytes)  decoded = KryoUtil.deserialize(bytes);	           	        
 
-	        if (!(decoded instanceof Request<?> request)) {
-	            response = new Response<>(false, "Invalid request type", null);
-	        } else {
+	        if (!(decoded instanceof Request<?> request)) {response = new Response<>(false, "Invalid request type", null);}
+	            
+	         else {
 
 	            switch (request.getCommand()) {
 
 	                case LOGIN_REQUEST -> {
-	                    LoginRequest loginReq = (LoginRequest) request.getData();
-
-	                    
+	                    LoginRequest loginReq = (LoginRequest) request.getData();	                    
 	                    Response<LoginResponse> loginResp = userControl.login(loginReq);
 	                    response = loginResp;
+	                    handleLoginSuccess(client, loginReq, loginResp);
 	                    
-	                    if (loginResp.isSuccess()) {
-	                    	
-	                        if (session != null && loginResp.getData() != null) {
-
-	                            String userId = loginResp.getData().getUserID();
-	                            String ip = session.getIp();
-	                            
-	                            session.setUserId(userId);
-	                           
-	                            serverGUI.onClientLogin(userId,loginReq.getUsername(),loginResp.getData().getRole(),ip);	                                	                                	                                   	                                	                            
-	                        }
-	                    }
 	                }
 
 	                default -> response = new Response<>(false, "Unknown command", null);
@@ -149,6 +134,26 @@ public class BistroEchoServer extends AbstractServer {
 	    } catch (Exception e) {
 	        System.out.println("Failed to send response to client");
 	    }
+	}
+	
+	
+	/**
+	 * method to update the client session 
+	 * @param client current client that logged in
+	 * @param logReq the deatils the client entered to login
+	 * @param logRes the response that was handled by UserControl
+	 */
+	private void handleLoginSuccess(ConnectionToClient client,LoginRequest logReq, Response<LoginResponse> logRes) {
+		if(!logRes.isSuccess() || logRes.getData() == null) return;
+		
+		ClientSession clientSession = loggedUsers.get(client);
+		if(client == null) return;
+		
+		String userId = logRes.getData().getUserID();
+		clientSession.setUserId(userId);
+		clientSession.setUsername(logRes.getData().getUsername());
+		clientSession.setRole(logRes.getData().getRole());		
+		serverGUI.onClientLogin(userId,clientSession.getUsername(),clientSession.getRole(),clientSession.getIp());
 	}
 	
 	

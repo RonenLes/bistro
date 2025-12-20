@@ -275,7 +275,7 @@ public class ReservationControl {
 	    // 6-digit code example
 	    while (true) {
 	        int code = 100000 + rnd.nextInt(900000);
-	        if (!reservationDAO.isConfirmationCodeUsed(code)) {
+	        if (reservationDAO.isConfirmationCodeUsed(code)!=null) {
 	            return code;
 	        }
 	    }

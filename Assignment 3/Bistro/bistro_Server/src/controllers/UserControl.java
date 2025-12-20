@@ -22,7 +22,7 @@ public class UserControl {
             return new Response<>(false, "Invalid username or password", null);
         }
 
-        LoginResponse data = new LoginResponse(user.getUserID(), user.getRole(),null,null);
-        return new Response<>(true, "Login successful", data);
+        LoginResponse data = new LoginResponse(user.getUserID(), user.getRole(),user.getUsername());
+        return new Response<>(true, "Hello"+user.getUsername(), data);
     }
 }

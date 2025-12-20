@@ -4,16 +4,17 @@ public class LoginResponse {
 	
 	private String userID;
 	private String role;
-	private String employeeID;
-	private String subscriberID;
+	private String username;
+	
+	
 	
 	public LoginResponse() {}
 	
-	public LoginResponse(String userID, String role, String employeeID, String subscriberID) {		
+	public LoginResponse(String userID, String role,String username) {		
 		this.userID = userID;
 		this.role = role;
-		this.employeeID = employeeID;
-		this.subscriberID = subscriberID;
+		this.username = username;
+		
 	}
 
 	public String getUserID() {
@@ -24,13 +25,11 @@ public class LoginResponse {
 		return role;
 	}
 
-	public String getEmployeeID() {
-		return employeeID;
+	public String getUsername() {
+		return username;
 	}
 
-	public String getSubscriberID() {
-		return subscriberID;
-	}
+	
 	
 	
 }

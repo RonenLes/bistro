@@ -6,10 +6,11 @@ public class Response<T> {
 	private String message;
 	private T data;
 	
+	
+	
 	public Response() {}
 
 	public Response(boolean isSuccess, String message, T data) {
-		super();
 		this.isSuccess = isSuccess;
 		this.message = message;
 		this.data = data;
@@ -27,5 +28,5 @@ public class Response<T> {
 		return data;
 	}
 	
-	
+	 
 }

@@ -3,59 +3,104 @@ package controllers;
 import database.TableDAO;
 import database.ReservationDAO;
 import database.OpeningHoursDAO;
-
+import database.SubscriberDAO;
 import entities.OpeningHours;
 import entities.Table;
 import entities.Reservation;
-
+import entities.Subscriber;
 import requests.ReservationRequest;
 import responses.ReservationResponse;
 import requests.Request;
 import responses.Response;
-
+import java.util.Random;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ReservationControl {
 	
-	private OpeningHoursDAO openingHoursDAO;
-	private ReservationDAO reservationDAO;
-	private TableDAO tableDAO;
-	
-	// for tests
-	public ReservationControl(OpeningHoursDAO oh, ReservationDAO r, TableDAO t) {
-	    this.openingHoursDAO = oh;
-	    this.reservationDAO = r;
-	    this.tableDAO = t;
-	}
-	
+	private final ReservationDAO reservationDAO;
+	private final TableDAO tableDAO;
+	private final OpeningHoursDAO openingHoursDAO;
+	private final SubscriberDAO subscriberDAO;
+	private final NotificationControl notificationControl;
+
 	public ReservationControl() {
-	    this.openingHoursDAO = new OpeningHoursDAO();
-	    this.reservationDAO = new ReservationDAO();
-	    this.tableDAO = new TableDAO();
+	    this(new ReservationDAO(), new TableDAO(), new OpeningHoursDAO(),
+	         new SubscriberDAO(), new NotificationControl());
+	}
+
+	public ReservationControl(ReservationDAO reservationDAO,
+	                          TableDAO tableDAO,
+	                          OpeningHoursDAO openingHoursDAO,
+	                          SubscriberDAO subscriberDAO,
+	                          NotificationControl notificationControl) {
+	    this.reservationDAO = reservationDAO;
+	    this.tableDAO = tableDAO;
+	    this.openingHoursDAO = openingHoursDAO;
+	    this.subscriberDAO = subscriberDAO;
+	    this.notificationControl = notificationControl;
 	}
 	
 	
 	public Response<?> handleReservationRequest(ReservationRequest req){
 		
-		if (req.getPhase() == null) {
+		if (req.getType() == null) {
 	        return new Response<>(false, "Phase is missing", null);
 	    }
 
-	    return switch (req.getPhase()) {
+	    return switch (req.getType()) {
 
 	        case FIRST_PHASE -> {
-	            try {
-	                List<LocalTime> availableTime =
-	                        getAvailableTimes(req.getDateToReserve(), req.getPartySize());
-	                yield new Response<>(true, "All available times to reserve", availableTime);
+	        	try {
+	                List<LocalTime> availableTimes =getAvailableTimes(req.getReservationDate(), req.getPartySize());
 
-	            } catch (IllegalArgumentException e) {
+	                
+	                if (!availableTimes.isEmpty()) {
+	                    ReservationResponse rr = new ReservationResponse(
+	                            ReservationResponse.ReservationResponseType.FIRST_PHASE_SHOW_AVAILABILITY,
+	                            availableTimes,null,null);
+	                  
+
+	                    yield new Response<>(true, "Available times found", rr);
+	                }
+
+	                // 2) No availability -> check suggestions (next 3 days)
+	                Map<LocalDate, List<LocalTime>> suggestions =
+	                        getSuggestionsForNextDays(req.getReservationDate(), req.getPartySize());
+
+	                boolean hasAnySuggestion =
+	                        suggestions.values().stream().anyMatch(list -> list != null && !list.isEmpty());
+
+	                // 2a) Suggestions exist
+	                if (hasAnySuggestion) {
+	                    ReservationResponse rr = new ReservationResponse(
+	                            ReservationResponse.ReservationResponseType.FIRST_PHASE_SHOW_SUGGESTIONS,
+	                            null,
+	                            suggestions,null
+	                    );
+
+	                    yield new Response<>(true, "No availability on requested date, showing suggestions", rr);
+	                }
+
+	                // 2b) No availability and no suggestions
+	                ReservationResponse rr = new ReservationResponse(
+	                        ReservationResponse.ReservationResponseType.FIRST_PHASE_NO_AVAILABILITY_OR_SUGGESTIONS,
+	                        null,
+	                        null,
+	                        null
+	                );
+
+	                yield new Response<>(true, "No availability or suggestions found", rr);
+
+	            }
+	            
+	            catch (IllegalArgumentException e) {
 	                System.err.println("Party too large");
 	                yield new Response<>(false, "Party too large", null);
 
@@ -66,13 +111,113 @@ public class ReservationControl {
 	        }
 
 	        case SECOND_PHASE -> {
-	            // TODO implement booking logic (insert reservation) and confirmation code generator
-	           
+	            try {
+	                String err = validateSecondPhase(req);
+	                if (err != null) {
+	                    yield new Response<>(false, err, null);
+	                }
+
+	                LocalDate date = req.getReservationDate();
+	                LocalTime startTime = req.getStartTime();
+	                int partySize = req.getPartySize();
+
+	                int allocatedCapacity = roundToCapacity(partySize);
+
+	                // Re-check availability right before insert
+	                if (!isStillAvailable(date, startTime, allocatedCapacity)) {
+	                    yield new Response<>(false, "Selected time is no longer available", null);
+	                }
+
+	                int confirmationCode = generateUniqueConfirmationCode();
+
+	                boolean isSubscriber = req.getUserID() != null && !req.getUserID().isBlank();
+	                String userIdOrSubscriberId = isSubscriber ? req.getUserID() : null; // in your project this is subscriberID
+	                String guestContact = isSubscriber ? null : req.getGuestContact();
+
+	                boolean inserted = reservationDAO.insertNewReservation(
+	                        date,
+	                        partySize,
+	                        allocatedCapacity,
+	                        confirmationCode,
+	                        userIdOrSubscriberId,
+	                        startTime,
+	                        "NEW",
+	                        guestContact
+	                );
+
+	                if (!inserted) {
+	                    yield new Response<>(false, "Failed to create reservation", null);
+	                }
+
+	                // Send notification using NotificationControl (non-real sending)
+	                sendConfirmationNotification(req, confirmationCode);
+
+	                // Return confirmation code to client
+	                ReservationResponse rr = new ReservationResponse(
+	                        ReservationResponse.ReservationResponseType.SECOND_PHASE_CONFIRMED,
+	                        null,
+	                        null,
+	                        confirmationCode
+	                );
+	                yield new Response<>(true, "Reservation created", rr);
+
+
+	            } catch (IllegalArgumentException e) {
+	                yield new Response<>(false, "Party too large", null);
+
+	            } catch (Exception e) {
+	                yield new Response<>(false, "Failed to interact with DB", null);
+	            }
 	        }
-	        
-	       
 	    };
 	}
+	/**
+	 * Validates the required fields for SECOND_PHASE.
+	 * Returns null if valid, otherwise returns an error message.
+	 */
+	private String validateSecondPhase(ReservationRequest req) {
+
+	    if (req.getReservationDate() == null)
+	        return "Reservation date is missing";
+
+	    if (req.getPartySize() <= 0)
+	        return "Party size must be positive";
+
+	    // Client must pick a time in SECOND_PHASE
+	    if (req.getStartTime() == null) // <-- change if your field name is different
+	        return "Chosen time is missing";
+
+	    boolean isSubscriber = req.getUserID() != null && !req.getUserID().isBlank();
+	    if (!isSubscriber) {
+	        // Guest must provide contact info
+	        if (req.getGuestContact() == null || req.getGuestContact().isBlank())
+	            return "Guest contact is missing";
+	    }
+
+	    return null;
+	}
+	/**
+	 * Checks if there is still availability for the given date/time/capacity.
+	 */
+	private boolean isStillAvailable(LocalDate date, LocalTime startTime, int allocatedCapacity) throws SQLException {
+
+	    int durationMinutes = 120;
+	    LocalTime end = startTime.plusMinutes(durationMinutes);
+
+	    Map<Integer, Integer> totals = tableDAO.getTotalTablesByCapacity();
+	    int totalForCap = totals.getOrDefault(allocatedCapacity, 0);
+	    if (totalForCap <= 0)
+	        return false;
+
+	    Map<Integer, Integer> booked = reservationDAO.getBookedTablesByCapacity(date, startTime, end);
+	    int bookedForCap = booked.getOrDefault(allocatedCapacity, 0);
+
+	    return bookedForCap < totalForCap;
+	}
+	
+	
+	
+	
 	
 	public List<LocalTime> getAvailableTimes(LocalDate date , int partySize) throws SQLException{
 		
@@ -99,6 +244,73 @@ public class ReservationControl {
 		}
 		return availableSpace;
 	}
+	
+	
+	
+	
+	public Map<LocalDate, List<LocalTime>> getSuggestionsForNextDays(LocalDate requestedDate,int partySize) throws SQLException {
+
+	    Map<LocalDate, List<LocalTime>> suggestions = new LinkedHashMap<>();
+
+	    // Check the next 3 days after the requested date
+	    for (int i = 1; i <= 3; i++) {
+
+	        LocalDate dateToCheck = requestedDate.plusDays(i);
+
+	        List<LocalTime> availableTimes =
+	                getAvailableTimes(dateToCheck, partySize);
+
+	        suggestions.put(dateToCheck, availableTimes);
+	    }
+
+	    return suggestions;
+	}
+	
+	
+	
+	private int generateUniqueConfirmationCode() throws SQLException {
+
+	    Random rnd = new Random();
+
+	    // 6-digit code example
+	    while (true) {
+	        int code = 100000 + rnd.nextInt(900000);
+	        if (!reservationDAO.isConfirmationCodeUsed(code)) {
+	            return code;
+	        }
+	    }
+	}
+	
+	
+	
+	/**
+	 * Sends confirmation code notification based on whether the requester is a subscriber or a guest.
+	 * For subscribers, the code is sent to both email and phone (if present).
+	 * For guests, the code is sent to the single contact they provided (email OR phone).
+	 */
+	private void sendConfirmationNotification(ReservationRequest req, int confirmationCode) throws SQLException {
+
+	    boolean isSubscriber = req.getUserID() != null && !req.getUserID().isBlank();
+
+	    if (isSubscriber) {
+	        // req.getUserID() is treated as subscriberID in your project
+	        Subscriber subscriber = subscriberDAO.getSubscriberByID(req.getUserID());
+
+	        if (subscriber == null) {
+	            System.err.println("[NOTIFY] Subscriber not found for subscriberID=" + req.getUserID());
+	            return;
+	        }
+
+	        notificationControl.sendConfirmationToSubscriber(subscriber, confirmationCode);
+	        return;
+	    }
+
+	    // Guest flow
+	    notificationControl.sendConfirmationToGuest(req.getGuestContact(), confirmationCode);
+	}
+
+	
+	
 	
 	
 	//TO-DO improve logic so the TableDAO will fetch the closest capacity that is received in the method

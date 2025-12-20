@@ -11,6 +11,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
+import terminal_screen.TerminalScreenController;
 
 public class MainScreenController extends Application implements ClientUIHandler {
 
@@ -123,27 +124,29 @@ public class MainScreenController extends Application implements ClientUIHandler
     @FXML
     private void onTerminalClicked() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/main_screen/TerminalScreen.fxml"));
+            String fxml = "/terminal_screen/TerminalScreen.fxml";
+
+            var url = getClass().getResource(fxml);
+            if (url == null) {
+                throw new IllegalArgumentException("FXML not found on classpath: " + fxml);
+            }
+
+            FXMLLoader loader = new FXMLLoader(url);
             Parent root = loader.load();
 
-            TerminalScreenController c = loader.getController();
-            c.setClientController(controller, connected);
+            // Inject controller dependencies
+            terminal_screen.TerminalScreenController ctrl = loader.getController();
+            ctrl.setClientController(controller, connected);
 
-            Stage terminalStage = new Stage();
-            terminalStage.setTitle("Terminal Mode");
-            terminalStage.setScene(new Scene(root));
-            terminalStage.setResizable(false); // optional
-
-            // Bring main back when terminal closes
-            terminalStage.setOnHidden(e -> this.stage.show());
-            terminalStage.setOnCloseRequest(e -> this.stage.show());
-
-            terminalStage.show();
-            this.stage.hide();
+            // Swap in same window
+            stage.getScene().setRoot(root);
+            stage.sizeToScene(); 
+            stage.centerOnScreen();
+            stage.setTitle("Terminal");
 
         } catch (Exception e) {
             e.printStackTrace();
-            showError("Navigation Error", "Failed to open TerminalScreen.\n" + e.getMessage());
+            showError("Navigation Error", "Failed to open Terminal.\n" + e.getMessage());
         }
     }
 

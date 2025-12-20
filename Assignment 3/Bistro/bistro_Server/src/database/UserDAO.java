@@ -14,8 +14,9 @@ import java.time.LocalDate;
 public class UserDAO {
 
 	//SELECT statements
-		private static final String SELECT_LOGIN ="SELECT userID, role FROM `user` WHERE username=? AND password=?";
+		private static final String SELECT_LOGIN ="SELECT userID, username, role, phoneNumber, email FROM `user` WHERE username=? AND password=?";
 
+		private static final String SELECT_USER_BY_ID ="SELECT userID, username, role, phoneNumber, email FROM `user` WHERE userID = ?";
 		
 		/**
 		 * @param username- username field
@@ -23,8 +24,7 @@ public class UserDAO {
 		 * @return the user with matching username and password,null if there are no matches.
 		 * @throws SQLException if there is a database error
 		 */
-		public User getUserByUsernameAndPassword(String username, String password) throws SQLException
-		{
+		public User getUserByUsernameAndPassword(String username, String password) throws SQLException {
 
 		    try (Connection conn = DBManager.getConnection();
 		         PreparedStatement ps = conn.prepareStatement(SELECT_LOGIN)) {
@@ -35,18 +35,56 @@ public class UserDAO {
 		        ResultSet rs = ps.executeQuery();
 
 		        if (rs.next()) {
-		            return new User(
-		                rs.getString("userID"),
-		                rs.getString("username"),
-		                null,
-		                rs.getString("role")
-		            );
+		        	return new User(
+		        		    rs.getString("userID"),
+		        		    rs.getString("username"),
+		        		    null,                    // password is not exposed
+		        		    rs.getString("role"),
+		        		    rs.getString("phoneNumber"),
+		        		    rs.getString("email")
+		        		);
 		        }
 
 		    } catch (SQLException e) {
 		        System.err.println("DB error during login");
+		        throw e;   // חשוב: אל תבלע את החריגה
 		    }
 
-		    return null; 
+		    return null;
 		}
+
+		
+		
+		/**
+		 * Fetches a user by userID.
+		 *
+		 * @param userID the unique user identifier
+		 * @return User object if found, null otherwise
+		 * @throws SQLException if a database error occurs
+		 */
+		    public User getUserByUserID(String userID) throws SQLException {
+
+		        try (Connection conn = DBManager.getConnection();
+		             PreparedStatement ps = conn.prepareStatement(SELECT_USER_BY_ID)) {
+
+		            ps.setString(1, userID);
+		            ResultSet rs = ps.executeQuery();
+
+		            if (rs.next()) {
+		            	return new User(
+		            		    rs.getString("userID"),
+		            		    rs.getString("username"),
+		            		    null,                    // password is not exposed
+		            		    rs.getString("role"),
+		            		    rs.getString("phoneNumber"),
+		            		    rs.getString("email")
+		            		);
+		            }
+		        } catch (SQLException e) {
+		            System.err.println("DB error fetching user by userID");
+		            throw e;
+		        }
+
+		        return null;
+		    }
 }

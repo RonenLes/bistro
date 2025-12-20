@@ -5,17 +5,20 @@ public class User {
 	private String username;
 	private String password;
 	private String role;
-	
+	private String email;
+	private String phone;
 	public User() {
 		
 	}
 
-	public User(String userID, String username, String password, String role) {
-		super();
+	public User(String userID, String username, String password, String role,String phone,String email) {
+		
 		this.userID = userID;
 		this.username = username;
 		this.password = password;
 		this.role = role;
+		this.email=email;
+		this.phone=phone;
 	}
 
 	public String getUserID() {
@@ -50,5 +53,16 @@ public class User {
 		this.role = role;
 	}
 	
-	
+	public String getEmail() {
+		return this.email;
+	}
+	public void setEmail(String email) {
+		this.email=email;
+	}
+	public String getPhone() {
+		return this.phone;
+	}
+	public void setPhone(String phone) {
+		this.phone=phone;
+	}
 }

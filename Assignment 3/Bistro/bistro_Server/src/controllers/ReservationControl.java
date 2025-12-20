@@ -1,21 +1,22 @@
 package controllers;
 
 import database.TableDAO;
+
 import database.ReservationDAO;
 import database.OpeningHoursDAO;
-import database.SubscriberDAO;
+import database.UserDAO;
 import entities.OpeningHours;
-import entities.Table;
-import entities.Reservation;
-import entities.Subscriber;
+
+
+
+import entities.User;
 import requests.ReservationRequest;
 import responses.ReservationResponse;
-import requests.Request;
+
 import responses.Response;
 import java.util.Random;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -27,29 +28,29 @@ public class ReservationControl {
 	private final ReservationDAO reservationDAO;
 	private final TableDAO tableDAO;
 	private final OpeningHoursDAO openingHoursDAO;
-	private final SubscriberDAO subscriberDAO;
+	private final UserDAO userDAO;
 	private final NotificationControl notificationControl;
 
 	public ReservationControl() {
 	    this(new ReservationDAO(), new TableDAO(), new OpeningHoursDAO(),
-	         new SubscriberDAO(), new NotificationControl());
+	         new UserDAO(), new NotificationControl());
 	}
 
 	public ReservationControl(ReservationDAO reservationDAO,
 	                          TableDAO tableDAO,
 	                          OpeningHoursDAO openingHoursDAO,
-	                          SubscriberDAO subscriberDAO,
+	                          UserDAO userDAO,
 	                          NotificationControl notificationControl) {
 	    this.reservationDAO = reservationDAO;
 	    this.tableDAO = tableDAO;
 	    this.openingHoursDAO = openingHoursDAO;
-	    this.subscriberDAO = subscriberDAO;
+	    this.userDAO = userDAO;
 	    this.notificationControl = notificationControl;
 	}
 	
 	
 	public Response<?> handleReservationRequest(ReservationRequest req){
-		
+		if (req == null) return new Response<>(false, "Request is missing", null);
 		if (req.getType() == null) {
 	        return new Response<>(false, "Phase is missing", null);
 	    }
@@ -58,6 +59,10 @@ public class ReservationControl {
 
 	        case FIRST_PHASE -> {
 	        	try {
+	        		String err = validateFirstPhase(req);
+	        		if (err != null) {
+	        		    yield new Response<>(false, err, null);
+	        		}
 	                List<LocalTime> availableTimes =getAvailableTimes(req.getReservationDate(), req.getPartySize());
 
 	                
@@ -130,16 +135,16 @@ public class ReservationControl {
 
 	                int confirmationCode = generateUniqueConfirmationCode();
 
-	                boolean isSubscriber = req.getUserID() != null && !req.getUserID().isBlank();
-	                String userIdOrSubscriberId = isSubscriber ? req.getUserID() : null; // in your project this is subscriberID
-	                String guestContact = isSubscriber ? null : req.getGuestContact();
+	                boolean hasUser = req.getUserID() != null && !req.getUserID().isBlank();
+	                String userId = hasUser ? req.getUserID() : null; 
+	                String guestContact = hasUser ? null : req.getGuestContact();
 
 	                boolean inserted = reservationDAO.insertNewReservation(
 	                        date,
 	                        partySize,
 	                        allocatedCapacity,
 	                        confirmationCode,
-	                        userIdOrSubscriberId,
+	                        userId,
 	                        startTime,
 	                        "NEW",
 	                        guestContact
@@ -171,6 +176,24 @@ public class ReservationControl {
 	        }
 	    };
 	}
+	
+	private String validateFirstPhase(ReservationRequest req) {
+
+	    if (req.getReservationDate() == null)
+	        return "Reservation date is missing";
+	    
+	    if (req.getPartySize() <= 0)
+	        return "Party size must be positive";
+
+	    boolean hasUser = req.getUserID() != null && !req.getUserID().isBlank();
+	    if (!hasUser) {
+	        if (req.getGuestContact() == null || req.getGuestContact().isBlank())
+	            return "Guest contact is missing";
+	    }
+
+	    return null;
+	}
+	
 	/**
 	 * Validates the required fields for SECOND_PHASE.
 	 * Returns null if valid, otherwise returns an error message.
@@ -187,8 +210,8 @@ public class ReservationControl {
 	    if (req.getStartTime() == null) // <-- change if your field name is different
 	        return "Chosen time is missing";
 
-	    boolean isSubscriber = req.getUserID() != null && !req.getUserID().isBlank();
-	    if (!isSubscriber) {
+	    boolean hasUser = req.getUserID() != null && !req.getUserID().isBlank();
+	    if (!hasUser) {
 	        // Guest must provide contact info
 	        if (req.getGuestContact() == null || req.getGuestContact().isBlank())
 	            return "Guest contact is missing";
@@ -221,9 +244,14 @@ public class ReservationControl {
 	
 	public List<LocalTime> getAvailableTimes(LocalDate date , int partySize) throws SQLException{
 		
-		OpeningHours openHour = openingHoursDAO.getOpeningHour(date);
-		LocalTime open = openHour.getOpenTime();
-		LocalTime close  = openHour.getCloseTime();
+		if (date == null) return new ArrayList<>();
+
+	    OpeningHours openHour = openingHoursDAO.getOpeningHour(date);
+	    if (openHour == null) return new ArrayList<>();
+
+	    LocalTime open = openHour.getOpenTime();
+	    LocalTime close = openHour.getCloseTime();
+	    if (open == null || close == null) return new ArrayList<>();
 		
 		int cap = roundToCapacity(partySize);
 		int duration = 120;
@@ -288,26 +316,27 @@ public class ReservationControl {
 	 * For subscribers, the code is sent to both email and phone (if present).
 	 * For guests, the code is sent to the single contact they provided (email OR phone).
 	 */
-	private void sendConfirmationNotification(ReservationRequest req, int confirmationCode) throws SQLException {
+	private void sendConfirmationNotification(ReservationRequest req, int confirmationCode) {
+	    try {
+	        boolean hasUser = req.getUserID() != null && !req.getUserID().isBlank();
 
-	    boolean isSubscriber = req.getUserID() != null && !req.getUserID().isBlank();
-
-	    if (isSubscriber) {
-	        // req.getUserID() is treated as subscriberID in your project
-	        Subscriber subscriber = subscriberDAO.getSubscriberByID(req.getUserID());
-
-	        if (subscriber == null) {
-	            System.err.println("[NOTIFY] Subscriber not found for subscriberID=" + req.getUserID());
-	            return;
+	        if (hasUser) {
+	            User user = userDAO.getUserByUserID(req.getUserID());
+	            if (user == null) {
+	                System.err.println("User not found for userID=" + req.getUserID());
+	                return;
+	            }
+	            notificationControl.sendConfirmationToUser(user, confirmationCode);
+	        } else {
+	            notificationControl.sendConfirmationToGuest(req.getGuestContact(), confirmationCode);
 	        }
 
-	        notificationControl.sendConfirmationToSubscriber(subscriber, confirmationCode);
-	        return;
+	    } catch (SQLException e) {
+	        System.err.println("[NOTIFY] Failed to fetch user contact info: " + e.getMessage());
 	    }
-
-	    // Guest flow
-	    notificationControl.sendConfirmationToGuest(req.getGuestContact(), confirmationCode);
 	}
+
+
 
 	
 	

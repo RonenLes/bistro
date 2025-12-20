@@ -5,7 +5,7 @@ import java.time.LocalTime;
 
 public class Reservation {
 	
-	private String reservationID;
+	private int reservationID;
 	private LocalDate reservationDate;
 	private String status; //'NEW', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW
 	private int partySize;
@@ -17,7 +17,7 @@ public class Reservation {
 	
 	
 	
-	public Reservation(String reservationID, LocalDate reservationDate, String status, int partySize,int allocatedCapacity,
+	public Reservation(int reservationID, LocalDate reservationDate, String status, int partySize,int allocatedCapacity,
 			int confirmationCode, String guestContact, String userID, LocalTime startTime) {
 		this.reservationID = reservationID;
 		this.reservationDate = reservationDate;
@@ -34,7 +34,7 @@ public class Reservation {
 	
 	
 	
-	public String getReservationID() {
+	public int getReservationID() {
 		return reservationID;
 	}
 
@@ -71,6 +71,13 @@ public class Reservation {
 
 	public LocalTime getStartTime() {
 		return startTime;
+	}
+
+
+
+
+	public int getAllocatedCapacity() {
+		return allocatedCapacity;
 	}
 
 

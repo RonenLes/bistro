@@ -67,8 +67,10 @@ public class ReservationControl {
 
 	        case SECOND_PHASE -> {
 	            // TODO implement booking logic (insert reservation) and confirmation code generator
-	            yield new Response<>(false, "SECOND_PHASE not implemented yet", null);
+	           
 	        }
+	        
+	       
 	    };
 	}
 	
@@ -85,8 +87,8 @@ public class ReservationControl {
 		
 		Map<Integer,Integer> totalTablesByCapacity = tableDAO.getTotalTablesByCapacity();
 		
-		for(LocalTime start = open;!start.plusMinutes(duration).isAfter(close);start=start.plusMinutes(duration)) {
-			LocalTime end = start.plusMinutes(30);
+		for(LocalTime start = open;!start.plusMinutes(duration).isAfter(close);start=start.plusMinutes(30)) {
+			LocalTime end = start.plusMinutes(duration);
 			
 			Map<Integer,Integer> alreadyBooked = reservationDAO.getBookedTablesByCapacity(date, start, end);
 			

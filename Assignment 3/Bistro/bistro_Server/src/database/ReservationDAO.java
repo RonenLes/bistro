@@ -24,7 +24,6 @@ public class ReservationDAO {
 															"VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 	
 	//SELECT statements
-	private static final String SELECT_howManyUniqueCodes = "SELECT COUNT(*) FROM `reservations` WHERE confirmationCode = ?";
 	private static final String SELECT_reservationByConfirmationCode = "SELECT * FROM `reservation` WHERE confirmationCode = ?";
 	private static final String SELECT_amountOfUsedSeats ="""
 	        SELECT allocatedCapacity, COUNT(*) AS booked
@@ -110,30 +109,48 @@ public class ReservationDAO {
 	
 	/**
 	 * 
-	 * @param confirmationCode do check on
-	 * @return true if the given confirmation code is unique
+	 * @param confirmationCode to retrieve a reservation from database based on the code
+	 * @return Reservation 
 	 * @throws SQLException
 	 */
-	public boolean isConfirmationCodeUsed(int confirmationCode) throws SQLException {
+	public Reservation isConfirmationCodeUsed(int confirmationCode) throws SQLException {
+		
+		Reservation reservation =null;
 		
 		try (Connection conn = DBManager.getConnection();
-			PreparedStatement pstmt = conn.prepareStatement(SELECT_howManyUniqueCodes))			
-			{
+			PreparedStatement pstmt = conn.prepareStatement(SELECT_reservationByConfirmationCode)){			
+			
 			pstmt.setInt(1,confirmationCode);
 			ResultSet rs=pstmt.executeQuery();
 			
 			if(rs.next()) {
-				int count = rs.getInt(1);
-				return count >0;
+				reservation = new Reservation(
+									rs.getInt("reservationID"),
+									rs.getDate("reservationDate").toLocalDate(),
+									rs.getString("status"),
+									rs.getInt("partySize"),
+									rs.getInt("allocatedCapacity"),
+									rs.getInt("confirmationCode"),
+									rs.getString("guestContact"),
+									rs.getString("userID"),
+									rs.getTime("startTime").toLocalTime());				
 			}
-		}catch(SQLException e) {
-			System.err.println("Database error counting unique codes");
-			throw e;
-		}
-		return false;
+			return reservation;
+			}catch(SQLException e) {
+				return reservation;
+			}
+		
+		
 	}
 	
-	
+	/**
+	 * 
+	 * @param date of the desired reservation
+	 * @param start time of the reservation based on opening hours of the date
+	 * @param end expected time of reservation
+	 * @return a map with each table size and how many booked for this specific table size
+	 * @throws SQLException
+	 */
 	public Map<Integer, Integer> getBookedTablesByCapacity(LocalDate date, LocalTime start, LocalTime end)throws SQLException {
 	        	    
 	    Map<Integer, Integer> booked = new HashMap<>();
@@ -150,8 +167,12 @@ public class ReservationDAO {
 	                booked.put(rs.getInt("allocatedCapacity"), rs.getInt("booked"));
 	            }
 	        }
+	    }catch(SQLException e) {
+	    	System.err.println("database error: cant fetch booked tables by capacity");
 	    }
 	    return booked;
 	}
+	
+	
 
 }

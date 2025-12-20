@@ -2,7 +2,7 @@ package requests;
 
 public class LoginRequest {
 	
-	private String username;
+	private String username;//make it hold guest contact info
 	private String password;
 	
 	public LoginRequest() {

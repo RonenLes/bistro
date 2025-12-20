@@ -13,18 +13,20 @@ public class TableDAO {
 	
 	//SELECT
 	private final String SELECT_sumOfTotalSeats ="SELECT SUM(capacity) AS totalCap FROM `restaurant_table`";
-	private final String SELECT_tableByTableNumber = "SELECT * FROM `table` WHERE tableNumber = ?";
+	private final String SELECT_minimalTableSize = "SELECT MIN(capacity) as roundedUp FROM `restaurant_table` WHERE capacity >= ?";
 	private final String SELECT_tablesByCapacity = "SELECT capacity, COUNT(*) AS total FROM restaurant_table GROUP BY capacity";								
-	private final String SELECT_availableTable = "SELECT t.tableID, t.tableNumber " //to find the now available table TO_DO in table receive run
-			+ "FROM `table` "
-			+ "WHERE t.capacity >= ?"
-			+ " AND t.tableID NOT IN ("
-			+ " SELECT s.tableID"
-			+ " FROM seating s"
-			+ " WHERE s.checkOutTime IS NULL"
-			+ " )"
-			+ "ORDER BY t.capacity ASC, t.tableNumber ASC"
-			+ "LIMIT 1;";
+	private static final String SELECT_availableTable =
+		    "SELECT t.tableID, t.tableNumber " +
+		    "FROM `table` t " +
+		    "WHERE t.capacity >= ? " +
+		    "  AND t.tableID NOT IN ( " +
+		    "      SELECT s.tableID " +
+		    "      FROM seating s " +
+		    "      WHERE s.checkOutTime IS NULL " +
+		    "  ) " +
+		    "ORDER BY t.capacity ASC, t.tableNumber ASC " +
+		    "LIMIT 1";
+
 	
 	//UPDATE
 	private final String UPDATE_tableCapacityByTableNumber = "UPDATE `table` SET capacity = ? WHERE tableNumber = ?"; //TO_DO in manager run
@@ -89,6 +91,29 @@ public class TableDAO {
 	    }
 	    return totals;
 	}
+	
+	/**
+	 * 
+	 * @param partySize of the current desired reservation
+	 * @return closest capacity of a table to the give partySize 
+	 * @throws SQLException
+	 */
+	public int getMinimalTableSize(int partySize) throws SQLException{
+		
+		try (Connection conn = DBManager.getConnection();
+		     PreparedStatement ps = conn.prepareStatement(SELECT_minimalTableSize);
+		     ResultSet rs = ps.executeQuery()){
+			
+			if(rs.next()) return rs.getInt("roundedUp");
+			
+		}catch(SQLException e) {
+			System.err.println("Database error: could not insert new table");
+			
+		}
+		return -1;
+	}
+	
+	
 
 	
 }

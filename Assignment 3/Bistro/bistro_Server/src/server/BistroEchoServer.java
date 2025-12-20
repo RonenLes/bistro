@@ -98,7 +98,8 @@ public class BistroEchoServer extends AbstractServer {
 		
 		//the response that will be sent to client (use downcast)
 		Response<?> response = null;
-
+		ClientSession session = loggedUsers.get(client);//session holds the user info
+		
 	    try {
 	        Object decoded = msg;
 	        if (msg instanceof byte[] bytes) {
@@ -117,10 +118,9 @@ public class BistroEchoServer extends AbstractServer {
 	                    
 	                    Response<LoginResponse> loginResp = userControl.login(loginReq);
 	                    response = loginResp;
-
 	                    
 	                    if (loginResp.isSuccess()) {
-	                    	ClientSession session = loggedUsers.get(client);
+	                    	
 	                        if (session != null && loginResp.getData() != null) {
 
 	                            String userId = loginResp.getData().getUserID();

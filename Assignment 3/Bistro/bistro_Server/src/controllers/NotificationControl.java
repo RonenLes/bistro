@@ -1,24 +1,24 @@
 package controllers;
 
-import entities.Subscriber;
+import entities.User;
 
 public class NotificationControl {
 
     /**
-     * Sends the confirmation code to a subscriber via both email and SMS (if present).
+     * Sends the confirmation code to a user via both email and SMS (if present).
      */
-    public void sendConfirmationToSubscriber(Subscriber subscriber, int confirmationCode) {
-        if (subscriber == null) return;
+    public void sendConfirmationToUser(User user, int confirmationCode) {
+        if (user == null) return;
 
         String subject = "Reservation Confirmation";
         String message = "Your reservation confirmation code is: " + confirmationCode;
 
-        String email = subscriber.getEmail();
+        String email = user.getEmail();
         if (email != null && !email.isBlank()) {
             sendEmail(email, subject, message);
         }
 
-        String phone = subscriber.getPhoneNumber();
+        String phone = user.getPhone();
         if (phone != null && !phone.isBlank()) {
             sendSms(phone, message);
         }

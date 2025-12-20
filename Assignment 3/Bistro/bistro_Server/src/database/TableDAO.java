@@ -28,28 +28,7 @@ public class TableDAO {
 		    "LIMIT 1";
 
 	
-	//UPDATE
-	private final String UPDATE_tableCapacityByTableNumber = "UPDATE `table` SET capacity = ? WHERE tableNumber = ?"; //TO_DO in manager run
 	
-	
-	/**
-	 * method to calculate the total amount of seats the resturant has
-	 * @return sum of all the capacity of the resturant_table
-	 * @throws SQLException
-	 */
-	public int getTotalSeatCapacity() throws SQLException {
-		try(Connection conn = DBManager.getConnection();
-			PreparedStatement ps = conn.prepareStatement(SELECT_sumOfTotalSeats)){
-			ResultSet rs = ps.executeQuery();
-			
-			if(rs.next()) return rs.getInt("totaclCap");
-			
-		}catch(SQLException e) {
-			System.err.println("Database error: could not fetch sum of seating capacity");
-			
-		}
-		return -1;
-	}
 	
 	/**
 	 * adding new table to the resturant_table in database

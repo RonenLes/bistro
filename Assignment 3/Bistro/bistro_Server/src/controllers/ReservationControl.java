@@ -23,6 +23,21 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+
+/**
+ * controller class to handle all reservation request and send response
+ * METHODS implemented:
+ * 1.handleReservationRequest - handling the reservation request in two phases
+ * 		FIRST_PAHSE: based on clients preferred date and partySize the response is a list containing all the available time  
+ * 		SECOND_PHASE: validates the time again and inserting a new reservation into the table 
+ * 2.validateFirstPhase - helper method  - to validate correct request details
+ * 3.validateSecondPhase - helper method - second validation with added time
+ * 4.isStillAvailable - helper method - to check in case of a reservation race condition 
+ * 5.getAvailableTimes - method given a date and party size returns a list of times based on checking rounded up partySize to an exiting table size and date
+ * 						 if there are enough available number of tables of this size corresponding to the number of reservations and their partySize 
+ * 6.generateUniqueConfirmationCode - generating a unique confirmation code for each reservation 
+ * 7.sendConfirmationNotification - using the NotificationControl sending the request details + generated confirmation code to the customer
+ */
 public class ReservationControl {
 	
 	private final ReservationDAO reservationDAO;
@@ -129,10 +144,9 @@ public class ReservationControl {
 	                int allocatedCapacity = roundToCapacity(partySize);
 
 	                // Re-check availability right before insert
-	                if (!isStillAvailable(date, startTime, allocatedCapacity)) {
+	                if (!isStillAvailable(date, startTime, allocatedCapacity)) 
 	                    yield new Response<>(false, "Selected time is no longer available", null);
-	                }
-
+	                
 	                int confirmationCode = generateUniqueConfirmationCode();
 
 	                boolean hasUser = req.getUserID() != null && !req.getUserID().isBlank();
@@ -150,10 +164,9 @@ public class ReservationControl {
 	                        guestContact
 	                );
 
-	                if (!inserted) {
+	                if (!inserted) 
 	                    yield new Response<>(false, "Failed to create reservation", null);
-	                }
-
+	                
 	                // Send notification using NotificationControl (non-real sending)
 	                sendConfirmationNotification(req, confirmationCode);
 
@@ -194,22 +207,19 @@ public class ReservationControl {
 	    return null;
 	}
 	
+	
 	/**
 	 * Validates the required fields for SECOND_PHASE.
 	 * Returns null if valid, otherwise returns an error message.
 	 */
 	private String validateSecondPhase(ReservationRequest req) {
 
-	    if (req.getReservationDate() == null)
-	        return "Reservation date is missing";
-
-	    if (req.getPartySize() <= 0)
-	        return "Party size must be positive";
-
+	    if (req.getReservationDate() == null) return "Reservation date is missing";	        
+	    if (req.getPartySize() <= 0) return "Party size must be positive"; 
+	    
 	    // Client must pick a time in SECOND_PHASE
-	    if (req.getStartTime() == null) // <-- change if your field name is different
-	        return "Chosen time is missing";
-
+	    if (req.getStartTime() == null) return "Chosen time is missing";
+	        
 	    boolean hasUser = req.getUserID() != null && !req.getUserID().isBlank();
 	    if (!hasUser) {
 	        // Guest must provide contact info
@@ -295,12 +305,14 @@ public class ReservationControl {
 	}
 	
 	
-	
+	/**
+	 * method to generate a 6 digit code and checks the database for uniqueness 
+	 * @return the unique generated confirmation code
+	 * @throws SQLException
+	 */
 	private int generateUniqueConfirmationCode() throws SQLException {
-
 	    Random rnd = new Random();
-
-	    // 6-digit code example
+	    // 6-digit code 
 	    while (true) {
 	        int code = 100000 + rnd.nextInt(900000);
 	        if (reservationDAO.isConfirmationCodeUsed(code)!=null) {
@@ -336,18 +348,18 @@ public class ReservationControl {
 	    }
 	}
 
-
-
 	
-	
-	
-	
-	//TO-DO improve logic so the TableDAO will fetch the closest capacity that is received in the method
+	/**
+	 * 
+	 * @param partySize the desired reservation party size
+	 * @return the most relevant table for the group size
+	 */
 	private int roundToCapacity(int partySize) {
-	    if (partySize <= 2) return 2;
-	    if (partySize <= 4) return 4;
-	    if (partySize <= 6) return 6;
-	    if (partySize <= 8) return 8;
-	    throw new IllegalArgumentException("Party too large");
+	    try {
+			return tableDAO.getMinimalTableSize(partySize);
+		} catch (SQLException e) {
+			System.err.println(e.getMessage()+"ReservationControl");
+		}
+	    throw new IllegalArgumentException("party too large");
 	}
 }

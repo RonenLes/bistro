@@ -26,8 +26,8 @@ public class UserControlTest {
 	
 	@Before
 	public void setup() {
-		nir = new UserDAOStub(new User("212385223","xNIRx","1234","SUBSCRIBER"));
-		ronen = new UserDAOStub(new User("319002812","KingRonen","4321","MANAGER"));
+		nir = new UserDAOStub(new User("212385223","xNIRx","1234","SUBSCRIBER","0521112222","NirTheZero@walla.com"));
+		ronen = new UserDAOStub(new User("319002812","KingRonen","4321","MANAGER","0522221111","King@gmail.com"));
 	}
 	
 	/**

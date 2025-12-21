@@ -106,35 +106,8 @@ public class ReservationDAO {
 	        throw e;
 	    }
 	}
-
 	
-	
-	
-	/**
-	 * 
-	 * @param confirmationCode do check on
-	 * @return true if the given confirmation code is unique
-	 * @throws SQLException
-	 */
-	public boolean isConfirmationCodeUsed(int confirmationCode) throws SQLException {
-		
-		try (Connection conn = DBManager.getConnection();
-			PreparedStatement pstmt = conn.prepareStatement(SELECT_howManyUniqueCodes))			
-			{
-			pstmt.setInt(1,confirmationCode);
-			ResultSet rs=pstmt.executeQuery();
 			
-			if(rs.next()) {
-				int count = rs.getInt(1);
-				return count >0;
-			}
-		}catch(SQLException e) {
-			System.err.println("Database error counting unique codes");
-			throw e;
-		}
-		return false;
-	}
-	
 	public Reservation getReservationByConfirmationCode(int confirmationCode) throws SQLException {
 
 	    try (Connection conn = DBManager.getConnection();

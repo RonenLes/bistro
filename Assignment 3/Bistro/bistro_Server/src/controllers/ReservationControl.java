@@ -239,7 +239,7 @@ public class ReservationControl {
 	    Map<LocalDate, List<LocalTime>> suggestions = new LinkedHashMap<>();
 
 	    // Check the next 3 days after the requested date
-	    for (int i = 1; i <= 3; i++) {
+	    for (int i = 1; i <= 7; i++) {
 
 	        LocalDate dateToCheck = requestedDate.plusDays(i);
 
@@ -261,7 +261,7 @@ public class ReservationControl {
 	    // 6-digit code example
 	    while (true) {
 	        int code = 100000 + rnd.nextInt(900000);
-	        if (!reservationDAO.isConfirmationCodeUsed(code)) {
+	        if (reservationDAO.getReservationByConfirmationCode(code)==null) {
 	            return code;
 	        }
 	    }
@@ -367,12 +367,12 @@ public class ReservationControl {
 	
 	
 	
-	//TO-DO improve logic so the TableDAO will fetch the closest capacity that is received in the method
+	
 	private int roundToCapacity(int partySize) {
-	    if (partySize <= 2) return 2;
-	    if (partySize <= 4) return 4;
-	    if (partySize <= 6) return 6;
-	    if (partySize <= 8) return 8;
-	    throw new IllegalArgumentException("Party too large");
+	    try {
+			return tableDAO.getMinimalTableSize(partySize);
+		} catch (SQLException e) {
+			throw new IllegalArgumentException("party too large");
+		}
 	}
 }

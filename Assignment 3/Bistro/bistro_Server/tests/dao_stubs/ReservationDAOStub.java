@@ -22,14 +22,38 @@ public class ReservationDAOStub extends ReservationDAO {
 
     private int nextReservationId = 1;
 
+    // --- For assertions in tests (editReservation) ---
+    public String lastUpdate_status;
+    public int lastUpdate_partySize;
+    public int lastUpdate_confirmationCode;
+    public String lastUpdate_guestContact;
+    public String lastUpdate_userID;
+    public LocalDate lastUpdate_date;
+    public LocalTime lastUpdate_startTime;
+
     /** Add a reservation record (used by tests to pre-load state). */
     public void addReservation(Reservation r) {
         byCode.put(r.getConfirmationCode(), r);
     }
 
+    /** Alias helper: used by editReservation tests. */
+    public void putExistingReservation(int confirmationCode, Reservation r) {
+        byCode.put(confirmationCode, r);
+    }
+
     /** Configure what getBookedTablesByCapacity should return for a specific slot. */
     public void setBooked(LocalDate date, LocalTime start, LocalTime end, Map<Integer, Integer> booked) {
         bookedBySlot.put(key(date, start, end), new HashMap<>(booked));
+    }
+
+    /** Used by confirmation-code generator logic. */
+    public Reservation isConfirmationCodeUsed(int confirmationCode) throws SQLException {
+        return byCode.get(confirmationCode);
+    }
+
+    /** Used by editReservation: fetch reservation by confirmation code. */
+    public Reservation getReservationByConfirmationCode(int confirmationCode) throws SQLException {
+        return byCode.get(confirmationCode);
     }
 
     @Override
@@ -56,7 +80,48 @@ public class ReservationDAOStub extends ReservationDAO {
         return true;
     }
 
-    
+    /**
+     * Stub for editReservation update.
+     * Matches the signature your ReservationControl calls:
+     * updateReservation(newDate, status, newPartySize, confirmationCode, guestContact, userID, newStartTime)
+     */
+    public boolean updateReservation(LocalDate newDate,
+                                     String status,
+                                     int newPartySize,
+                                     int confirmationCode,
+                                     String guestContact,
+                                     String userID,
+                                     LocalTime newStartTime) throws SQLException {
+
+        // record for test asserts
+        lastUpdate_date = newDate;
+        lastUpdate_status = status;
+        lastUpdate_partySize = newPartySize;
+        lastUpdate_confirmationCode = confirmationCode;
+        lastUpdate_guestContact = guestContact;
+        lastUpdate_userID = userID;
+        lastUpdate_startTime = newStartTime;
+
+        // simulate DB update: update the in-memory object if exists
+        Reservation existing = byCode.get(confirmationCode);
+        if (existing == null) return false;
+
+        
+        Reservation updated = new Reservation(
+                existing.getReservationID(),
+                newDate,
+                status,
+                newPartySize,
+                existing.getAllocatedCapacity(), // capacity typically recomputed elsewhere
+                confirmationCode,
+                guestContact,
+                userID,
+                newStartTime
+        );
+
+        byCode.put(confirmationCode, updated);
+        return true;
+    }
 
     @Override
     public Map<Integer, Integer> getBookedTablesByCapacity(LocalDate date, LocalTime start, LocalTime end)

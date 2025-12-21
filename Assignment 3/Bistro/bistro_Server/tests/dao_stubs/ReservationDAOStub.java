@@ -56,34 +56,7 @@ public class ReservationDAOStub extends ReservationDAO {
         return true;
     }
 
-    @Override
-    public boolean updateReservation(int newGuests, LocalDate newDate, int confirmationCode,
-                                     LocalTime newTime, int newAllocation) throws SQLException {
-
-        Reservation existing = byCode.get(confirmationCode);
-        if (existing == null) return false;
-
-        // simplest approach: replace with new Reservation instance (immutable-style)
-        Reservation updated = new Reservation(
-                existing.getReservationID(),
-                newDate,
-                existing.getStatus(),
-                newGuests,
-                newAllocation,
-                existing.getConfirmationCode(),
-                existing.getGuestContact(),
-                existing.getUserID(),
-                newTime
-        );
-
-        byCode.put(confirmationCode, updated);
-        return true;
-    }
-
-    @Override
-    public Reservation isConfirmationCodeUsed(int confirmationCode) throws SQLException {
-        return byCode.get(confirmationCode);
-    }
+    
 
     @Override
     public Map<Integer, Integer> getBookedTablesByCapacity(LocalDate date, LocalTime start, LocalTime end)

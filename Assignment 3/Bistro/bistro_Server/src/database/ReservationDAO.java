@@ -149,10 +149,11 @@ public class ReservationDAO {
 	            }
 
 	            return new Reservation(
-	                rs.getString("reservationID"),
+	                rs.getInt("reservationID"),
 	                rs.getDate("reservationDate").toLocalDate(),
 	                rs.getString("status"),
 	                rs.getInt("partySize"),
+	                rs.getInt("allocatedCapacity"),
 	                rs.getInt("confirmationCode"),
 	                rs.getString("guestContact"),  // may be null
 	                rs.getString("userID"),        // may be null

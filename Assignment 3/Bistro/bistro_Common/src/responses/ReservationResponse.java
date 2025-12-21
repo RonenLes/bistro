@@ -10,11 +10,12 @@ public class ReservationResponse  {
 		FIRST_PHASE_SHOW_AVAILABILITY,
 		FIRST_PHASE_SHOW_SUGGESTIONS,
 		FIRST_PHASE_NO_AVAILABILITY_OR_SUGGESTIONS,
-		 SECOND_PHASE_CONFIRMED
+		 SECOND_PHASE_CONFIRMED,
+		 EDIT_RESERVATION
 	}
 	
     private ReservationResponseType type;
-
+    
     // Used when type == SHOW_AVAILABILITY
     private List<LocalTime> availableTimes;
     
@@ -23,7 +24,7 @@ public class ReservationResponse  {
     private Integer confirmationCode;
     
     public ReservationResponse() {}
-
+    
     public ReservationResponse(ReservationResponseType type,
                                List<LocalTime> availableTimes,
                                Map<LocalDate, List<LocalTime>> suggestedDates,
@@ -33,7 +34,7 @@ public class ReservationResponse  {
         this.suggestedDates = suggestedDates;
         this.confirmationCode=confirmationCode;
     }
-
+    
     public ReservationResponseType getType() {
         return type;
     }

@@ -6,9 +6,7 @@ import database.ReservationDAO;
 import database.OpeningHoursDAO;
 import database.UserDAO;
 import entities.OpeningHours;
-
-
-
+import entities.Reservation;
 import entities.User;
 import requests.ReservationRequest;
 import responses.ReservationResponse;
@@ -23,21 +21,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-
-/**
- * controller class to handle all reservation request and send response
- * METHODS implemented:
- * 1.handleReservationRequest - handling the reservation request in two phases
- * 		FIRST_PAHSE: based on clients preferred date and partySize the response is a list containing all the available time  
- * 		SECOND_PHASE: validates the time again and inserting a new reservation into the table 
- * 2.validateFirstPhase - helper method  - to validate correct request details
- * 3.validateSecondPhase - helper method - second validation with added time
- * 4.isStillAvailable - helper method - to check in case of a reservation race condition 
- * 5.getAvailableTimes - method given a date and party size returns a list of times based on checking rounded up partySize to an exiting table size and date
- * 						 if there are enough available number of tables of this size corresponding to the number of reservations and their partySize 
- * 6.generateUniqueConfirmationCode - generating a unique confirmation code for each reservation 
- * 7.sendConfirmationNotification - using the NotificationControl sending the request details + generated confirmation code to the customer
- */
 public class ReservationControl {
 	
 	private final ReservationDAO reservationDAO;
@@ -64,29 +47,31 @@ public class ReservationControl {
 	}
 	
 	
-	public Response<?> handleReservationRequest(ReservationRequest req){
-		if (req == null) return new Response<>(false, "Request is missing", null);
-		if (req.getType() == null) {
+	public Response<?> handleReservationRequest(ReservationRequest req) {
+
+	    if (req == null) {
+	        return new Response<>(false, "Request is missing", null);
+	    }
+
+	    if (req.getType() == null) {
 	        return new Response<>(false, "Phase is missing", null);
 	    }
 
 	    return switch (req.getType()) {
 
 	        case FIRST_PHASE -> {
-	        	try {
-	        		String err = validateFirstPhase(req);
-	        		if (err != null) {
-	        		    yield new Response<>(false, err, null);
-	        		}
-	                List<LocalTime> availableTimes =getAvailableTimes(req.getReservationDate(), req.getPartySize());
+	            try {
+	                List<LocalTime> availableTimes =
+	                        getAvailableTimes(req.getReservationDate(), req.getPartySize());
 
-	                
-	                if (!availableTimes.isEmpty()) {
+	                // 1) Availability exists
+	                if (availableTimes != null && !availableTimes.isEmpty()) {
 	                    ReservationResponse rr = new ReservationResponse(
 	                            ReservationResponse.ReservationResponseType.FIRST_PHASE_SHOW_AVAILABILITY,
-	                            availableTimes,null,null);
-	                  
-
+	                            availableTimes,
+	                            null,
+	                            null
+	                    );
 	                    yield new Response<>(true, "Available times found", rr);
 	                }
 
@@ -94,7 +79,7 @@ public class ReservationControl {
 	                Map<LocalDate, List<LocalTime>> suggestions =
 	                        getSuggestionsForNextDays(req.getReservationDate(), req.getPartySize());
 
-	                boolean hasAnySuggestion =
+	                boolean hasAnySuggestion = suggestions != null &&
 	                        suggestions.values().stream().anyMatch(list -> list != null && !list.isEmpty());
 
 	                // 2a) Suggestions exist
@@ -102,9 +87,9 @@ public class ReservationControl {
 	                    ReservationResponse rr = new ReservationResponse(
 	                            ReservationResponse.ReservationResponseType.FIRST_PHASE_SHOW_SUGGESTIONS,
 	                            null,
-	                            suggestions,null
+	                            suggestions,
+	                            null
 	                    );
-
 	                    yield new Response<>(true, "No availability on requested date, showing suggestions", rr);
 	                }
 
@@ -115,16 +100,15 @@ public class ReservationControl {
 	                        null,
 	                        null
 	                );
-
 	                yield new Response<>(true, "No availability or suggestions found", rr);
 
-	            }
-	            
-	            catch (IllegalArgumentException e) {
+	            } catch (IllegalArgumentException e) {
+	                // roundToCapacity can throw this
 	                System.err.println("Party too large");
 	                yield new Response<>(false, "Party too large", null);
 
 	            } catch (Exception e) {
+	                // DB errors etc.
 	                System.err.println("Failed to interact with DB");
 	                yield new Response<>(false, "Failed to interact with DB", null);
 	            }
@@ -132,9 +116,9 @@ public class ReservationControl {
 
 	        case SECOND_PHASE -> {
 	            try {
-	                String err = validateSecondPhase(req);
-	                if (err != null) {
-	                    yield new Response<>(false, err, null);
+	                // Minimal anti-crash checks (not “business validation”)
+	                if (req.getReservationDate() == null || req.getStartTime() == null) {
+	                    yield new Response<>(false, "Missing reservation date/time", null);
 	                }
 
 	                LocalDate date = req.getReservationDate();
@@ -144,13 +128,14 @@ public class ReservationControl {
 	                int allocatedCapacity = roundToCapacity(partySize);
 
 	                // Re-check availability right before insert
-	                if (!isStillAvailable(date, startTime, allocatedCapacity)) 
+	                if (!isStillAvailable(date, startTime, allocatedCapacity)) {
 	                    yield new Response<>(false, "Selected time is no longer available", null);
-	                
+	                }
+
 	                int confirmationCode = generateUniqueConfirmationCode();
 
 	                boolean hasUser = req.getUserID() != null && !req.getUserID().isBlank();
-	                String userId = hasUser ? req.getUserID() : null; 
+	                String userId = hasUser ? req.getUserID() : null;
 	                String guestContact = hasUser ? null : req.getGuestContact();
 
 	                boolean inserted = reservationDAO.insertNewReservation(
@@ -164,13 +149,13 @@ public class ReservationControl {
 	                        guestContact
 	                );
 
-	                if (!inserted) 
+	                if (!inserted) {
 	                    yield new Response<>(false, "Failed to create reservation", null);
-	                
-	                // Send notification using NotificationControl (non-real sending)
+	                }
+
+	                // Non-real sending via NotificationControl
 	                sendConfirmationNotification(req, confirmationCode);
 
-	                // Return confirmation code to client
 	                ReservationResponse rr = new ReservationResponse(
 	                        ReservationResponse.ReservationResponseType.SECOND_PHASE_CONFIRMED,
 	                        null,
@@ -178,7 +163,6 @@ public class ReservationControl {
 	                        confirmationCode
 	                );
 	                yield new Response<>(true, "Reservation created", rr);
-
 
 	            } catch (IllegalArgumentException e) {
 	                yield new Response<>(false, "Party too large", null);
@@ -189,46 +173,10 @@ public class ReservationControl {
 	        }
 	    };
 	}
-	
-	private String validateFirstPhase(ReservationRequest req) {
 
-	    if (req.getReservationDate() == null)
-	        return "Reservation date is missing";
-	    
-	    if (req.getPartySize() <= 0)
-	        return "Party size must be positive";
-
-	    boolean hasUser = req.getUserID() != null && !req.getUserID().isBlank();
-	    if (!hasUser) {
-	        if (req.getGuestContact() == null || req.getGuestContact().isBlank())
-	            return "Guest contact is missing";
-	    }
-
-	    return null;
-	}
 	
 	
-	/**
-	 * Validates the required fields for SECOND_PHASE.
-	 * Returns null if valid, otherwise returns an error message.
-	 */
-	private String validateSecondPhase(ReservationRequest req) {
-
-	    if (req.getReservationDate() == null) return "Reservation date is missing";	        
-	    if (req.getPartySize() <= 0) return "Party size must be positive"; 
-	    
-	    // Client must pick a time in SECOND_PHASE
-	    if (req.getStartTime() == null) return "Chosen time is missing";
-	        
-	    boolean hasUser = req.getUserID() != null && !req.getUserID().isBlank();
-	    if (!hasUser) {
-	        // Guest must provide contact info
-	        if (req.getGuestContact() == null || req.getGuestContact().isBlank())
-	            return "Guest contact is missing";
-	    }
-
-	    return null;
-	}
+	
 	/**
 	 * Checks if there is still availability for the given date/time/capacity.
 	 */
@@ -305,17 +253,15 @@ public class ReservationControl {
 	}
 	
 	
-	/**
-	 * method to generate a 6 digit code and checks the database for uniqueness 
-	 * @return the unique generated confirmation code
-	 * @throws SQLException
-	 */
+	
 	private int generateUniqueConfirmationCode() throws SQLException {
+
 	    Random rnd = new Random();
-	    // 6-digit code 
+
+	    // 6-digit code example
 	    while (true) {
 	        int code = 100000 + rnd.nextInt(900000);
-	        if (reservationDAO.isConfirmationCodeUsed(code)==null) {
+	        if (!reservationDAO.isConfirmationCodeUsed(code)) {
 	            return code;
 	        }
 	    }
@@ -349,17 +295,84 @@ public class ReservationControl {
 	}
 
 	
-	/**
-	 * 
-	 * @param partySize the desired reservation party size
-	 * @return the most relevant table for the group size
-	 */
-	private int roundToCapacity(int partySize) {
-	    try {
-			return tableDAO.getMinimalTableSize(partySize);
+	public Response<?> editReservation(int confirmationCode,
+            LocalDate newDate,
+            LocalTime newStartTime,
+            int newPartySize,
+            String newGuestContact) {
+		try {
+			// 1) Fetch existing reservation (source of truth)
+			Reservation existing = reservationDAO.getReservationByConfirmationCode(confirmationCode);
+			if (existing == null) {
+				return new Response<>(false, "Reservation not found", null);
+			}
+
+			// 2) Identity fields must not change
+			String userID = existing.getUserID();        // must stay the same
+			String status = existing.getStatus();        // keep status as is
+
+			// 3) guestContact: allowed to change only if guest (userID == null)
+			String guestContactToSave = existing.getGuestContact();
+
+			boolean isGuestReservation = (userID == null || userID.isBlank());
+			if (isGuestReservation) {
+				// allow update for guest
+				guestContactToSave = newGuestContact; // could be null/blank if you allow; client validates
+			}
+			// If subscriber reservation -> ignore newGuestContact completely.
+
+			// 4) Compute allocated capacity (if you use it in availability logic)
+			int newAllocatedCapacity = roundToCapacity(newPartySize);
+
+			// 5) Re-check availability for the new slot
+			if (!isStillAvailable(newDate, newStartTime, newAllocatedCapacity)) {
+				return new Response<>(false, "Requested time is not available", null);
+			}
+
+			// 6) Update in DB
+			boolean updated = reservationDAO.updateReservation(
+					newDate,
+					status,
+					newPartySize,
+					confirmationCode,
+					guestContactToSave,
+					userID,
+					newStartTime
+					);
+
+			if (!updated) {
+				return new Response<>(false, "Reservation was not updated", null);
+			}
+
+			// 7) Return typed response
+			ReservationResponse rr = new ReservationResponse(
+					ReservationResponse.ReservationResponseType.EDIT_RESERVATION,
+					null,
+					null,
+					confirmationCode
+					);
+
+			return new Response<>(true, "Reservation updated successfully", rr);
+
+		} catch (IllegalArgumentException e) {
+			return new Response<>(false, "Party too large", null);
+			
 		} catch (SQLException e) {
-			System.err.println(e.getMessage()+"ReservationControl");
+			System.err.println("DB error while editing reservation confirmationCode=" + confirmationCode);
+			return new Response<>(false, "Failed to update reservation", null);
 		}
-	    throw new IllegalArgumentException("party too large");
+	}
+
+	
+	
+	
+	
+	//TO-DO improve logic so the TableDAO will fetch the closest capacity that is received in the method
+	private int roundToCapacity(int partySize) {
+	    if (partySize <= 2) return 2;
+	    if (partySize <= 4) return 4;
+	    if (partySize <= 6) return 6;
+	    if (partySize <= 8) return 8;
+	    throw new IllegalArgumentException("Party too large");
 	}
 }

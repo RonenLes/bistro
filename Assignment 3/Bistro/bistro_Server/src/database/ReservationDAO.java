@@ -24,6 +24,7 @@ public class ReservationDAO {
 															"VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 	
 	//SELECT statements
+	private static final String SELECT_howManyUniqueCodes = "SELECT COUNT(*) FROM `reservations` WHERE confirmationCode = ?";
 	private static final String SELECT_reservationByConfirmationCode = "SELECT * FROM `reservation` WHERE confirmationCode = ?";
 	private static final String SELECT_amountOfUsedSeats ="""
 	        SELECT allocatedCapacity, COUNT(*) AS booked
@@ -35,122 +36,143 @@ public class ReservationDAO {
 	        """;
 	
 	// UPDATE statement
-	private static final String UPDATE_reservationByConfirmationCode= "UPDATE `reservation` SET partySize = ?, allocatedCapacity = ?, reservationDate = ?,startTime = ? WHERE confirmationCode = ?";
+	private static final String UPDATE_RESERVATION_BY_CONFIRMATION_CODE =
+	        "UPDATE `reservation` " +
+	        "SET reservationDate = ?, status = ?, partySize = ?, guestContact = ?, userID = ?, startTime = ? " +
+	        "WHERE confirmationCode = ?";
+
+	
+	
+	public boolean updateReservation(LocalDate reservationDate,String status,int partySize,int confirmationCode,
+	        String guestContact,
+	        String userID,
+	        LocalTime startTime
+	) throws SQLException {
+
+	    try (Connection conn = DBManager.getConnection();
+	         PreparedStatement ps = conn.prepareStatement(UPDATE_RESERVATION_BY_CONFIRMATION_CODE)) {
+
+	        ps.setDate(1, java.sql.Date.valueOf(reservationDate));
+	        ps.setString(2, status);
+	        ps.setInt(3, partySize);
+	        ps.setString(4, guestContact); // can be null
+	        ps.setString(5, userID);       // can be null
+	        ps.setTime(6, startTime != null ? java.sql.Time.valueOf(startTime) : null);
+	        ps.setInt(7, confirmationCode);
+
+	        int affected = ps.executeUpdate();
+	        return affected == 1;
+
+	    } catch (SQLException e) {
+	        System.err.println("DB error updating reservation by confirmationCode=" + confirmationCode);
+	        throw e;
+	    }
+	}
+
 	
 	/**
-	 * method searching reservation by a unique code and updating the reservation 
-	 * @param newGuests
-	 * @param newDate
+	 * method to add a new reservation
+	 * @param reservationID
+	 * @param reservationDate
+	 * @param numberOfGuests
 	 * @param confirmationCode
-	 * @return if found the reservation and succeded  
+	 * @param subscriberId
+	 * @param dateOfPlacingOrder
+	 * @return true if succedded 
 	 * @throws SQLException
 	 */
-	public boolean updateReservation(int newGuests,LocalDate newDate,int confirmationCode,LocalTime newTime,int newAllocation) throws SQLException{
-		java.sql.Date sqlReservationDate = java.sql.Date.valueOf(newDate);
-		
-		try (Connection conn = DBManager.getConnection();
-			PreparedStatement pstmt = conn.prepareStatement(UPDATE_reservationByConfirmationCode))			
-			{
-			pstmt.setInt(1, newGuests);
-			pstmt.setInt(2, newAllocation);
-			pstmt.setDate(3,sqlReservationDate);
-			pstmt.setTime(4, java.sql.Time.valueOf(newTime));
-			pstmt.setInt(5, confirmationCode);
-			int isAffected = pstmt.executeUpdate();
-			return isAffected ==1;
-		}catch(SQLException e) {
-			System.err.println("Database error: could not edit new reservation");
-			throw e;
-		}
-	}
-	
-	/**
-    
-	method to add a new reservation
-	@param reservationID
-	@param reservationDate
-	@param numberOfGuests
-	@param confirmationCode
-	@param subscriberId
-	@param dateOfPlacingOrder
-	@return true if succedded
-	@throws SQLException*/
 	public boolean insertNewReservation(LocalDate reservationDate,int numberOfGuests,int allocatedCapacity,
-	        int confirmationCode,String userID,LocalTime startTime,String status,String guest) throws SQLException {
+			int confirmationCode,String userID,LocalTime startTime,String status,String guest) throws SQLException {
 
-	        java.sql.Date sqlReservationDate = java.sql.Date.valueOf(reservationDate);
+	    java.sql.Date sqlReservationDate = java.sql.Date.valueOf(reservationDate);
 
-	        try (Connection conn = DBManager.getConnection();
-	             PreparedStatement pstmt = conn.prepareStatement(INSERT_newReservation)) {
+	    try (Connection conn = DBManager.getConnection();
+	         PreparedStatement pstmt = conn.prepareStatement(INSERT_newReservation)) {
 
-	            pstmt.setDate(1, sqlReservationDate);
-	            pstmt.setString(2, status);
-	            pstmt.setInt(3, numberOfGuests);
-	            pstmt.setInt(4, allocatedCapacity);
-	            pstmt.setInt(5, confirmationCode);
-	            pstmt.setString(6, guest);
-	            pstmt.setString(7, userID);
-	            pstmt.setTime(8, java.sql.Time.valueOf(startTime));
+	        pstmt.setDate(1, sqlReservationDate);
+	        pstmt.setString(2, status);
+	        pstmt.setInt(3, numberOfGuests);
+	        pstmt.setInt(4, allocatedCapacity);
+	        pstmt.setInt(5, confirmationCode);
+	        pstmt.setString(6, guest);
+	        pstmt.setString(7, userID);
+	        pstmt.setTime(8, java.sql.Time.valueOf(startTime));
 
-	            int isInserted = pstmt.executeUpdate();
-	            return isInserted == 1;
+	        int isInserted = pstmt.executeUpdate();
+	        return isInserted == 1;
 
-	        } catch (SQLException e) {
-	            System.err.println("Database error: could not insert new reservation");
-	            throw e;
-	        }
+	    } catch (SQLException e) {
+	        System.err.println("Database error: could not insert new reservation");
+	        throw e;
 	    }
+	}
+
 	
 	
 	
 	/**
 	 * 
-	 * @param confirmationCode to retrieve a reservation from database based on the code
-	 * @return Reservation 
+	 * @param confirmationCode do check on
+	 * @return true if the given confirmation code is unique
 	 * @throws SQLException
 	 */
-	public Reservation isConfirmationCodeUsed(int confirmationCode) throws SQLException {
-		
-		Reservation reservation =null;
+	public boolean isConfirmationCodeUsed(int confirmationCode) throws SQLException {
 		
 		try (Connection conn = DBManager.getConnection();
-			PreparedStatement pstmt = conn.prepareStatement(SELECT_reservationByConfirmationCode)){			
-			
+			PreparedStatement pstmt = conn.prepareStatement(SELECT_howManyUniqueCodes))			
+			{
 			pstmt.setInt(1,confirmationCode);
 			ResultSet rs=pstmt.executeQuery();
 			
 			if(rs.next()) {
-				reservation = new Reservation(
-									rs.getInt("reservationID"),
-									rs.getDate("reservationDate").toLocalDate(),
-									rs.getString("status"),
-									rs.getInt("partySize"),
-									rs.getInt("allocatedCapacity"),
-									rs.getInt("confirmationCode"),
-									rs.getString("guestContact"),
-									rs.getString("userID"),
-									rs.getTime("startTime").toLocalTime());				
+				int count = rs.getInt(1);
+				return count >0;
 			}
-			return reservation;
-			}catch(SQLException e) {
-				return reservation;
-			}
-		
-		
+		}catch(SQLException e) {
+			System.err.println("Database error counting unique codes");
+			throw e;
+		}
+		return false;
 	}
 	
-	/**
-	 * 
-	 * @param date of the desired reservation
-	 * @param start time of the reservation based on opening hours of the date
-	 * @param end expected time of reservation
-	 * @return a map with each table size and how many booked for this specific table size
-	 * @throws SQLException
-	 */
-	public Map<Integer, Integer> getBookedTablesByCapacity(LocalDate date, LocalTime start, LocalTime end)throws SQLException {
-	        	    
-	    Map<Integer, Integer> booked = new HashMap<>();
+	public Reservation getReservationByConfirmationCode(int confirmationCode) throws SQLException {
 
+	    try (Connection conn = DBManager.getConnection();
+	         PreparedStatement ps = conn.prepareStatement(SELECT_reservationByConfirmationCode)) {
+
+	        ps.setInt(1, confirmationCode);
+
+	        try (ResultSet rs = ps.executeQuery()) {
+
+	            if (!rs.next()) {
+	                return null; // No reservation with this confirmation code
+	            }
+
+	            return new Reservation(
+	                rs.getString("reservationID"),
+	                rs.getDate("reservationDate").toLocalDate(),
+	                rs.getString("status"),
+	                rs.getInt("partySize"),
+	                rs.getInt("confirmationCode"),
+	                rs.getString("guestContact"),  // may be null
+	                rs.getString("userID"),        // may be null
+	                rs.getTime("startTime") != null
+	                        ? rs.getTime("startTime").toLocalTime()
+	                        : null
+	            );
+	        }
+
+	    } catch (SQLException e) {
+	        System.err.println(
+	            "DB error fetching reservation by confirmationCode=" + confirmationCode
+	        );
+	        throw e;
+	    }
+	}
+
+	public Map<Integer, Integer> getBookedTablesByCapacity(LocalDate date, LocalTime start, LocalTime end)throws SQLException {
+		
+	    Map<Integer, Integer> booked = new HashMap<>();
 	    try (Connection conn = DBManager.getConnection();
 	         PreparedStatement ps = conn.prepareStatement(SELECT_amountOfUsedSeats)) {
 
@@ -163,12 +185,8 @@ public class ReservationDAO {
 	                booked.put(rs.getInt("allocatedCapacity"), rs.getInt("booked"));
 	            }
 	        }
-	    }catch(SQLException e) {
-	    	System.err.println("database error: cant fetch booked tables by capacity");
 	    }
 	    return booked;
 	}
-	
-	
 
 }

@@ -2,16 +2,16 @@ package entities;
 
 public class Table {
 	
-	private String tableID;
+	private int tableID;
 	private int tableNumber;
 	private int capacity;
 	
-	public Table(String tableID, int tableNumber, int capacity) {
+	public Table(int tableID, int tableNumber, int capacity) {
 		this.tableID = tableID;
 		this.tableNumber = tableNumber;
 		this.capacity = capacity;
 	}
-	public String getTableID() {
+	public int getTableID() {
 		return tableID;
 	}
 	public int getTableNumber() {

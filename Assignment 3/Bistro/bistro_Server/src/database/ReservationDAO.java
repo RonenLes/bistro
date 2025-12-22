@@ -23,14 +23,13 @@ public class ReservationDAO {
 															"(reservationDate, status, partySize, allocatedCapacity, confirmationCode, guestContact, userID, startTime) "+
 															"VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 	
-	//SELECT statements
-	private static final String SELECT_howManyUniqueCodes = "SELECT COUNT(*) FROM `reservations` WHERE confirmationCode = ?";
+	//SELECT statements	
 	private static final String SELECT_reservationByConfirmationCode = "SELECT * FROM `reservation` WHERE confirmationCode = ?";
 	private static final String SELECT_amountOfUsedSeats ="""
 	        SELECT allocatedCapacity, COUNT(*) AS booked
 	        FROM reservation
 	        WHERE reservationDate = ?
-	          AND status IN ('NEW','CONFIRMED')
+	          AND status IN ('NEW','CONFIRMED','SEATED')
 	          AND (? < ADDTIME(startTime, '02:00:00') AND ? > startTime)
 	        GROUP BY allocatedCapacity
 	        """;
@@ -107,12 +106,17 @@ public class ReservationDAO {
 	    }
 	}
 	
-			
-	public Reservation getReservationByConfirmationCode(int confirmationCode) throws SQLException {
+	
+	public Reservation getReservationByConfirmationCode(int code) throws SQLException {
+        try (Connection conn = DBManager.getConnection()) {
+            return getReservationByConfirmationCode(conn, code); // delegate
+        }
+    }
+	
+	public Reservation getReservationByConfirmationCode(Connection conn,int confirmationCode) throws SQLException {
 
-	    try (Connection conn = DBManager.getConnection();
-	         PreparedStatement ps = conn.prepareStatement(SELECT_reservationByConfirmationCode)) {
-
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_reservationByConfirmationCode)) {
+	         
 	        ps.setInt(1, confirmationCode);
 
 	        try (ResultSet rs = ps.executeQuery()) {

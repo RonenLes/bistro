@@ -15,20 +15,16 @@ public class TableDAO {
 	private final String SELECT_sumOfTotalSeats ="SELECT SUM(capacity) AS totalCap FROM `restaurant_table`";
 	private final String SELECT_minimalTableSize = "SELECT MIN(capacity) as roundedUp FROM `restaurant_table` WHERE capacity >= ?";
 	private final String SELECT_tablesByCapacity = "SELECT capacity, COUNT(*) AS total FROM restaurant_table GROUP BY capacity";								
-	private static final String SELECT_availableTable =
-		    "SELECT t.tableID, t.tableNumber " +
-		    "FROM `table` t " +
-		    "WHERE t.capacity >= ? " +
-		    "  AND t.tableID NOT IN ( " +
-		    "      SELECT s.tableID " +
-		    "      FROM seating s " +
-		    "      WHERE s.checkOutTime IS NULL " +
-		    "  ) " +
-		    "ORDER BY t.capacity ASC, t.tableNumber ASC " +
-		    "LIMIT 1";
-
-	
-	
+	private static final String SELECT_availableTable ="SELECT t.tableID, t.tableNumber, t.capacity "
+			+ "FROM `restaurant_table` t "
+			+ "WHERE t.capacity >= ? "
+			+ "AND t.tableID NOT EXISTS "
+			+ "(SELECT s.tableID "
+			+ "FROM seating s "
+			+ "WHERE s.checkOutTime IS NULL) "
+			+ "ORDER BY t.capacity ASC, t.tableNumber ASC "
+			+ "LIMIT 1";
+			    	
 	
 	/**
 	 * adding new table to the resturant_table in database
@@ -87,12 +83,36 @@ public class TableDAO {
 			
 		}catch(SQLException e) {
 			System.err.println("Database error: could not insert new table");
-			
+			throw e;
 		}
 		return -1;
 	}
 	
 	
-
+	public Table findAvailableTable(int allocatedCapacity) throws SQLException {
+	    try (Connection conn = DBManager.getConnection()) {
+	        return findAvailableTable(conn, allocatedCapacity); // delegate
+	    }
+	}
+	
+	public Table findAvailableTable(Connection conn,int allocatedCapacity) throws SQLException{
+		
+		Table table = null;
+		
+		try (PreparedStatement ps = conn.prepareStatement(SELECT_availableTable);){					
+			ps.setInt(1, allocatedCapacity);
+			ResultSet rs = ps.executeQuery();
+			if(rs.next()) {
+				table = new Table(rs.getInt("tableID"),rs.getInt("tableNumber"),rs.getInt("capacity"));
+			}
+			return table;
+			
+			
+		}catch(SQLException e) {
+			System.err.println("Database error: could not insert find a table");
+			throw e;
+		}
+				
+	}
 	
 }

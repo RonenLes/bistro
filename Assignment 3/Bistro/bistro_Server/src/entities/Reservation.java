@@ -7,7 +7,7 @@ public class Reservation {
 	
 	private int reservationID;
 	private LocalDate reservationDate;
-	private String status; //'NEW', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW
+	private String status; //'NEW', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW,'SEATING'
 	private int partySize;
 	private int allocatedCapacity;
 	private int confirmationCode;

@@ -10,7 +10,7 @@ import entities.Reservation;
 import entities.User;
 import requests.ReservationRequest;
 import responses.ReservationResponse;
-
+import responses.ReservationResponse.ReservationResponseType;
 import responses.Response;
 import java.util.Random;
 import java.sql.SQLException;
@@ -47,7 +47,7 @@ public class ReservationControl {
 	}
 	
 	
-	public Response<?> handleReservationRequest(ReservationRequest req) {
+	public Response<ReservationResponse> handleReservationRequest(ReservationRequest req) {
 
 	    if (req == null) {
 	        return new Response<>(false, "Request is missing", null);
@@ -295,7 +295,7 @@ public class ReservationControl {
 	}
 
 	
-	public Response<?> editReservation(int confirmationCode,
+	public Response<ReservationResponse> editReservation(int confirmationCode,
             LocalDate newDate,
             LocalTime newStartTime,
             int newPartySize,
@@ -303,10 +303,8 @@ public class ReservationControl {
 		try {
 			// 1) Fetch existing reservation (source of truth)
 			Reservation existing = reservationDAO.getReservationByConfirmationCode(confirmationCode);
-			if (existing == null) {
-				return new Response<>(false, "Reservation not found", null);
-			}
-
+			if (existing == null) return new Response<>(false, "Reservation not found", null);
+							
 			// 2) Identity fields must not change
 			String userID = existing.getUserID();        // must stay the same
 			String status = existing.getStatus();        // keep status as is
@@ -365,7 +363,21 @@ public class ReservationControl {
 
 	
 	
-	
+	public Response<ReservationResponse> showReservation(int confirmationCode){
+		
+		try {
+			
+			Reservation existing = reservationDAO.getReservationByConfirmationCode(confirmationCode);
+			if(existing == null) return new Response<>(false,"Reservation not found",null);
+			ReservationResponse reservationResp = new ReservationResponse(existing.getReservationDate(),existing.getPartySize(),
+					existing.getStartTime(),existing.getConfirmationCode(),null,ReservationResponseType.SHOW_RESERVATION);
+			return new Response<>(true,"Here is your reservation",reservationResp);
+			
+		}catch(Exception e) {
+			System.err.println("DB error while fetching reservation from db" );
+			return new Response<>(false, "Failed to fetch reservation", null);
+		}
+	}
 	
 	
 	private int roundToCapacity(int partySize) {

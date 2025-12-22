@@ -30,6 +30,7 @@ public class BistroEchoServer extends AbstractServer {
 	
 	//controllers
 	private final UserControl userControl;
+	private final ReservationControl reservationControl;
 	 
 	/**
 	 * 
@@ -45,6 +46,7 @@ public class BistroEchoServer extends AbstractServer {
 		
 		//controllers init
 		userControl = new UserControl();
+		reservationControl = new ReservationControl();
 	}
 	
 	/**
@@ -117,6 +119,13 @@ public class BistroEchoServer extends AbstractServer {
 	                    handleLoginSuccess(client, loginReq, loginResp);
 	                    
 	                }
+	                case RESERVATION_REQUEST->{
+	                	ReservationRequest reservationReq = (ReservationRequest) request.getData();
+	                	reservationReq.setUserID(loggedUsers.get(client).getUserId());
+	                	Response<ReservationResponse> reservationResp = reservationControl.handleReservationRequest(reservationReq);
+	                	response = reservationResp;	                	
+	                }
+	                
 
 	                default -> response = new Response<>(false, "Unknown command", null);
 	            }

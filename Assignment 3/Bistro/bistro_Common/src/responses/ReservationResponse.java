@@ -11,8 +11,14 @@ public class ReservationResponse  {
 		FIRST_PHASE_SHOW_SUGGESTIONS,
 		FIRST_PHASE_NO_AVAILABILITY_OR_SUGGESTIONS,
 		 SECOND_PHASE_CONFIRMED,
-		 EDIT_RESERVATION
+		 EDIT_RESERVATION,
+		 SHOW_RESERVATION;
 	}
+	
+	private LocalDate newDate;
+	private int newPartySize;
+	private LocalTime newTime;
+	private String newGuestContact;
 	
     private ReservationResponseType type;
     
@@ -24,6 +30,15 @@ public class ReservationResponse  {
     private Integer confirmationCode;
     
     public ReservationResponse() {}
+    
+    public ReservationResponse(LocalDate newDate,int newPartySize,LocalTime newTime,int confirmationCode,String newGuestContact,ReservationResponseType type) {
+    	this.newDate= newDate;
+    	this.newPartySize=newPartySize;
+    	this.newTime = newTime;
+    	this.confirmationCode = confirmationCode;
+    	this.newGuestContact = newGuestContact;
+    	this.type = type;
+    }
     
     public ReservationResponse(ReservationResponseType type,
                                List<LocalTime> availableTimes,

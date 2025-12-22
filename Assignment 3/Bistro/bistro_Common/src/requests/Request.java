@@ -6,9 +6,8 @@ public class Request<T> {
 	
 	public enum Command{
 		LOGIN_REQUEST,
-		DATE_RESERVATION_REQUEST,//client chooses the date first
-		TIME_RESERVATION_REQUEST,//after server calculated available tables by dates and returned free hours client chooses time
-		EDIT_REQUEST;
+		RESERVATION_REQUEST,	
+		EDIT_RESERVATION;
 	}
 	
 	public Request() {}

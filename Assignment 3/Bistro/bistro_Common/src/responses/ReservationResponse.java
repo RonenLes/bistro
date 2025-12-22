@@ -12,7 +12,8 @@ public class ReservationResponse  {
 		FIRST_PHASE_NO_AVAILABILITY_OR_SUGGESTIONS,
 		 SECOND_PHASE_CONFIRMED,
 		 EDIT_RESERVATION,
-		 SHOW_RESERVATION;
+		 SHOW_RESERVATION,
+		 CANCEL_RESERVATION;
 	}
 	
 	private LocalDate newDate;
@@ -50,6 +51,7 @@ public class ReservationResponse  {
         this.confirmationCode=confirmationCode;
     }
     
+
     public ReservationResponseType getType() {
         return type;
     }

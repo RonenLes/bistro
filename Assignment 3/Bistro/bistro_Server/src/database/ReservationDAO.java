@@ -24,7 +24,6 @@ public class ReservationDAO {
 															"VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 	
 	//SELECT statements
-	private static final String SELECT_howManyUniqueCodes = "SELECT COUNT(*) FROM `reservations` WHERE confirmationCode = ?";
 	private static final String SELECT_reservationByConfirmationCode = "SELECT * FROM `reservation` WHERE confirmationCode = ?";
 	private static final String SELECT_amountOfUsedSeats ="""
 	        SELECT allocatedCapacity, COUNT(*) AS booked
@@ -37,11 +36,10 @@ public class ReservationDAO {
 	
 	// UPDATE statement
 	private static final String UPDATE_RESERVATION_BY_CONFIRMATION_CODE =
-	        "UPDATE `reservation` " +
-	        "SET reservationDate = ?, status = ?, partySize = ?, guestContact = ?, userID = ?, startTime = ? " +
-	        "WHERE confirmationCode = ?";
+	        "UPDATE `reservation` " +"SET reservationDate = ?, status = ?, partySize = ?, guestContact = ?, userID = ?, startTime = ? " +"WHERE confirmationCode = ?";
 
-	
+	private static final String CANCEL_RESERVATION_SQL ="UPDATE reservations " +"SET status = ? " +"WHERE confirmation_code = ?";
+
 	
 	public boolean updateReservation(LocalDate reservationDate,String status,int partySize,int confirmationCode,
 	        String guestContact,
@@ -143,6 +141,32 @@ public class ReservationDAO {
 	        throw e;
 	    }
 	}
+	
+	/**
+	 * Cancels a reservation by setting its status to 'CANCELLED'
+	 *
+	 * @param confirmationCode reservation confirmation code
+	 * @return true if reservation was updated, false otherwise
+	 * @throws SQLException if a DB error occurs
+	 */
+	public boolean cancelReservation(int confirmationCode) throws SQLException {
+
+	    if (confirmationCode <= 0) {
+	        return false;
+	    }
+
+	    try (Connection conn = DBManager.getConnection();
+	         PreparedStatement ps = conn.prepareStatement(CANCEL_RESERVATION_SQL)) {
+
+	        ps.setString(1, "CANCELLED");
+	        ps.setInt(2, confirmationCode);
+
+	        int affectedRows = ps.executeUpdate();
+	        return affectedRows == 1;
+	    }
+	}
+
+
 
 	public Map<Integer, Integer> getBookedTablesByCapacity(LocalDate date, LocalTime start, LocalTime end)throws SQLException {
 		

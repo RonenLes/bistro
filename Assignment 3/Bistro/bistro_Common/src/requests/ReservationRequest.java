@@ -6,7 +6,9 @@ import java.time.LocalTime;
 public class ReservationRequest   {
 	public enum ReservationRequestType{
 		FIRST_PHASE,
-		SECOND_PHASE
+		SECOND_PHASE,
+		EDIT_RESERVATION,
+		CANCEL_RESERVATION
 	}
 	private ReservationRequestType type;
     private LocalDate reservationDate;   // Client-selected date
@@ -24,7 +26,7 @@ public class ReservationRequest   {
         this.partySize = partySize;
         this.userID = userID;
         this.guestContact = guestContact;
-        this.setConfirmationCode(confirmationCode);
+        this.confirmationCode=confirmationCode;
     }
     
     public ReservationRequestType getType() {

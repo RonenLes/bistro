@@ -46,7 +46,6 @@ public class ReservationControl {
 	    this.notificationControl = notificationControl;
 	}
 	
-	
 	public Response<ReservationResponse> handleReservationRequest(ReservationRequest req) {
 
 	    if (req == null) {
@@ -84,8 +83,7 @@ public class ReservationControl {
 
 	                // 2a) Suggestions exist
 	                if (hasAnySuggestion) {
-	                    ReservationResponse rr = new ReservationResponse(
-	                            ReservationResponse.ReservationResponseType.FIRST_PHASE_SHOW_SUGGESTIONS,
+	                    ReservationResponse rr = new ReservationResponse(ReservationResponse.ReservationResponseType.FIRST_PHASE_SHOW_SUGGESTIONS,
 	                            null,
 	                            suggestions,
 	                            null
@@ -94,8 +92,7 @@ public class ReservationControl {
 	                }
 
 	                // 2b) No availability and no suggestions
-	                ReservationResponse rr = new ReservationResponse(
-	                        ReservationResponse.ReservationResponseType.FIRST_PHASE_NO_AVAILABILITY_OR_SUGGESTIONS,
+	                ReservationResponse rr = new ReservationResponse(ReservationResponse.ReservationResponseType.FIRST_PHASE_NO_AVAILABILITY_OR_SUGGESTIONS,
 	                        null,
 	                        null,
 	                        null
@@ -138,16 +135,7 @@ public class ReservationControl {
 	                String userId = hasUser ? req.getUserID() : null;
 	                String guestContact = hasUser ? null : req.getGuestContact();
 
-	                boolean inserted = reservationDAO.insertNewReservation(
-	                        date,
-	                        partySize,
-	                        allocatedCapacity,
-	                        confirmationCode,
-	                        userId,
-	                        startTime,
-	                        "NEW",
-	                        guestContact
-	                );
+	                boolean inserted = reservationDAO.insertNewReservation(date, partySize, allocatedCapacity, confirmationCode, userId, startTime, "NEW", guestContact);
 
 	                if (!inserted) {
 	                    yield new Response<>(false, "Failed to create reservation", null);
@@ -156,11 +144,7 @@ public class ReservationControl {
 	                // Non-real sending via NotificationControl
 	                sendConfirmationNotification(req, confirmationCode);
 
-	                ReservationResponse rr = new ReservationResponse(
-	                        ReservationResponse.ReservationResponseType.SECOND_PHASE_CONFIRMED,
-	                        null,
-	                        null,
-	                        confirmationCode
+	                ReservationResponse rr = new ReservationResponse(ReservationResponse.ReservationResponseType.SECOND_PHASE_CONFIRMED,null,null,confirmationCode
 	                );
 	                yield new Response<>(true, "Reservation created", rr);
 
@@ -171,9 +155,52 @@ public class ReservationControl {
 	                yield new Response<>(false, "Failed to interact with DB", null);
 	            }
 	        }
-	    };
-	}
 
+	        case EDIT_RESERVATION -> {
+	            try {
+
+	                Response<ReservationResponse> response = editReservation(req.getReservationDate(),req.getStartTime(),req.getPartySize(),
+	                        req.getGuestContact(),
+	                        req.getConfirmationCode()
+	                );
+
+	                if (response == null) {
+	                    yield new Response<>(false, "Edit reservation failed (no response)", null);
+	                }
+
+	                yield response;
+
+	            } catch (IllegalArgumentException e) {
+	                // Use for cases like invalid new party size, invalid time/date, etc.
+	                yield new Response<>(false, e.getMessage() != null ? e.getMessage() : "Invalid edit request", null);
+
+	            } catch (Exception e) {
+	                // DB errors etc.
+	                System.err.println("Failed to interact with DB (edit reservation)");
+	                yield new Response<>(false, "Failed to interact with DB", null);
+	            }
+	        }
+	        case CANCEL_RESERVATION -> {
+	            try {
+	                Response<ReservationResponse> response =cancelReservation(req.getConfirmationCode());
+
+	                if (response == null) {
+	                    yield new Response<>(false, "Cancel reservation failed (no response)", null);
+	                }
+
+	                yield response;
+
+	            } catch (IllegalArgumentException e) {
+	                yield new Response<>(false,(e.getMessage() != null ? e.getMessage() : "Invalid Cancel request"),null);
+
+	            } catch (Exception e) {System.err.println("Failed to interact with DB (Cancel reservation)");
+	                yield new Response<>(false, "Failed to interact with DB", null);
+	            }
+	        }
+	    };
+	   
+	}
+	
 	
 	
 	
@@ -295,56 +322,75 @@ public class ReservationControl {
 	}
 
 	
-	public Response<ReservationResponse> editReservation(ReservationRequest req) {
+	public Response<ReservationResponse> editReservation(LocalDate reservationDate,LocalTime startTime,int partySize,String guestContact,int confirmationCode) {
 		try {
-			// 1) Fetch existing reservation (source of truth)
-			Reservation existing = reservationDAO.getReservationByConfirmationCode(req.getConfirmationCode());
+			
+			Reservation existing = reservationDAO.getReservationByConfirmationCode(confirmationCode);
 			if (existing == null) return new Response<>(false, "Reservation not found", null);
 							
-			// 2) Identity fields must not change
-			String userID = existing.getUserID();        // must stay the same
-			String status = existing.getStatus();        // keep status as is
+			
+			String userID = existing.getUserID();        
+			String status = existing.getStatus();      
 
-			// 3) guestContact: allowed to change only if guest (userID == null)
+			
 			String guestContactToSave = existing.getGuestContact();
 
 			boolean isGuestReservation = (userID == null || userID.isBlank());
 			if (isGuestReservation) {
 				// allow update for guest
-				guestContactToSave = req.getGuestContact(); // could be null/blank if you allow; client validates
+				guestContactToSave = guestContact; 
 			}
-			// If subscriber reservation -> ignore newGuestContact completely.
 			
-			// 4) Compute allocated capacity (if you use it in availability logic)
-			int newAllocatedCapacity = roundToCapacity(req.getPartySize());
+			int newAllocatedCapacity = roundToCapacity(partySize);
 
-			// 5) Re-check availability for the new slot
-			if (!isStillAvailable(req.getReservationDate(), req.getStartTime(), newAllocatedCapacity)) {
+			if (!isStillAvailable(reservationDate, startTime,newAllocatedCapacity)) {
 				return new Response<>(false, "Requested time is not available", null);
 			}
 
-			// 6) Update in DB
-			boolean updated = reservationDAO.updateReservation(req.getReservationDate(),status,req.getPartySize(),req.getConfirmationCode(),guestContactToSave,userID,req.getStartTime());
+			
+			boolean updated = reservationDAO.updateReservation(reservationDate,status,partySize,confirmationCode,guestContactToSave,userID,startTime);
 
 			if (!updated) {
 				return new Response<>(false, "Reservation was not updated", null);
 			}
 
-			// 7) Return typed response
-			ReservationResponse rr = new ReservationResponse(req.getReservationDate(),req.getPartySize(),req.getStartTime(),req.getConfirmationCode(),guestContactToSave,ReservationResponse.ReservationResponseType.EDIT_RESERVATION);
-
+			ReservationResponse rr = new ReservationResponse(reservationDate,partySize,startTime,confirmationCode,guestContactToSave,ReservationResponse.ReservationResponseType.EDIT_RESERVATION);
 			return new Response<>(true, "Reservation updated successfully", rr);
 
 		} catch (IllegalArgumentException e) {
 			return new Response<>(false, "Party too large", null);
 			
 		} catch (SQLException e) {
-			System.err.println("DB error while editing reservation confirmationCode=" + req.getConfirmationCode());
+			System.err.println("DB error while editing reservation confirmationCode=" + confirmationCode);
 			return new Response<>(false, "Failed to update reservation", null);
 		}
 	}
 
-	
+	public Response<ReservationResponse> cancelReservation(int confirmationCode) {
+	    try {
+	        Reservation reservation =reservationDAO.getReservationByConfirmationCode(confirmationCode);
+
+	        if (reservation == null) {
+	            return new Response<>(false, "Reservation not found", null);
+	        }
+
+	        boolean hasSuccessful = reservationDAO.cancelReservation(confirmationCode);
+
+	        if (!hasSuccessful) {
+	            return new Response<>(false, "Failed to cancel reservation", null);
+	        }
+
+	        ReservationResponse rr = new ReservationResponse(reservation.getReservationDate(),reservation.getPartySize(), reservation.getStartTime(),reservation.getConfirmationCode(),reservation.getGuestContact(),
+	        		ReservationResponse.ReservationResponseType.CANCEL_RESERVATION
+	        );
+
+	        return new Response<>(true, "Reservation cancelled successfully", rr);
+
+	    } catch (SQLException e) {
+	        System.err.println("DB error while cancelling reservation " + confirmationCode);
+	        return new Response<>(false, "Database error", null);
+	    }
+	}
 	
 	public Response<ReservationResponse> showReservation(int confirmationCode){
 		

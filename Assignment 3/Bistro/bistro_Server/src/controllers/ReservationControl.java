@@ -295,14 +295,10 @@ public class ReservationControl {
 	}
 
 	
-	public Response<ReservationResponse> editReservation(int confirmationCode,
-            LocalDate newDate,
-            LocalTime newStartTime,
-            int newPartySize,
-            String newGuestContact) {
+	public Response<ReservationResponse> editReservation(ReservationRequest req) {
 		try {
 			// 1) Fetch existing reservation (source of truth)
-			Reservation existing = reservationDAO.getReservationByConfirmationCode(confirmationCode);
+			Reservation existing = reservationDAO.getReservationByConfirmationCode(req.getConfirmationCode());
 			if (existing == null) return new Response<>(false, "Reservation not found", null);
 							
 			// 2) Identity fields must not change
@@ -315,40 +311,27 @@ public class ReservationControl {
 			boolean isGuestReservation = (userID == null || userID.isBlank());
 			if (isGuestReservation) {
 				// allow update for guest
-				guestContactToSave = newGuestContact; // could be null/blank if you allow; client validates
+				guestContactToSave = req.getGuestContact(); // could be null/blank if you allow; client validates
 			}
 			// If subscriber reservation -> ignore newGuestContact completely.
-
+			
 			// 4) Compute allocated capacity (if you use it in availability logic)
-			int newAllocatedCapacity = roundToCapacity(newPartySize);
+			int newAllocatedCapacity = roundToCapacity(req.getPartySize());
 
 			// 5) Re-check availability for the new slot
-			if (!isStillAvailable(newDate, newStartTime, newAllocatedCapacity)) {
+			if (!isStillAvailable(req.getReservationDate(), req.getStartTime(), newAllocatedCapacity)) {
 				return new Response<>(false, "Requested time is not available", null);
 			}
 
 			// 6) Update in DB
-			boolean updated = reservationDAO.updateReservation(
-					newDate,
-					status,
-					newPartySize,
-					confirmationCode,
-					guestContactToSave,
-					userID,
-					newStartTime
-					);
+			boolean updated = reservationDAO.updateReservation(req.getReservationDate(),status,req.getPartySize(),req.getConfirmationCode(),guestContactToSave,userID,req.getStartTime());
 
 			if (!updated) {
 				return new Response<>(false, "Reservation was not updated", null);
 			}
 
 			// 7) Return typed response
-			ReservationResponse rr = new ReservationResponse(
-					ReservationResponse.ReservationResponseType.EDIT_RESERVATION,
-					null,
-					null,
-					confirmationCode
-					);
+			ReservationResponse rr = new ReservationResponse(req.getReservationDate(),req.getPartySize(),req.getStartTime(),req.getConfirmationCode(),guestContactToSave,ReservationResponse.ReservationResponseType.EDIT_RESERVATION);
 
 			return new Response<>(true, "Reservation updated successfully", rr);
 
@@ -356,7 +339,7 @@ public class ReservationControl {
 			return new Response<>(false, "Party too large", null);
 			
 		} catch (SQLException e) {
-			System.err.println("DB error while editing reservation confirmationCode=" + confirmationCode);
+			System.err.println("DB error while editing reservation confirmationCode=" + req.getConfirmationCode());
 			return new Response<>(false, "Failed to update reservation", null);
 		}
 	}

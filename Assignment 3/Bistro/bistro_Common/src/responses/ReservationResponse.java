@@ -41,7 +41,23 @@ public class ReservationResponse  {
     	this.type = type;
     }
     
-    public ReservationResponse(ReservationResponseType type,
+    public LocalDate getNewDate() {
+		return newDate;
+	}
+
+	public int getNewPartySize() {
+		return newPartySize;
+	}
+
+	public LocalTime getNewTime() {
+		return newTime;
+	}
+
+	public String getNewGuestContact() {
+		return newGuestContact;
+	}
+
+	public ReservationResponse(ReservationResponseType type,
                                List<LocalTime> availableTimes,
                                Map<LocalDate, List<LocalTime>> suggestedDates,
                                Integer confirmationCode) {

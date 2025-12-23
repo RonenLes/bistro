@@ -374,7 +374,7 @@ public class ReservationControl {
 	            return new Response<>(false, "Reservation not found", null);
 	        }
 
-	        boolean hasSuccessful = reservationDAO.cancelReservation(confirmationCode);
+	        boolean hasSuccessful = reservationDAO.updateStatus(confirmationCode,"CANCELLED");
 
 	        if (!hasSuccessful) {
 	            return new Response<>(false, "Failed to cancel reservation", null);

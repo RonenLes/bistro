@@ -35,6 +35,7 @@ public class ReservationDAO {
 	        """;
 	
 	// UPDATE statement
+	private static final String UPDATE_STATUS_RESERVATION_SQL ="UPDATE reservations " +"SET status = ? " +"WHERE confirmation_code = ?";
 	private static final String UPDATE_RESERVATION_BY_CONFIRMATION_CODE =
 	        "UPDATE `reservation` " +
 	        "SET reservationDate = ?, status = ?, partySize = ?, guestContact = ?, userID = ?, startTime = ? " +
@@ -65,6 +66,36 @@ public class ReservationDAO {
 	    } catch (SQLException e) {
 	        System.err.println("DB error updating reservation by confirmationCode=" + confirmationCode);
 	        throw e;
+	    }
+	}
+	
+	/**
+	 * Cancels a reservation by setting its status to 'CANCELLED' (transaction-friendly).
+	 *
+	 * @param conn active JDBC connection (can be part of a larger transaction)
+	 * @param confirmationCode reservation confirmation code
+	 * @return true if exactly one row was updated, false otherwise
+	 * @throws SQLException if a DB error occurs
+	 */
+	public boolean updateStatus(Connection conn, int confirmationCode,String status) throws SQLException {
+	    if (conn == null) throw new IllegalArgumentException("conn is null");
+	    if (confirmationCode <= 0) return false;
+
+	    try (PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS_RESERVATION_SQL)) {
+	        ps.setString(1, status);
+	        ps.setInt(2, confirmationCode);
+	        return ps.executeUpdate() == 1;
+	    }
+	}
+
+	
+	/**
+	 * Cancels a reservation by setting its status to 'CANCELLED'.
+	 * Convenience wrapper that opens/closes its own connection.
+	 */
+	public boolean updateStatus(int confirmationCode,String status) throws SQLException {
+	    try (Connection conn = DBManager.getConnection()) {
+	        return updateStatus(conn, confirmationCode,status);
 	    }
 	}
 

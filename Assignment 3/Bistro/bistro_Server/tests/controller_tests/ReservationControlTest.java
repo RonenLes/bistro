@@ -1,10 +1,7 @@
 package controller_tests;
 
-
-
 import static org.junit.Assert.*;
 
-import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -14,34 +11,22 @@ import org.junit.Before;
 import org.junit.Test;
 
 import controllers.ReservationControl;
+import dao_stubs.OpeningHoursDAOStub;
 import dao_stubs.ReservationDAOStub;
 import dao_stubs.TableDAOStub;
 import dao_stubs.UserDAOStub;
 import dao_stubs.NotificationControlStub;
-import dao_stubs.OpeningHoursDAOStub;
+
 import entities.Reservation;
 import entities.User;
+
 import requests.ReservationRequest;
+import requests.ReservationRequest.ReservationRequestType;
+
 import responses.Response;
 import responses.ReservationResponse;
+import responses.ReservationResponse.ReservationResponseType;
 
-
-/**
- * This class uses dao stubs without touching the real database
- * TESTS:
- * 		FIRST_PHASE: Returns available times when capacity exists
- * 		FIRST_PHASE: Returns suggestions for next days when the requested date is full
- * 		
- * 		SECOND_PHASE: Rejects reservation if the selected time becomes unavailable
- * 		SECOND_PHASE: Creates a reservation when available and returns a confirmation code
- * 		SECOND_PHASE: Sends confirmation notification to either a guest or a logged-in user
- * 	
- * @code OpeningHoursDAOStub
- * @code ReservationDAOStub
- * @code TableDAOStub
- * @code UserDAOStub
- * @code NotificationControlStub
- */
 public class ReservationControlTest {
 
     private ReservationControl control;
@@ -52,389 +37,402 @@ public class ReservationControlTest {
     private UserDAOStub userStub;
     private NotificationControlStub notifyStub;
 
-    private LocalDate d0; // main test date
-    private LocalDate d1; // next day (for suggestions)
-    
-    /**
-     * Initializes fresh stub instances and injects them into a new {@link ReservationControl}
-     * @throws SQLException
-     */
-    @Before
-    public void setup() throws SQLException {
+    private LocalDate date;
+    private LocalTime t10, t1030, t11, t1130, t12;
 
-    	openingStub = new OpeningHoursDAOStub();
+    @Before
+    public void setup() {
+        openingStub = new OpeningHoursDAOStub();
         reservationStub = new ReservationDAOStub();
         tableStub = new TableDAOStub();
         userStub = new UserDAOStub();
         notifyStub = new NotificationControlStub();
 
-        control = new ReservationControl(
-                reservationStub,
-                tableStub,
-                openingStub,
-                userStub,
-                notifyStub
-        );
-    }
-    
-    //--------------------------------------------------availability test--------------------------------------------------------
-    @Test
-    public void firstPhase_availableTimes_returnsAvailabilityResponse() throws Exception {
-        LocalDate date = LocalDate.of(2025, 12, 20);
+        control = new ReservationControl(reservationStub, tableStub, openingStub, userStub, notifyStub);
 
-        openingStub.put(date, "Saturday", LocalTime.of(10, 0), LocalTime.of(14, 0), "REGULAR");
+        date = LocalDate.of(2025, 12, 20);
+        t10 = LocalTime.of(10, 0);
+        t1030 = LocalTime.of(10, 30);
+        t11 = LocalTime.of(11, 0);
+        t1130 = LocalTime.of(11, 30);
+        t12 = LocalTime.of(12, 0);
+    }
+
+    // -------------------- basic guards --------------------
+
+    @Test
+    public void handleReservationRequest_nullRequest_returnsFailure() {
+        Response<ReservationResponse> resp = control.handleReservationRequest(null);
+        assertFalse(resp.isSuccess());
+        assertEquals("Request is missing", resp.getMessage());
+        assertNull(resp.getData());
+    }
+
+    @Test
+    public void handleReservationRequest_nullType_returnsFailure() {
+        ReservationRequest req = new ReservationRequest();
+        req.setType(null);
+
+        Response<ReservationResponse> resp = control.handleReservationRequest(req);
+        assertFalse(resp.isSuccess());
+        assertEquals("Phase is missing", resp.getMessage());
+        assertNull(resp.getData());
+    }
+
+    // -------------------- FIRST_PHASE --------------------
+
+    @Test
+    public void firstPhase_availabilityExists_returnsShowAvailability() throws Exception {
+        openingStub.put(date, "Saturday", t10, LocalTime.of(14, 0), "REGULAR");
         tableStub.setCapacityCount(4, 2);
 
-        reservationStub.setBooked(date, LocalTime.of(10, 0), LocalTime.of(12, 0), Map.of(4, 1));
+        reservationStub.setBooked(date, t10, t10.plusHours(2), Map.of(4, 1));
 
-        ReservationRequest req = firstPhaseReq(date, 3, "U1", null);
+        ReservationRequest req = new ReservationRequest(
+                ReservationRequestType.FIRST_PHASE,
+                date, null,
+                3, "U1", null,
+                0
+        );
 
-        Response<?> resp = control.handleReservationRequest(req);
+        Response<ReservationResponse> resp = control.handleReservationRequest(req);
         assertTrue(resp.isSuccess());
 
-        ReservationResponse rr = (ReservationResponse) resp.getData();
+        ReservationResponse rr = resp.getData();
+        assertNotNull(rr);
+        assertEquals(ReservationResponseType.FIRST_PHASE_SHOW_AVAILABILITY, rr.getType());
 
-        assertNotNull(rr);        
-        assertEquals(ReservationResponse.ReservationResponseType.FIRST_PHASE_SHOW_AVAILABILITY, rr.getType());
-        assertNotNull(rr.getAvailableTimes());
-        assertTrue(rr.getAvailableTimes().contains(LocalTime.of(10, 0)));
+        List<LocalTime> times = rr.getAvailableTimes();
+        System.out.println("FIRST_PHASE times: " + times);
+
+        assertNotNull(times);
+        assertTrue(times.contains(t10));
     }
-    
-    @Test
-    public void firstPhase_noAvailability_hasSuggestions_returnsSuggestionsResponse() throws Exception {
-        LocalDate date = LocalDate.of(2025, 12, 20);
 
-        openingStub.put(date, "Saturday", LocalTime.of(10, 0), LocalTime.of(14, 0), "REGULAR");
+    @Test
+    public void firstPhase_noAvailability_hasSuggestions_returnsShowSuggestions() throws Exception {
+        openingStub.put(date, "Saturday", t10, LocalTime.of(14, 0), "REGULAR");
         tableStub.setCapacityCount(4, 1);
 
-        // fully book the requested date
-        for (LocalTime start : List.of(
-                LocalTime.of(10,0), LocalTime.of(10,30), LocalTime.of(11,0),
-                LocalTime.of(11,30), LocalTime.of(12,0)
-        )) {
+        for (LocalTime start : List.of(t10, t1030, t11, t1130, t12)) {
             reservationStub.setBooked(date, start, start.plusHours(2), Map.of(4, 1));
         }
 
-        // next day is open and has free tables
         LocalDate nextDay = date.plusDays(1);
-        openingStub.put(nextDay, "Sunday", LocalTime.of(10, 0), LocalTime.of(14, 0), "REGULAR");
+        openingStub.put(nextDay, "Sunday", t10, LocalTime.of(14, 0), "REGULAR");
 
-        ReservationRequest req = firstPhaseReq(date, 4, null, "guest@mail.com");
+        ReservationRequest req = new ReservationRequest(
+                ReservationRequestType.FIRST_PHASE,
+                date, null,
+                4, null, "guest@mail.com",
+                0
+        );
 
-        Response<?> resp = control.handleReservationRequest(req);
+        Response<ReservationResponse> resp = control.handleReservationRequest(req);
         assertTrue(resp.isSuccess());
 
-        ReservationResponse rr = (ReservationResponse) resp.getData();
+        ReservationResponse rr = resp.getData();
         assertNotNull(rr);
-        assertEquals(ReservationResponse.ReservationResponseType.FIRST_PHASE_SHOW_SUGGESTIONS, rr.getType());
+        assertEquals(ReservationResponseType.FIRST_PHASE_SHOW_SUGGESTIONS, rr.getType());
+
         assertNotNull(rr.getSuggestedDates());
+        System.out.println("FIRST_PHASE suggestions: " + rr.getSuggestedDates());
+
         assertTrue(rr.getSuggestedDates().containsKey(nextDay));
         assertFalse(rr.getSuggestedDates().get(nextDay).isEmpty());
     }
 
     @Test
-    public void firstPhase_partyTooLarge_returnsFailure() {
-        LocalDate date = LocalDate.of(2025, 12, 20);
+    public void firstPhase_noAvailability_noSuggestions_returnsNoAvailabilityOrSuggestions() throws Exception {
+        openingStub.put(date, "Saturday", t10, LocalTime.of(14, 0), "REGULAR");
+        tableStub.setCapacityCount(4, 1);
 
-        // IMPORTANT: without this, controller returns "No availability..." instead of checking capacity
-        openingStub.put(date, "Saturday", LocalTime.of(10, 0), LocalTime.of(14, 0), "REGULAR");
+        for (LocalTime start : List.of(t10, t1030, t11, t1130, t12)) {
+            reservationStub.setBooked(date, start, start.plusHours(2), Map.of(4, 1));
+        }
 
-        // restaurant has only up to 8 seats tables
+        // next 7 days: no opening hours => suggestions empty
+        ReservationRequest req = new ReservationRequest(
+                ReservationRequestType.FIRST_PHASE,
+                date, null,
+                4, null, "guest@mail.com",
+                0
+        );
+
+        Response<ReservationResponse> resp = control.handleReservationRequest(req);
+        assertTrue(resp.isSuccess());
+
+        ReservationResponse rr = resp.getData();
+        assertNotNull(rr);
+        assertEquals(ReservationResponseType.FIRST_PHASE_NO_AVAILABILITY_OR_SUGGESTIONS, rr.getType());
+    }
+
+    @Test
+    public void firstPhase_partyTooLarge_returnsFailure() throws Exception {
+        openingStub.put(date, "Saturday", t10, LocalTime.of(14, 0), "REGULAR");
         tableStub.setCapacityCount(2, 5);
         tableStub.setCapacityCount(4, 5);
-        tableStub.setCapacityCount(6, 2);
-        tableStub.setCapacityCount(8, 1);
+        tableStub.setCapacityCount(6, 5);
+        tableStub.setCapacityCount(8, 5);
 
-        ReservationRequest req = firstPhaseReq(date, 30, "U1", null);
+        ReservationRequest req = new ReservationRequest(
+                ReservationRequestType.FIRST_PHASE,
+                date, null,
+                30, "U1", null,
+                0
+        );
 
-        Response<?> resp = control.handleReservationRequest(req);
-
-        System.out.println("DEBUG resp.success=" + resp.isSuccess() + ", msg=" + resp.getMessage());
-
+        Response<ReservationResponse> resp = control.handleReservationRequest(req);
         assertFalse(resp.isSuccess());
         assertEquals("Party too large", resp.getMessage());
     }
 
-       
-    
+    // -------------------- SECOND_PHASE --------------------
+
+    @Test
+    public void secondPhase_missingDateOrTime_returnsFailure() {
+        ReservationRequest req = new ReservationRequest(
+                ReservationRequestType.SECOND_PHASE,
+                null, null,
+                4, "U1", null,
+                0
+        );
+
+        Response<ReservationResponse> resp = control.handleReservationRequest(req);
+        assertFalse(resp.isSuccess());
+        assertEquals("Missing reservation date/time", resp.getMessage());
+    }
+
     @Test
     public void secondPhase_timeNoLongerAvailable_returnsFailure() throws Exception {
-        LocalDate date = LocalDate.of(2025, 12, 20);
-        LocalTime start = LocalTime.of(10, 0);
-
-        openingStub.put(date, "Saturday", LocalTime.of(10, 0), LocalTime.of(14, 0), "REGULAR");
+        openingStub.put(date, "Saturday", t10, LocalTime.of(14, 0), "REGULAR");
         tableStub.setCapacityCount(4, 1);
 
-        // slot is fully booked
-        reservationStub.setBooked(date, start, start.plusHours(2), Map.of(4, 1));
+        reservationStub.setBooked(date, t10, t10.plusHours(2), Map.of(4, 1));
 
-        ReservationRequest req = secondPhaseReq(date,start, 4, "U1", null);
+        ReservationRequest req = new ReservationRequest(
+                ReservationRequestType.SECOND_PHASE,
+                date, t10,
+                4, "U1", null,
+                0
+        );
 
-        Response<?> resp = control.handleReservationRequest(req);
+        Response<ReservationResponse> resp = control.handleReservationRequest(req);
         assertFalse(resp.isSuccess());
         assertEquals("Selected time is no longer available", resp.getMessage());
     }
-    
+
     @Test
-    public void secondPhase_success_insertsReservation_andSendsNotification_toGuest() throws Exception {
-        LocalDate date = LocalDate.of(2025, 12, 20);
-        LocalTime start = LocalTime.of(10, 0);
-
-        openingStub.put(date, "Saturday", LocalTime.of(10, 0), LocalTime.of(14, 0), "REGULAR");
-        tableStub.setCapacityCount(4, 2); // enough tables
-
-        ReservationRequest req = secondPhaseReq(date,start, 4, null, "guest@mail.com");
-
-        Response<?> resp = control.handleReservationRequest(req);
-        assertTrue(resp.isSuccess());
-
-        ReservationResponse rr = (ReservationResponse) resp.getData();
-        assertEquals(ReservationResponse.ReservationResponseType.SECOND_PHASE_CONFIRMED, rr.getType());
-        assertNotNull(rr.getConfirmationCode());
-
-        // notification stub should have recorded the send
-        assertEquals("guest@mail.com", notifyStub.lastGuestContact);
-        assertEquals((int) rr.getConfirmationCode(), notifyStub.lastCode);
-    }
-    
-    
-    @Test
-    public void secondPhase_success_insertsReservation_andSendsNotification_toUser() throws Exception {
-        LocalDate date = LocalDate.of(2025, 12, 20);
-        LocalTime start = LocalTime.of(10, 0);
-
-        openingStub.put(date, "Saturday", LocalTime.of(10, 0), LocalTime.of(14, 0), "REGULAR");
+    public void secondPhase_success_guest_insertsAndNotifiesGuest() throws Exception {
+        openingStub.put(date, "Saturday", t10, LocalTime.of(14, 0), "REGULAR");
         tableStub.setCapacityCount(4, 2);
 
-        // make sure userDAO can return the user for notification
-        userStub.putUser(new User("U1", "ronen", "pass", "MANAGER","0523334444","king@gmail.com")); // adjust to your User ctor
+        ReservationRequest req = new ReservationRequest(
+                ReservationRequestType.SECOND_PHASE,
+                date, t10,
+                4, null, "guest@mail.com",
+                0
+        );
 
-        ReservationRequest req = secondPhaseReq(date,start, 4, "U1", null);
-
-        Response<?> resp = control.handleReservationRequest(req);
+        Response<ReservationResponse> resp = control.handleReservationRequest(req);
         assertTrue(resp.isSuccess());
 
-        ReservationResponse rr = (ReservationResponse) resp.getData();
-        assertEquals(ReservationResponse.ReservationResponseType.SECOND_PHASE_CONFIRMED, rr.getType());
+        ReservationResponse rr = resp.getData();
+        assertNotNull(rr);
+        assertEquals(ReservationResponseType.SECOND_PHASE_CONFIRMED, rr.getType());
+        assertNotNull(rr.getConfirmationCode());
+
+        // notified guest
+        assertEquals("guest@mail.com", notifyStub.lastGuestContact);
+        assertEquals((int) rr.getConfirmationCode(), notifyStub.lastCode);
+
+        // inserted into stub
+        Reservation inserted = reservationStub.getReservationByConfirmationCode(rr.getConfirmationCode());
+        assertNotNull(inserted);
+        assertEquals("NEW", inserted.getStatus());
+        assertEquals("guest@mail.com", inserted.getGuestContact());
+        assertNull(inserted.getUserID());
+    }
+
+    @Test
+    public void secondPhase_success_user_insertsAndNotifiesUser() throws Exception {
+        openingStub.put(date, "Saturday", t10, LocalTime.of(14, 0), "REGULAR");
+        tableStub.setCapacityCount(4, 2);
+
+        userStub.putUser(new User("U1", "ronen", "pass", "MANAGER", "0523334444", "king@gmail.com"));
+
+        ReservationRequest req = new ReservationRequest(
+                ReservationRequestType.SECOND_PHASE,
+                date, t10,
+                4, "U1", null,
+                0
+        );
+
+        Response<ReservationResponse> resp = control.handleReservationRequest(req);
+        assertTrue(resp.isSuccess());
+
+        ReservationResponse rr = resp.getData();
+        assertNotNull(rr);
+        assertEquals(ReservationResponseType.SECOND_PHASE_CONFIRMED, rr.getType());
 
         assertEquals("U1", notifyStub.lastUserId);
         assertEquals((int) rr.getConfirmationCode(), notifyStub.lastCode);
     }
 
-   //------------------------------------------------edit reservation tests--------------------------------------------------------
-    
+    // -------------------- EDIT_RESERVATION --------------------
+
     @Test
     public void editReservation_notFound_returnsFailure() throws Exception {
-        Response<?> resp = control.editReservation(
-                123456,
-                LocalDate.of(2025, 12, 20),
-                LocalTime.of(10, 0),
-                4,
-                "guest@mail.com"
+        ReservationRequest req = new ReservationRequest(
+                ReservationRequestType.EDIT_RESERVATION,
+                date, t10,
+                4, null, "new@mail.com",
+                999999
         );
 
+        Response<ReservationResponse> resp = control.handleReservationRequest(req);
         assertFalse(resp.isSuccess());
         assertEquals("Reservation not found", resp.getMessage());
     }
-    
-    @Test
-    public void editReservation_guest_allowsUpdatingGuestContact() throws Exception {
-        int code = 111111;
 
-        // existing reservation is guest (userID = null)
-        reservationStub.putExistingReservation(code,
-                new Reservation(1,
-                        LocalDate.of(2025, 12, 20),
-                        "NEW",
-                        2,
-                        2,
-                        code,
-                        "old@mail.com",
-                        null,
-                        LocalTime.of(10, 0)));
-
-        // availability ok
-        tableStub.setMinimalTableSizeFor(3, 4);
-        tableStub.setCapacityCount(4, 2);
-        reservationStub.setBooked(LocalDate.of(2025, 12, 21),
-                LocalTime.of(12, 0),
-                LocalTime.of(14, 0),
-                Map.of(4, 1));
-
-        Response<?> resp = control.editReservation(
-                code,
-                LocalDate.of(2025, 12, 21),
-                LocalTime.of(12, 0),
-                3,
-                "new@mail.com"
-        );
-
-        assertTrue(resp.isSuccess());
-        ReservationResponse rr = (ReservationResponse) resp.getData();
-        assertEquals(ReservationResponse.ReservationResponseType.EDIT_RESERVATION, rr.getType());
-
-        // verify updateReservation got new guest contact
-        assertEquals("new@mail.com", reservationStub.lastUpdate_guestContact);
-        assertNull(reservationStub.lastUpdate_userID); // still guest
-    }
-    
-    @Test
-    public void editReservation_subscriber_ignoresNewGuestContact() throws Exception {
-        int code = 222222;
-
-        // existing reservation is subscriber
-        reservationStub.putExistingReservation(code,
-                new Reservation(2,
-                        LocalDate.of(2025, 12, 20),
-                        "CONFIRMED",
-                        4,
-                        4,
-                        code,
-                        null,
-                        "U1",
-                        LocalTime.of(10, 0)));
-
-        // availability ok
-        tableStub.setMinimalTableSizeFor(4, 4);
-        tableStub.setCapacityCount(4, 2);
-        reservationStub.setBooked(LocalDate.of(2025, 12, 21),
-                LocalTime.of(12, 0),
-                LocalTime.of(14, 0),
-                Map.of(4, 0));
-
-        Response<?> resp = control.editReservation(
-                code,
-                LocalDate.of(2025, 12, 21),
-                LocalTime.of(12, 0),
-                4,
-                "SHOULD_NOT_BE_SAVED@mail.com"
-        );
-
-        assertTrue(resp.isSuccess());
-
-        // should ignore guest contact for subscriber reservations
-        assertNull(reservationStub.lastUpdate_guestContact);
-
-        // identity fields kept
-        assertEquals("U1", reservationStub.lastUpdate_userID);
-        assertEquals("CONFIRMED", reservationStub.lastUpdate_status);
-    }
-    
     @Test
     public void editReservation_timeNotAvailable_returnsFailure() throws Exception {
-        int code = 333333;
-
-        reservationStub.putExistingReservation(code,
-                new Reservation(3,
-                        LocalDate.of(2025, 12, 20),
-                        "NEW",
-                        4,
-                        4,
-                        code,
-                        null,
-                        "U1",
-                        LocalTime.of(10, 0)));
-
-        // availability FAIL (total=1, booked=1)
-        tableStub.setMinimalTableSizeFor(4, 4);
+        openingStub.put(date, "Saturday", t10, LocalTime.of(14, 0), "REGULAR");
         tableStub.setCapacityCount(4, 1);
-        reservationStub.setBooked(LocalDate.of(2025, 12, 21),
-                LocalTime.of(12, 0),
-                LocalTime.of(14, 0),
-                Map.of(4, 1));
 
-        Response<?> resp = control.editReservation(
-                code,
-                LocalDate.of(2025, 12, 21),
-                LocalTime.of(12, 0),
-                4,
-                null
+        Reservation existing = new Reservation(
+                1, date, "NEW", 4, 4, 123456, "old@mail.com", null, t10
+        );
+        reservationStub.addReservation(existing);
+
+        // New requested slot fully booked
+        reservationStub.setBooked(date, t1030, t1030.plusHours(2), Map.of(4, 1));
+
+        ReservationRequest req = new ReservationRequest(
+                ReservationRequestType.EDIT_RESERVATION,
+                date, t1030,
+                4, null, "new@mail.com",
+                123456
         );
 
+        Response<ReservationResponse> resp = control.handleReservationRequest(req);
         assertFalse(resp.isSuccess());
         assertEquals("Requested time is not available", resp.getMessage());
     }
-    
-    
+
     @Test
-    public void editReservation_partyTooLarge_returnsFailure() throws Exception {
-        int code = 444444;
+    public void editReservation_guest_canChangeGuestContact_updatesReservation() throws Exception {
+        LocalDate date = LocalDate.of(2025, 12, 20);
+        LocalTime oldStart = LocalTime.of(10, 0);
+        LocalTime newStart = LocalTime.of(10, 30);
 
-        reservationStub.putExistingReservation(code,
-                new Reservation(4,
-                        LocalDate.of(2025, 12, 20),
-                        "NEW",
-                        4,
-                        4,
-                        code,
-                        null,
-                        "U1",
-                        LocalTime.of(10, 0)));
+        openingStub.put(date, "Saturday", LocalTime.of(10, 0), LocalTime.of(14, 0), "REGULAR");
 
-        // make TableDAOStub throw SQLException for minimal size lookup -> roundToCapacity throws IllegalArgumentException
-        tableStub.throwOnMinimalTableSize(true);
+        // ✅ must be 2, because the existing reservation overlaps the new slot
+        tableStub.setCapacityCount(4, 2);
 
-        Response<?> resp = control.editReservation(
-                code,
-                LocalDate.of(2025, 12, 21),
-                LocalTime.of(12, 0),
-                999,
-                null
+        Reservation existing = new Reservation(
+                1, date, "NEW", 4, 4, 111111, "old@mail.com", null, oldStart
+        );
+        reservationStub.addReservation(existing);
+
+        ReservationRequest req = new ReservationRequest(
+                ReservationRequest.ReservationRequestType.EDIT_RESERVATION,
+                date,
+                newStart,
+                4,
+                null,
+                "new@mail.com",
+                111111
         );
 
+        Response<ReservationResponse> resp = control.handleReservationRequest(req);
+
+        System.out.println("EDIT resp.success=" + resp.isSuccess() + " msg=" + resp.getMessage());
+
+        assertTrue(resp.isSuccess());
+        ReservationResponse rr = resp.getData();
+        assertNotNull(rr);
+        assertEquals(ReservationResponse.ReservationResponseType.EDIT_RESERVATION, rr.getType());
+
+        Reservation updated = reservationStub.getReservationByConfirmationCode(111111);
+        assertNotNull(updated);
+        assertEquals("new@mail.com", updated.getGuestContact());
+        assertEquals(newStart, updated.getStartTime());
+    }
+
+    
+
+    // -------------------- CANCEL_RESERVATION --------------------
+
+    @Test
+    public void cancelReservation_notFound_returnsFailure() throws Exception {
+        ReservationRequest req = new ReservationRequest(
+                ReservationRequestType.CANCEL_RESERVATION,
+                null, null,
+                0, null, null,
+                777777
+        );
+
+        Response<ReservationResponse> resp = control.handleReservationRequest(req);
         assertFalse(resp.isSuccess());
-        assertEquals("Party too large", resp.getMessage());
+        assertEquals("Reservation not found", resp.getMessage());
     }
 
-
-
-
-
-    
-    //------------------------------------------------building requests--------------------------------------------------------
-    
-    /**
-     * Builds a FIRST_PHASE {@link ReservationRequest}
-     * FIRST_PHASE requests include only the reservation date and party size
-     * @param date the requested reservation date
-     * @param partySize number of guests requested
-     * @param userId subscriber user id, or @code null if the requester is a guest
-     * @param guestContact guest email/phone, or @code null if the requester is a subscriber
-     * @return a populated FIRST_PHASE {@link ReservationRequest}
-     */
-    private ReservationRequest firstPhaseReq(LocalDate date, int partySize, String userId, String guestContact) {
-        return new ReservationRequest(
-                ReservationRequest.ReservationRequestType.FIRST_PHASE,
-                date,
-                null,          // startTime not needed in first phase
-                partySize,
-                userId,
-                guestContact
+    @Test
+    public void cancelReservation_success_setsCancelled_andReturnsResponse() throws Exception {
+        Reservation existing = new Reservation(
+                1, date, "NEW", 4, 4, 333333, "guest@mail.com", null, t10
         );
-    }
-    
-    /**
-     * Builds a SECOND_PHASE {@link ReservationRequest}
-     * SECOND_PHASE requests represent the final confirmation step:
-     * the client has selected a specific start time
-     * @param date reservation date
-     * @param start selected start time
-     * @param partySize number of guests requested
-     * @param userId subscriber user id, or {@code null} if the requester is a guest
-     * @param guestContact guest email/phone, or {@code null} if the requester is a subscriber
-     * @return a populated SECOND_PHASE {@link ReservationRequest}
-     */
-    private ReservationRequest secondPhaseReq(LocalDate date, LocalTime start, int partySize, String userId, String guestContact) {
-        return new ReservationRequest(
-                ReservationRequest.ReservationRequestType.SECOND_PHASE,
-                date,
-                start,
-                partySize,
-                userId,
-                guestContact
+        reservationStub.addReservation(existing);
+
+        ReservationRequest req = new ReservationRequest(
+                ReservationRequestType.CANCEL_RESERVATION,
+                null, null,
+                0, null, null,
+                333333
         );
+
+        Response<ReservationResponse> resp = control.handleReservationRequest(req);
+        assertTrue(resp.isSuccess());
+
+        ReservationResponse rr = resp.getData();
+        assertNotNull(rr);
+        assertEquals(ReservationResponseType.CANCEL_RESERVATION, rr.getType());
+        assertEquals(333333, (int) rr.getConfirmationCode());
+
+        Reservation updated = reservationStub.getReservationByConfirmationCode(333333);
+        assertNotNull(updated);
+        assertEquals("CANCELLED", updated.getStatus());
     }
 
+    // -------------------- showReservation() --------------------
 
+    @Test
+    public void showReservation_notFound_returnsFailure() {
+        Response<ReservationResponse> resp = control.showReservation(444444);
+        assertFalse(resp.isSuccess());
+        assertEquals("Reservation not found", resp.getMessage());
+    }
 
+    @Test
+    public void showReservation_success_returnsShowReservationType() throws Exception {
+        Reservation existing = new Reservation(
+                1, date, "NEW", 4, 4, 555555, "guest@mail.com", null, t10
+        );
+        reservationStub.addReservation(existing);
+
+        Response<ReservationResponse> resp = control.showReservation(555555);
+        assertTrue(resp.isSuccess());
+
+        ReservationResponse rr = resp.getData();
+        assertNotNull(rr);
+        assertEquals(ReservationResponseType.SHOW_RESERVATION, rr.getType());
+
+        // in your showReservation(), you set guestContact null in the response ctor
+        assertEquals(date, rr.getNewDate());
+        assertEquals(4, rr.getNewPartySize());
+        assertEquals(t10, rr.getNewTime());
+        assertEquals(555555, rr.getConfirmationCode().intValue());
+    }
 }

@@ -3,14 +3,15 @@ package dao_stubs;
 import database.ReservationDAO;
 import entities.Reservation;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Stub DAO for ReservationDAO (no DB).
- * Stores reservations in-memory and simulates queries.
+ * In-memory stub for ReservationDAO (no DB).
  */
 public class ReservationDAOStub extends ReservationDAO {
 
@@ -22,38 +23,14 @@ public class ReservationDAOStub extends ReservationDAO {
 
     private int nextReservationId = 1;
 
-    // --- For assertions in tests (editReservation) ---
-    public String lastUpdate_status;
-    public int lastUpdate_partySize;
-    public int lastUpdate_confirmationCode;
-    public String lastUpdate_guestContact;
-    public String lastUpdate_userID;
-    public LocalDate lastUpdate_date;
-    public LocalTime lastUpdate_startTime;
-
-    /** Add a reservation record (used by tests to pre-load state). */
+    /** Pre-load a reservation into the stub (so edit/cancel/show can find it). */
     public void addReservation(Reservation r) {
         byCode.put(r.getConfirmationCode(), r);
     }
 
-    /** Alias helper: used by editReservation tests. */
-    public void putExistingReservation(int confirmationCode, Reservation r) {
-        byCode.put(confirmationCode, r);
-    }
-
-    /** Configure what getBookedTablesByCapacity should return for a specific slot. */
+    /** Configure what getBookedTablesByCapacity returns for a slot. */
     public void setBooked(LocalDate date, LocalTime start, LocalTime end, Map<Integer, Integer> booked) {
         bookedBySlot.put(key(date, start, end), new HashMap<>(booked));
-    }
-
-    /** Used by confirmation-code generator logic. */
-    public Reservation isConfirmationCodeUsed(int confirmationCode) throws SQLException {
-        return byCode.get(confirmationCode);
-    }
-
-    /** Used by editReservation: fetch reservation by confirmation code. */
-    public Reservation getReservationByConfirmationCode(int confirmationCode) throws SQLException {
-        return byCode.get(confirmationCode);
     }
 
     @Override
@@ -61,7 +38,6 @@ public class ReservationDAOStub extends ReservationDAO {
                                         int confirmationCode, String userID, LocalTime startTime,
                                         String status, String guest) throws SQLException {
 
-        // simulate "unique confirmation code" constraint
         if (byCode.containsKey(confirmationCode)) return false;
 
         Reservation r = new Reservation(
@@ -80,47 +56,66 @@ public class ReservationDAOStub extends ReservationDAO {
         return true;
     }
 
-    /**
-     * Stub for editReservation update.
-     * Matches the signature your ReservationControl calls:
-     * updateReservation(newDate, status, newPartySize, confirmationCode, guestContact, userID, newStartTime)
-     */
-    public boolean updateReservation(LocalDate newDate,
-                                     String status,
-                                     int newPartySize,
-                                     int confirmationCode,
-                                     String guestContact,
-                                     String userID,
-                                     LocalTime newStartTime) throws SQLException {
+    @Override
+    public Reservation getReservationByConfirmationCode(int code) throws SQLException {
+        return byCode.get(code);
+    }
 
-        // record for test asserts
-        lastUpdate_date = newDate;
-        lastUpdate_status = status;
-        lastUpdate_partySize = newPartySize;
-        lastUpdate_confirmationCode = confirmationCode;
-        lastUpdate_guestContact = guestContact;
-        lastUpdate_userID = userID;
-        lastUpdate_startTime = newStartTime;
+    @Override
+    public Reservation getReservationByConfirmationCode(Connection conn, int confirmationCode) throws SQLException {
+        // connection is irrelevant in stub
+        return byCode.get(confirmationCode);
+    }
 
-        // simulate DB update: update the in-memory object if exists
+    @Override
+    public boolean updateReservation(LocalDate reservationDate, String status, int partySize, int confirmationCode,
+                                     String guestContact, String userID, LocalTime startTime) throws SQLException {
+
         Reservation existing = byCode.get(confirmationCode);
         if (existing == null) return false;
 
-        
+        // allocatedCapacity is not part of your DAO update signature -> keep existing allocation
         Reservation updated = new Reservation(
                 existing.getReservationID(),
-                newDate,
+                reservationDate,
                 status,
-                newPartySize,
-                existing.getAllocatedCapacity(), // capacity typically recomputed elsewhere
+                partySize,
+                existing.getAllocatedCapacity(),
                 confirmationCode,
                 guestContact,
                 userID,
-                newStartTime
+                startTime
         );
 
         byCode.put(confirmationCode, updated);
         return true;
+    }
+
+    @Override
+    public boolean updateStatus(int confirmationCode, String status) throws SQLException {
+        Reservation existing = byCode.get(confirmationCode);
+        if (existing == null) return false;
+
+        Reservation updated = new Reservation(
+                existing.getReservationID(),
+                existing.getReservationDate(),
+                status,
+                existing.getPartySize(),
+                existing.getAllocatedCapacity(),
+                existing.getConfirmationCode(),
+                existing.getGuestContact(),
+                existing.getUserID(),
+                existing.getStartTime()
+        );
+
+        byCode.put(confirmationCode, updated);
+        return true;
+    }
+
+    @Override
+    public boolean updateStatus(Connection conn, int confirmationCode, String status) throws SQLException {
+        // delegate to the no-conn version
+        return updateStatus(confirmationCode, status);
     }
 
     @Override
@@ -130,14 +125,13 @@ public class ReservationDAOStub extends ReservationDAO {
         Map<Integer, Integer> configured = bookedBySlot.get(key(date, start, end));
         if (configured != null) return new HashMap<>(configured);
 
-        // default behavior (if you didn't setBooked): compute counts from stored reservations
+        // default compute from stored reservations
         Map<Integer, Integer> counts = new HashMap<>();
 
         for (Reservation r : byCode.values()) {
-            if (!r.getReservationDate().equals(date)) continue;
+            if (!date.equals(r.getReservationDate())) continue;
             if (!isActive(r.getStatus())) continue;
 
-            // overlap: [start,end) with [r.start, r.start+2h)
             LocalTime rStart = r.getStartTime();
             LocalTime rEnd = rStart.plusHours(2);
 
@@ -151,7 +145,9 @@ public class ReservationDAOStub extends ReservationDAO {
     }
 
     private boolean isActive(String status) {
-        return "NEW".equalsIgnoreCase(status) || "CONFIRMED".equalsIgnoreCase(status);
+        if (status == null) return false;
+        String s = status.toUpperCase();
+        return s.equals("NEW") || s.equals("CONFIRMED") || s.equals("SEATED");
     }
 
     private String key(LocalDate d, LocalTime s, LocalTime e) {

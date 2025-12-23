@@ -7,8 +7,10 @@ public class SeatingResponse {
 	private int tableNumberl;
 	private int tableCapacity;
 	private LocalTime checkInTime;
+	
+	public SeatingResponse() {}
+	
 	public SeatingResponse(int tableNumberl, int tableCapacity, LocalTime checkInTime) {
-		super();
 		this.tableNumberl = tableNumberl;
 		this.tableCapacity = tableCapacity;
 		this.checkInTime = checkInTime;

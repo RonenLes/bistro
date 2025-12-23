@@ -21,6 +21,27 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+
+/**
+ * Controller responsible for handling reservation-related requests in the system.
+ *
+ * This controller handles client requests and the
+ * database access objects (DAOs). It supports multiple flows:
+ *
+ *  FIRST_PHASE: Given a date and party size, return available start times. If none exist,
+ *       return suggestions for upcoming days.
+ *   SECOND_PHASE: Given a date, start time, party size and user/guest identity,
+ *       re-check availability (anti race-condition), create a reservation, and send confirmation.
+ *   EDIT_RESERVATION: Update an existing reservation (guest contact can change only for guests).
+ *   CANCEL_RESERVATION: Cancel an existing reservation by confirmation code.
+ *   WALKIN_RESERVATION: Creates a reservation for "now" (date = LocalDate.now, time = LocalTime.now).
+ * 
+ * Availability logic is based on table capacity groups: partySize is rounded up to the minimal
+ * table size that can fit it, and availability is checked by comparing how many tables exist for that capacity
+ * vs. how many are booked in overlapping reservations.
+ *
+ * Dependencies are injected via constructors to allow unit testing using stubs/mocks.
+ */
 public class ReservationControl {
 	
 	private final ReservationDAO reservationDAO;
@@ -34,11 +55,8 @@ public class ReservationControl {
 	         new UserDAO(), new NotificationControl());
 	}
 
-	public ReservationControl(ReservationDAO reservationDAO,
-	                          TableDAO tableDAO,
-	                          OpeningHoursDAO openingHoursDAO,
-	                          UserDAO userDAO,
-	                          NotificationControl notificationControl) {
+	public ReservationControl(ReservationDAO reservationDAO,TableDAO tableDAO,OpeningHoursDAO openingHoursDAO,
+	                          UserDAO userDAO, NotificationControl notificationControl) {	                          	                          	                         
 	    this.reservationDAO = reservationDAO;
 	    this.tableDAO = tableDAO;
 	    this.openingHoursDAO = openingHoursDAO;
@@ -46,166 +64,209 @@ public class ReservationControl {
 	    this.notificationControl = notificationControl;
 	}
 	
+	/**
+	 * Handles a reservation request by dispatching to the relevant flow according to request type.
+	 * @param req the incoming reservation request
+	 * @return with success/failure, message, and optionally a ReservationResponse payload
+	 */
 	public Response<ReservationResponse> handleReservationRequest(ReservationRequest req) {
-
 	    if (req == null) {
 	        return new Response<>(false, "Request is missing", null);
 	    }
-
 	    if (req.getType() == null) {
 	        return new Response<>(false, "Phase is missing", null);
 	    }
-
 	    return switch (req.getType()) {
-
-	        case FIRST_PHASE -> {
-	            try {
-	                List<LocalTime> availableTimes =
-	                        getAvailableTimes(req.getReservationDate(), req.getPartySize());
-
-	                // 1) Availability exists
-	                if (availableTimes != null && !availableTimes.isEmpty()) {
-	                    ReservationResponse rr = new ReservationResponse(
-	                            ReservationResponse.ReservationResponseType.FIRST_PHASE_SHOW_AVAILABILITY,
-	                            availableTimes,
-	                            null,
-	                            null
-	                    );
-	                    yield new Response<>(true, "Available times found", rr);
-	                }
-
-	                // 2) No availability -> check suggestions (next 3 days)
-	                Map<LocalDate, List<LocalTime>> suggestions =
-	                        getSuggestionsForNextDays(req.getReservationDate(), req.getPartySize());
-
-	                boolean hasAnySuggestion = suggestions != null &&
-	                        suggestions.values().stream().anyMatch(list -> list != null && !list.isEmpty());
-
-	                // 2a) Suggestions exist
-	                if (hasAnySuggestion) {
-	                    ReservationResponse rr = new ReservationResponse(ReservationResponse.ReservationResponseType.FIRST_PHASE_SHOW_SUGGESTIONS,
-	                            null,
-	                            suggestions,
-	                            null
-	                    );
-	                    yield new Response<>(true, "No availability on requested date, showing suggestions", rr);
-	                }
-
-	                // 2b) No availability and no suggestions
-	                ReservationResponse rr = new ReservationResponse(ReservationResponse.ReservationResponseType.FIRST_PHASE_NO_AVAILABILITY_OR_SUGGESTIONS,
-	                        null,
-	                        null,
-	                        null
-	                );
-	                yield new Response<>(true, "No availability or suggestions found", rr);
-
-	            } catch (IllegalArgumentException e) {
-	                // roundToCapacity can throw this
-	                System.err.println("Party too large");
-	                yield new Response<>(false, "Party too large", null);
-
-	            } catch (Exception e) {
-	                // DB errors etc.
-	                System.err.println("Failed to interact with DB");
-	                yield new Response<>(false, "Failed to interact with DB", null);
-	            }
+	        case FIRST_PHASE -> handleFirstPhase(req);
+	        case SECOND_PHASE -> handleSecondPhase(req);
+	        case EDIT_RESERVATION -> handleEdit(req);
+	        case CANCEL_RESERVATION -> handleCancel(req);
+	        case WALKIN_RESERVATION -> handleWalkIn(req);
+	    };   		        	            	   
+	}
+	
+	/**
+	 * Handles the FIRST_PHASE logic
+	 * Computes all available times for the given date and party size
+	 * If none are found, computes suggestions for the next 7 days
+	 * @param req containing date and party size
+	 * @return response with available times/suggestions OR failure response in case of errors
+	 */
+	private Response<ReservationResponse> handleFirstPhase(ReservationRequest req){
+		try {
+			List<LocalTime> availableTimes = getAvailableTimes(req.getReservationDate(), req.getPartySize());
+			
+			if (availableTimes != null && !availableTimes.isEmpty()) {
+	            ReservationResponse rr = new ReservationResponse(ReservationResponse.ReservationResponseType.FIRST_PHASE_SHOW_AVAILABILITY,	                    
+	                    availableTimes, null, null);	            
+	            return successResponse("Available times found", rr);	            	            
 	        }
-
-	        case SECOND_PHASE -> {
-	            try {
-	                // Minimal anti-crash checks (not “business validation”)
-	                if (req.getReservationDate() == null || req.getStartTime() == null) {
-	                    yield new Response<>(false, "Missing reservation date/time", null);
-	                }
-
-	                LocalDate date = req.getReservationDate();
-	                LocalTime startTime = req.getStartTime();
-	                int partySize = req.getPartySize();
-
-	                int allocatedCapacity = roundToCapacity(partySize);
-
-	                // Re-check availability right before insert
-	                if (!isStillAvailable(date, startTime, allocatedCapacity)) {
-	                    yield new Response<>(false, "Selected time is no longer available", null);
-	                }
-
-	                int confirmationCode = generateUniqueConfirmationCode();
-
-	                boolean hasUser = req.getUserID() != null && !req.getUserID().isBlank();
-	                String userId = hasUser ? req.getUserID() : null;
-	                String guestContact = hasUser ? null : req.getGuestContact();
-
-	                boolean inserted = reservationDAO.insertNewReservation(date, partySize, allocatedCapacity, confirmationCode, userId, startTime, "NEW", guestContact);
-
-	                if (!inserted) {
-	                    yield new Response<>(false, "Failed to create reservation", null);
-	                }
-
-	                // Non-real sending via NotificationControl
-	                sendConfirmationNotification(req, confirmationCode);
-
-	                ReservationResponse rr = new ReservationResponse(ReservationResponse.ReservationResponseType.SECOND_PHASE_CONFIRMED,null,null,confirmationCode
-	                );
-	                yield new Response<>(true, "Reservation created", rr);
-
-	            } catch (IllegalArgumentException e) {
-	                yield new Response<>(false, "Party too large", null);
-
-	            } catch (Exception e) {
-	                yield new Response<>(false, "Failed to interact with DB", null);
-	            }
+			
+			//no available time found check for suggestions
+			Map<LocalDate, List<LocalTime>> suggestions =getSuggestionsForNextDays(req.getReservationDate(), req.getPartySize());
+			boolean hasAnySuggestion = suggestions != null &&
+                    suggestions.values().stream().anyMatch(list -> list != null && !list.isEmpty());
+			
+			if (hasAnySuggestion) {
+                ReservationResponse rr = new ReservationResponse(ReservationResponse.ReservationResponseType.FIRST_PHASE_SHOW_SUGGESTIONS,
+                        null,suggestions,null );
+                        
+                return successResponse("No availability on requested date, showing suggestions", rr);               
+			}
+			
+			//no suggestions found ---NOTICE: decide later if to send generic request or specified request
+			ReservationResponse rr = new ReservationResponse(ReservationResponse.ReservationResponseType.FIRST_PHASE_NO_AVAILABILITY_OR_SUGGESTIONS,
+                    null,null,null);
+              return failResponse("No availability or suggestions found");                                           
+                   
+		}catch(IllegalArgumentException e) {
+			return failResponse("Party too large");
+			
+		}catch(Exception e) {		
+			return failResponse("Failed to interact with DB");
+		}
+		
+	}
+	
+	/**
+	 * Handles the SECOND_PHASE logic:
+	 * Validates that date and startTime exist (minimal anti-crash validation)
+	 * Delegates to {@link createReservation(ReservationRequest)}
+	 * @param req request containing date, time, party size and identity
+	 * @return response containing confirmation code if successful
+	 */
+	private Response<ReservationResponse> handleSecondPhase(ReservationRequest req){
+		try {
+	        if (req.getReservationDate() == null || req.getStartTime() == null) {
+	            return failResponse("Missing reservation date/time");
 	        }
-
-	        case EDIT_RESERVATION -> {
-	            try {
-
-	                Response<ReservationResponse> response = editReservation(req.getReservationDate(),req.getStartTime(),req.getPartySize(),
-	                        req.getGuestContact(),
-	                        req.getConfirmationCode()
-	                );
-
-	                if (response == null) {
-	                    yield new Response<>(false, "Edit reservation failed (no response)", null);
-	                }
-
-	                yield response;
-
-	            } catch (IllegalArgumentException e) {
-	                // Use for cases like invalid new party size, invalid time/date, etc.
-	                yield new Response<>(false, e.getMessage() != null ? e.getMessage() : "Invalid edit request", null);
-
-	            } catch (Exception e) {
-	                // DB errors etc.
-	                System.err.println("Failed to interact with DB (edit reservation)");
-	                yield new Response<>(false, "Failed to interact with DB", null);
-	            }
-	        }
-	        case CANCEL_RESERVATION -> {
-	            try {
-	                Response<ReservationResponse> response =cancelReservation(req.getConfirmationCode());
-
-	                if (response == null) {
-	                    yield new Response<>(false, "Cancel reservation failed (no response)", null);
-	                }
-
-	                yield response;
-
-	            } catch (IllegalArgumentException e) {
-	                yield new Response<>(false,(e.getMessage() != null ? e.getMessage() : "Invalid Cancel request"),null);
-
-	            } catch (Exception e) {System.err.println("Failed to interact with DB (Cancel reservation)");
-	                yield new Response<>(false, "Failed to interact with DB", null);
-	            }
-	        }
-	    };
-	   
+	        return createReservation(req);
+	    } catch (IllegalArgumentException e) {
+	        return failResponse("Party too large");
+	    } catch (Exception e) {
+	        return failResponse("Failed to interact with DB");
+	    }
 	}
 	
 	
+	/**
+	 * Creates a reservation in the database after verifying availability.
+	 * flow of work:
+	 * Check availability for the slot using {@link #isStillAvailable(LocalDate, LocalTime, int)}
+	 * Generate a unique 6-digit confirmation code
+	 * Insert reservation into DB using {@link database.ReservationDAO#insertNewReservation(...)}
+	 * Send notification to subscriber or guest
+	 * @param req the request to create reservation from
+     * @return success response with {@link ReservationResponseType#SECOND_PHASE_CONFIRMED} and confirmation code,or failure response        
+	 * @throws Exception
+	 */
+	private Response<ReservationResponse> createReservation(ReservationRequest req) throws Exception{
+		
+		int partySize = req.getPartySize();
+        int allocatedCapacity = roundToCapacity(partySize);
+        
+        //check if can reserve based on other reservations
+        if (!isStillAvailable(req.getReservationDate(), req.getStartTime(), allocatedCapacity)) 
+            return failResponse("Selected time is no longer available");
+        
+        int confirmationCode = generateUniqueConfirmationCode();
+        boolean hasUser = req.getUserID() != null && !req.getUserID().isBlank();
+        String userId = hasUser ? req.getUserID() : null;
+        String guestContact = hasUser ? null : req.getGuestContact();
+        
+        int inserted = reservationDAO.insertNewReservation(req.getReservationDate(), partySize, allocatedCapacity, 
+        		confirmationCode, userId, req.getStartTime(), "NEW", guestContact);
+        
+        if (inserted == -1) return failResponse("Failed to create reservation");
+        
+        sendConfirmationNotification(req, confirmationCode);
+        
+        ReservationResponse rr = new ReservationResponse(req.getReservationDate(),
+        		partySize,req.getStartTime(),confirmationCode,
+        		userId !=null ? userId  : guestContact,ReservationResponse.ReservationResponseType.SECOND_PHASE_CONFIRMED);
+        
+        return successResponse("Reservation created", rr);                      
+	}
 	
+	private Response<ReservationResponse> handleWalkIn(ReservationRequest req){
+		try {
+			//TO_DO implment a walked in customer with no reservation 
+			//if available table give add his reservation ,seating database and give him a table
+			//if no send back available time and wait for another reservation with fixed date and add to waiting list
+		
+			
+			
+			
+		}catch(IllegalArgumentException e) {
+			return failResponse("Party too large");
+		}catch(Exception e) {
+			return failResponse("Failed to interact with DB");
+		}
+		
+	}
 	
 	/**
-	 * Checks if there is still availability for the given date/time/capacity.
+	 * Handles edit reservation request by delegating to {@link #editReservation(LocalDate, LocalTime, int, String, int)}
+	 * @param req request containing new date/time/party size + confirmation code
+	 * @return describing the edit result
+	 */
+	private Response<ReservationResponse> handleEdit(ReservationRequest req){
+		try {
+			Response<ReservationResponse> response = editReservation(req.getReservationDate(),req.getStartTime(),req.getPartySize(),
+                    req.getGuestContact(),req.getConfirmationCode());
+			return response != null ? response : failResponse("Edit reservation failed");
+                    
+            
+		}catch (IllegalArgumentException e) {
+	        return failResponse(e.getMessage() != null ? e.getMessage() : "Invalid edit request");
+	    } catch (Exception e) {
+	        return failResponse("Failed to interact with DB(edit)");
+	    }
+	}
+	
+	/**
+	 * Handles cancel reservation request by delegating to {@link #cancelReservation(int)}
+	 * @param req request containing confirmation code
+	 * @return response describing cancel result
+     */
+	private Response<ReservationResponse> handleCancel(ReservationRequest req){
+		try {
+			
+			Response<ReservationResponse> response =cancelReservation(req.getConfirmationCode());
+			
+			return response != null ? response : failResponse("Cancel reservation failed");
+			
+		}catch (IllegalArgumentException e) {
+	        return failResponse(e.getMessage() != null ? e.getMessage() : "Invalid cancel request");
+	    } catch (Exception e) {
+	        return failResponse("Failed to interact with DB");
+	    }
+	}
+	
+	// ---------- generic response generators ----------
+	private Response<ReservationResponse> successResponse(String msg, ReservationResponse rr) {
+	    return new Response<>(true, msg, rr);
+	}
+
+	private Response<ReservationResponse> failResponse(String msg) {
+	    return new Response<>(false, msg, null);
+	}
+	//----------------------------------------------------
+	//---------------HELPER METHODS-----------------------
+	
+	/**
+	 * Checks if there is still availability for a requested slot.
+	 * Availability is determined by:
+	 * 
+	 *  Total tables available for allocatedCapacity (from {@link TableDAO#getTotalTablesByCapacity()})
+     *	Booked tables for overlapping reservations in the requested time range
+     *  (from {@link ReservationDAO#getBookedTablesByCapacity(LocalDate, LocalTime, LocalTime)})
+     *   
+     *@param date reservation date
+     * @param startTime desired start time
+     * @param allocatedCapacity rounded capacity size
+     * @return true if booked tables are less than total tables for that capacity
+     * @throws SQLException if DB access fails
 	 */
 	private boolean isStillAvailable(LocalDate date, LocalTime startTime, int allocatedCapacity) throws SQLException {
 
@@ -226,7 +287,13 @@ public class ReservationControl {
 	
 	
 	
-	
+	/**
+	 * Computes the list of available start times for a given date and party size
+	 * @param date 
+	 * @param partySize
+	 * @return
+	 * @throws SQLException
+	 */
 	public List<LocalTime> getAvailableTimes(LocalDate date , int partySize) throws SQLException{
 		
 		if (date == null) return new ArrayList<>();
@@ -260,7 +327,14 @@ public class ReservationControl {
 	
 	
 	
-	
+	/**
+	 * Builds suggestions for available reservation times for the next 7 days after a requested date.
+     *
+	 * @param requestedDate
+	 * @param partySize
+	 * @return
+	 * @throws SQLException
+	 */
 	public Map<LocalDate, List<LocalTime>> getSuggestionsForNextDays(LocalDate requestedDate,int partySize) throws SQLException {
 
 	    Map<LocalDate, List<LocalTime>> suggestions = new LinkedHashMap<>();
@@ -280,7 +354,11 @@ public class ReservationControl {
 	}
 	
 	
-	
+	/**
+	 * Generates a random 6-digit confirmation code and checks for uniqueness using the DAO.
+	 * @return unique confirmation code
+	 * @throws SQLException
+	 */
 	private int generateUniqueConfirmationCode() throws SQLException {
 
 	    Random rnd = new Random();
@@ -322,6 +400,20 @@ public class ReservationControl {
 	}
 
 	
+	/**
+	 * Edits an existing reservation identified by confirmation code.
+	 * flow of work:
+	 * If reservation not found -> failure.
+	 * UserID and status are preserved from existing reservation.
+	 * Guest contact can be changed only if reservation belongs to a guest
+	 * Availability is rechecked for the new slot before updating
+	 * @param reservationDate
+	 * @param startTime
+	 * @param partySize
+	 * @param guestContact
+	 * @param confirmationCode
+	 * @return
+	 */
 	public Response<ReservationResponse> editReservation(LocalDate reservationDate,LocalTime startTime,int partySize,String guestContact,int confirmationCode) {
 		try {
 			
@@ -354,7 +446,8 @@ public class ReservationControl {
 				return new Response<>(false, "Reservation was not updated", null);
 			}
 
-			ReservationResponse rr = new ReservationResponse(reservationDate,partySize,startTime,confirmationCode,guestContactToSave,ReservationResponse.ReservationResponseType.EDIT_RESERVATION);
+			ReservationResponse rr = new ReservationResponse(reservationDate,partySize,startTime,confirmationCode,guestContactToSave,
+					ReservationResponse.ReservationResponseType.EDIT_RESERVATION);
 			return new Response<>(true, "Reservation updated successfully", rr);
 
 		} catch (IllegalArgumentException e) {
@@ -366,6 +459,11 @@ public class ReservationControl {
 		}
 	}
 
+	/**
+	 * Cancels an existing reservation by updating its status to "CANCELLED".
+	 * @param confirmationCode
+	 * @return
+	 */
 	public Response<ReservationResponse> cancelReservation(int confirmationCode) {
 	    try {
 	        Reservation reservation =reservationDAO.getReservationByConfirmationCode(confirmationCode);
@@ -380,7 +478,8 @@ public class ReservationControl {
 	            return new Response<>(false, "Failed to cancel reservation", null);
 	        }
 
-	        ReservationResponse rr = new ReservationResponse(reservation.getReservationDate(),reservation.getPartySize(), reservation.getStartTime(),reservation.getConfirmationCode(),reservation.getGuestContact(),
+	        ReservationResponse rr = new ReservationResponse(reservation.getReservationDate(),reservation.getPartySize(), 
+	        		reservation.getStartTime(),reservation.getConfirmationCode(),reservation.getGuestContact(),
 	        		ReservationResponse.ReservationResponseType.CANCEL_RESERVATION
 	        );
 
@@ -392,6 +491,11 @@ public class ReservationControl {
 	    }
 	}
 	
+	/**
+	 *  Fetches and returns an existing reservation details by confirmation code.
+	 * @param confirmationCode
+	 * @return
+	 */
 	public Response<ReservationResponse> showReservation(int confirmationCode){
 		
 		try {
@@ -408,7 +512,11 @@ public class ReservationControl {
 		}
 	}
 	
-	
+	/**
+	 * Rounds party size to the minimal table capacity that can fit it using {@link TableDAO#getMinimalTableSize(int)}.
+	 * @param partySize
+	 * @return
+	 */
 	private int roundToCapacity(int partySize) {
 	    try {
 			return tableDAO.getMinimalTableSize(partySize);

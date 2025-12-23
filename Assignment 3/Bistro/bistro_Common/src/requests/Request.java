@@ -7,7 +7,7 @@ public class Request<T> {
 	public enum Command{
 		LOGIN_REQUEST,
 		RESERVATION_REQUEST,	
-		EDIT_RESERVATION;
+		SEATING_REQUEST;
 	}
 	
 	public Request() {}

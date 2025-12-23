@@ -34,11 +34,11 @@ public class ReservationDAOStub extends ReservationDAO {
     }
 
     @Override
-    public boolean insertNewReservation(LocalDate reservationDate, int numberOfGuests, int allocatedCapacity,
+    public int insertNewReservation(LocalDate reservationDate, int numberOfGuests, int allocatedCapacity,
                                         int confirmationCode, String userID, LocalTime startTime,
                                         String status, String guest) throws SQLException {
 
-        if (byCode.containsKey(confirmationCode)) return false;
+        if (byCode.containsKey(confirmationCode)) return 100;
 
         Reservation r = new Reservation(
                 nextReservationId++,
@@ -53,7 +53,7 @@ public class ReservationDAOStub extends ReservationDAO {
         );
 
         byCode.put(confirmationCode, r);
-        return true;
+        return 0;
     }
 
     @Override

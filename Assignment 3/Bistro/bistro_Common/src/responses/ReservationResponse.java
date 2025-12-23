@@ -13,13 +13,17 @@ public class ReservationResponse  {
 		 SECOND_PHASE_CONFIRMED,
 		 EDIT_RESERVATION,
 		 SHOW_RESERVATION,
-		 CANCEL_RESERVATION;
+		 CANCEL_RESERVATION,
+		 WALKIN_SEATED,
+		 WALKIN_WAITING
 	}
 	
-	private LocalDate newDate;
-	private int newPartySize;
-	private LocalTime newTime;
-	private String newGuestContact;
+	private LocalDate date;
+	private int partySize;
+	private LocalTime time;
+	private String guestContact;
+	
+	private int tableNumber;
 	
     private ReservationResponseType type;
     
@@ -32,34 +36,40 @@ public class ReservationResponse  {
     
     public ReservationResponse() {}
     
-    public ReservationResponse(LocalDate newDate,int newPartySize,LocalTime newTime,int confirmationCode,String newGuestContact,ReservationResponseType type) {
-    	this.newDate= newDate;
-    	this.newPartySize=newPartySize;
-    	this.newTime = newTime;
+    public ReservationResponse(int tableNumber) {
+    	this.tableNumber = tableNumber;
+    }
+    
+    public ReservationResponse(LocalDate date,int partySize,LocalTime time,int confirmationCode,String guestContact,ReservationResponseType type) {
+    	this.date= date;
+    	this.partySize=partySize;
+    	this.time = time;
     	this.confirmationCode = confirmationCode;
-    	this.newGuestContact = newGuestContact;
+    	this.guestContact = guestContact;
     	this.type = type;
     }
     
+    public int getTableNumber() {
+    	return this.tableNumber;
+    }
+    
     public LocalDate getNewDate() {
-		return newDate;
+		return date;
 	}
 
 	public int getNewPartySize() {
-		return newPartySize;
+		return partySize;
 	}
 
 	public LocalTime getNewTime() {
-		return newTime;
+		return time;
 	}
 
 	public String getNewGuestContact() {
-		return newGuestContact;
+		return guestContact;
 	}
 
-	public ReservationResponse(ReservationResponseType type,
-                               List<LocalTime> availableTimes,
-                               Map<LocalDate, List<LocalTime>> suggestedDates,
+	public ReservationResponse(ReservationResponseType type,List<LocalTime> availableTimes,Map<LocalDate, List<LocalTime>> suggestedDates,                                                           
                                Integer confirmationCode) {
         this.type = type;
         this.availableTimes = availableTimes;

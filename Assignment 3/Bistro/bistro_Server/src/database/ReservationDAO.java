@@ -35,7 +35,7 @@ public class ReservationDAO {
 	        """;
 	
 	// UPDATE statement
-	private static final String UPDATE_STATUS_RESERVATION_SQL ="UPDATE reservations " +"SET status = ? " +"WHERE confirmation_code = ?";
+	private static final String UPDATE_STATUS_RESERVATION_SQL ="UPDATE `reservation` " +"SET status = ? " +"WHERE confirmation_code = ?";
 	private static final String UPDATE_RESERVATION_BY_CONFIRMATION_CODE =
 	        "UPDATE `reservation` " +
 	        "SET reservationDate = ?, status = ?, partySize = ?, guestContact = ?, userID = ?, startTime = ? " +
@@ -78,7 +78,7 @@ public class ReservationDAO {
 	 * @throws SQLException if a DB error occurs
 	 */
 	public boolean updateStatus(Connection conn, int confirmationCode,String status) throws SQLException {
-	    if (conn == null) throw new IllegalArgumentException("conn is null");
+	    if (conn == null) throw new IllegalArgumentException("conn is null(updateStatus)");
 	    if (confirmationCode <= 0) return false;
 
 	    try (PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS_RESERVATION_SQL)) {
@@ -100,6 +100,16 @@ public class ReservationDAO {
 	}
 
 	
+	// 1) Convenience wrapper (NO conn)
+	public int insertNewReservation(LocalDate reservationDate,int numberOfGuests,int allocatedCapacity,int confirmationCode,	                                	                                	                                
+	                                String userID, LocalTime startTime,String status,String guest) throws SQLException {	                               	                                	                                
+	    try (Connection conn = DBManager.getConnection()) {
+	        return insertNewReservation(conn, reservationDate, numberOfGuests, allocatedCapacity,
+	                                    confirmationCode, userID, startTime, status, guest);
+	    }
+	}
+
+	
 	/**
 	 * method to add a new reservation
 	 * @param reservationID
@@ -108,16 +118,16 @@ public class ReservationDAO {
 	 * @param confirmationCode
 	 * @param subscriberId
 	 * @param dateOfPlacingOrder
-	 * @return true if succedded 
+	 * @return reservationID  
 	 * @throws SQLException
 	 */
-	public boolean insertNewReservation(LocalDate reservationDate,int numberOfGuests,int allocatedCapacity,
+	public int insertNewReservation(Connection conn,LocalDate reservationDate,int numberOfGuests,int allocatedCapacity,
 			int confirmationCode,String userID,LocalTime startTime,String status,String guest) throws SQLException {
 
 	    java.sql.Date sqlReservationDate = java.sql.Date.valueOf(reservationDate);
-
-	    try (Connection conn = DBManager.getConnection();
-	         PreparedStatement pstmt = conn.prepareStatement(INSERT_newReservation)) {
+	    if (conn == null) throw new IllegalArgumentException("conn is null");
+	    try (PreparedStatement pstmt = conn.prepareStatement(INSERT_newReservation,Statement.RETURN_GENERATED_KEYS)) {
+	         
 
 	        pstmt.setDate(1, sqlReservationDate);
 	        pstmt.setString(2, status);
@@ -129,7 +139,10 @@ public class ReservationDAO {
 	        pstmt.setTime(8, java.sql.Time.valueOf(startTime));
 
 	        int isInserted = pstmt.executeUpdate();
-	        return isInserted == 1;
+	        if( isInserted != 1) return -1;
+	        
+	        ResultSet rs = pstmt.getGeneratedKeys();
+	        return rs.next() ? rs.getInt(1) : -1;
 
 	    } catch (SQLException e) {
 	        System.err.println("Database error: could not insert new reservation");
@@ -197,5 +210,7 @@ public class ReservationDAO {
 	    }
 	    return booked;
 	}
+	
+	
 
 }

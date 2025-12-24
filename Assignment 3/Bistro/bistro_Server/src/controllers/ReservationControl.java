@@ -70,12 +70,10 @@ public class ReservationControl {
 	 * @return with success/failure, message, and optionally a ReservationResponse payload
 	 */
 	public Response<ReservationResponse> handleReservationRequest(ReservationRequest req) {
-	    if (req == null) {
-	        return new Response<>(false, "Request is missing", null);
-	    }
-	    if (req.getType() == null) {
-	        return new Response<>(false, "Phase is missing", null);
-	    }
+	    if (req == null) return new Response<>(false, "Request is missing", null);
+	        	    
+	    if (req.getType() == null) return new Response<>(false, "Phase is missing", null);
+	        	    
 	    return switch (req.getType()) {
 	        case FIRST_PHASE -> handleFirstPhase(req);
 	        case SECOND_PHASE -> handleSecondPhase(req);

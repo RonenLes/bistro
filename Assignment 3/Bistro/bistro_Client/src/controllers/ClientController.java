@@ -1,8 +1,10 @@
 package controllers;
 
 import client.BistroEchoClient;
+import kryo.KryoUtil;
 import requests.LoginRequest;
 import responses.LoginResponse;
+import responses.Response;
 
 /**
  * Central application controller for the Bistro Echo Client.
@@ -64,12 +66,23 @@ public class ClientController {
 
     /** Called ONLY by BistroEchoClient.handleMessageFromServer(msg) */
     public void handleServerResponse(Object msg) {
-        if (msg instanceof LoginResponse res) {
-            if (res.isSuccess()) safeUiInfo("Login", "Welcome " + res.getUsername());
-            else safeUiWarning("Login Failed", res.getErrorMessage());
-            return;
+        try {
+        	Object decoded = msg;
+        	if(msg instanceof byte[] bytes) decoded =KryoUtil.deserialize(bytes);
+        	
+        	if(!(decoded instanceof Response<?> response)) {safeUiInfo("Failed", "failed to deserialize response"); return;}
+        	
+        	if(!response.isSuccess()) safeUiError("Failed operation", response.getMessage());
+        	
+        	Object responseData = response.getData();
+        	
+        	if(responseData instanceof LoginResponse loginResponse) safeUiInfo("Login successful",response.getMessage());
+        		
+        	
+        	
+        }catch(Exception e) {
+        	
         }
-        uiPayload(msg);
     }
     
     // Login and information verification

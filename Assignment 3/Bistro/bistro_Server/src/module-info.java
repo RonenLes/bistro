@@ -1,5 +1,14 @@
 module bistro_Server {
+			
+	exports serverGUI;
+			
+	requires OCSF;
+	requires bistro_Common;
+	requires com.zaxxer.hikari;
+	requires java.sql;
+	requires javafx.base;
 	requires javafx.controls;
-	
-	opens application to javafx.graphics, javafx.fxml;
+	requires javafx.fxml;
+	requires javafx.graphics;
+	requires junit;
 }

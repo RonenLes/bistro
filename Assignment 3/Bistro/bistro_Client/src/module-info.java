@@ -3,20 +3,21 @@ module bistro_Client {
 	exports manager_screen;
 	exports client;
 	exports main_screen;
-	exports controllers;
-	
-	requires ocsf;
+
+	requires OCSF;
 	requires javafx.graphics;
 	requires javafx.fxml;
 	requires javafx.controls;
 	requires bistro_Common;
-
 	
 	opens main_screen to javafx.fxml;
 	//for later
 	opens manager_screen to javafx.fxml;
 	opens subscriber_screen to javafx.fxml;
+<<<<<<< HEAD
 	opens terminal_screen to javafx.fxml;
     opens desktop_screen to javafx.fxml;
 
+=======
+>>>>>>> refs/remotes/origin/ronen-database/entities
 }

@@ -15,8 +15,10 @@ public class UserDAO {
 
 	//SELECT statements
 		private static final String SELECT_LOGIN ="SELECT userID, username, role, phoneNumber, email FROM `user` WHERE username=? AND password=?";
-
 		private static final String SELECT_USER_BY_ID ="SELECT userID, username, role, phoneNumber, email FROM `user` WHERE userID = ?";
+		
+	//UPDATE
+		private final String UPDATE_USER_DETAILS_BY_ID = "UPDATE `user` SET phone = ?, email = ? WHERE userID = ?";
 		
 		/**
 		 * @param username- username field
@@ -86,5 +88,16 @@ public class UserDAO {
 		        }
 
 		        return null;
+		    }
+		    
+		    
+		    public boolean updateUserDetailsByUserID(String userID,String email,String phone)throws SQLException{
+		    	try(Connection conn = DBManager.getConnection();
+		             PreparedStatement ps = conn.prepareStatement(UPDATE_USER_DETAILS_BY_ID)){
+		    		ps.setString(1, phone);
+		    		ps.setString(2, email);
+		    		ps.setString(3,userID);
+		    		return ps.executeUpdate() == 1;		    		
+		    	}		    			    	
 		    }
 }

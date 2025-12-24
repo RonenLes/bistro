@@ -20,11 +20,30 @@ public class WaitingListDAO {
 											"(?,?,?,NOW())";
 	
 	//SELECT
-	private final String SELECT_HIGHER_PRIORITY = "SELECT FROM `waiting_list` WHERE ";
+	private final String SELECT_NEXT_IN_LINE = "SELECT w.waitID, w.reservationID, w.priority, w.status "+
+											   "FROM waiting_list w "+
+											   "JOIN reservation r ON r.reservationID = w.reservationID "+
+											   "WHERE w.statis = 'WAITING' AND r.allocatedCapacity <= ? "+
+											   "ORDER BY w.priority DESC, w.createdAt ASC "+
+											   "LIMIT 1 FOR UPDATE";
 	
 	//UPDATE
 	private final String UPDATE_WAITLIST_STATUS = "UPDATE `waiting_list` SET status = ? WHERE reservationID = ?";
+	private final String UPDATE_STATUS_TO_ASSIGNED = "UPDATE `waiting_list` SET status='ASSIGNED', assignedAt=NOW() "+
+													 "WHERE waitID = ? AND status = 'WAITING'";
 	
+	
+	public WaitingList getNextWaitingThatFits(Connection conn, int tableCapacity) throws SQLException {
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_NEXT_IN_LINE)) {
+	        ps.setInt(1, tableCapacity);
+	        try (ResultSet rs = ps.executeQuery()) {
+	            if (!rs.next()) return null;
+	            WaitingList w = new WaitingList(rs.getInt("waitID"),rs.getInt("reservationID"),rs.getString("status"),
+	            		rs.getInt("priority"),rs.getTime("createdAt").toLocalTime(),null);	            
+	            return w;
+	        }
+	    }
+	}
 	
 	//wrapper for insertNewWait for using multi DAO objects
 	public boolean insertNewWait(int reservationID,String status,int priority) throws SQLException{
@@ -80,7 +99,12 @@ public class WaitingListDAO {
 		}
 	}
 	
-	
+	public boolean markAssigned(Connection conn, int waitId) throws SQLException {
+	    try (PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS_TO_ASSIGNED)) {
+	        ps.setInt(1, waitId);
+	        return ps.executeUpdate() == 1;
+	    }
+	}
 	
 	
 }

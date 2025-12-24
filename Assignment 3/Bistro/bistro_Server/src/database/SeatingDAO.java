@@ -10,10 +10,16 @@ public class SeatingDAO {
             "VALUES (?, ?, NOW(), NULL)";
 
     // UPDATE
-    private static final String UPDATE_SEATING_CHECKOUT_BY_TABLE =
-            "UPDATE seating SET checkOutTime = NOW() " +
-            "WHERE tableID = ? AND checkOutTime IS NULL " +
-            "LIMIT 1";
+    private static final String UPDATE_CHEKOT_BY_SEATING_ID ="UPDATE `seating` SET checkOutTime = NOW() WHERE seatingID = ?";
+            
+            
+    
+    //SELECT
+    private final String SELECT_OPEN_SEATING_TO_UPDATE = "SELECT seatingID, reservationID "+
+    													 "FROM seating "+
+    													 "WHERE tableID = ? AND checkOutTime IS NULL "+
+    													 "ORDER BY checkInTime DESC "+
+    													 "LIMIT 1 FOR UPDATE";
 
     /**
      * Inserts a check-in row (opens its own connection).
@@ -45,22 +51,31 @@ public class SeatingDAO {
         }
     }
 
-    /**
-     * Checks out a table (opens its own connection).
-     */
-    public boolean checkOutByTable(int tableId) throws SQLException {
-        try (Connection conn = DBManager.getConnection()) {
-            return checkOutByTable(conn, tableId);
+   
+    public Integer fetchOpenSeatingID(Connection conn,int tableID)throws SQLException {
+    	try(PreparedStatement ps = conn.prepareStatement(SELECT_OPEN_SEATING_TO_UPDATE)){
+    		ps.setInt(1, tableID);
+    		ResultSet rs = ps.executeQuery();
+    		if(!rs.next()) return null;
+    		return rs.getInt("seatingID");
+    	}
+    }
+    
+    public Integer findOpenSeatingReservationId(Connection conn, int tableId) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(SELECT_OPEN_SEATING_TO_UPDATE)) {
+            ps.setInt(1, tableId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return null;
+                return rs.getInt("reservationID");
+            }
         }
     }
-
-    /**
-     * Checks out a table using an existing connection (for transactions).
-     */
-    public boolean checkOutByTable(Connection conn, int tableId) throws SQLException {
-        try (PreparedStatement ps = conn.prepareStatement(UPDATE_SEATING_CHECKOUT_BY_TABLE)) {
-            ps.setInt(1, tableId);
+    
+    public boolean checkOutBySeatingId(Connection conn, int seatingId) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(UPDATE_CHEKOT_BY_SEATING_ID)) {
+            ps.setInt(1, seatingId);
             return ps.executeUpdate() == 1;
         }
+    
     }
 }

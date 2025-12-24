@@ -26,6 +26,24 @@ public class WaitingList {
 	public int getReservationID() {
 		return reservationID;
 	}
+	public void setWaitID(int waitID) {
+		this.waitID = waitID;
+	}
+	public void setReservationID(int reservationID) {
+		this.reservationID = reservationID;
+	}
+	public void setStatus(String status) {
+		this.status = status;
+	}
+	public void setPriority(int priority) {
+		this.priority = priority;
+	}
+	public void setCreatedAt(LocalTime createdAt) {
+		this.createdAt = createdAt;
+	}
+	public void setAssignedAt(LocalTime assignedAt) {
+		this.assignedAt = assignedAt;
+	}
 	public String getStatus() {
 		return status;
 	}

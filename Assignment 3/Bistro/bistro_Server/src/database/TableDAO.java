@@ -12,7 +12,7 @@ public class TableDAO {
 	private final String INSERT_newTable ="INSERT INTO `restaurant_table` " + "(tableNumber, capacity) " +"(?, ?)";
 	
 	//SELECT
-	private final String SELECT_sumOfTotalSeats ="SELECT SUM(capacity) AS totalCap FROM `restaurant_table`";
+	private final String SELECT_TABLE_BY_ID = "SELECT * FROM `restaurant_table` WHERE tableID = ?";
 	private final String SELECT_minimalTableSize = "SELECT MIN(capacity) as roundedUp FROM `restaurant_table` WHERE capacity >= ?";
 	private final String SELECT_tablesByCapacity = "SELECT capacity, COUNT(*) AS total FROM restaurant_table GROUP BY capacity";								
 	private static final String SELECT_availableTable ="SELECT t.tableID, t.tableNumber, t.capacity "
@@ -25,6 +25,15 @@ public class TableDAO {
 			+ "ORDER BY t.capacity ASC, t.tableNumber ASC "
 			+ "LIMIT 1";
 			    	
+	
+	public Table fetchTableByID(Connection conn,int tableID)throws SQLException {
+		try(PreparedStatement ps = conn.prepareStatement(SELECT_TABLE_BY_ID)){
+			ps.setInt(1, tableID);
+			ResultSet rs = ps.executeQuery();
+			if(!rs.next()) return null;
+			return new Table(rs.getInt("tableID"),rs.getInt("tableNumber"),rs.getInt("capacity"));			
+		}
+	}
 	
 	/**
 	 * adding new table to the resturant_table in database

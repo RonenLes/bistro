@@ -35,6 +35,7 @@ public class ReservationDAO {
 	        """;
 	
 	// UPDATE statement
+	private static final String UPDATE_STATUS_RESERVATION_SQL_BY_RESERVATION_ID ="UPDATE `reservation` SET status = ? WHERE reservationID = ?";
 	private static final String UPDATE_STATUS_RESERVATION_SQL ="UPDATE `reservation` " +"SET status = ? " +"WHERE confirmation_code = ?";
 	private static final String UPDATE_RESERVATION_BY_CONFIRMATION_CODE =
 	        "UPDATE `reservation` " +
@@ -66,6 +67,17 @@ public class ReservationDAO {
 	    } catch (SQLException e) {
 	        System.err.println("DB error updating reservation by confirmationCode=" + confirmationCode);
 	        throw e;
+	    }
+	}
+	
+	public boolean updateStatusByReservationID(Connection conn, int reservationID,String status) throws SQLException {
+	    if (conn == null) throw new IllegalArgumentException("conn is null(updateStatus)");
+	    
+
+	    try (PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS_RESERVATION_SQL_BY_RESERVATION_ID)) {
+	        ps.setString(1, status);
+	        ps.setInt(2, reservationID);
+	        return ps.executeUpdate() == 1;
 	    }
 	}
 	

@@ -112,7 +112,7 @@ public class BistroEchoServer extends AbstractServer {
 
 	            switch (request.getCommand()) {
 
-	                case LOGIN_REQUEST -> {
+	                case USER_REQUEST -> {
 	                    LoginRequest loginReq = (LoginRequest) request.getData();	                    
 	                    Response<LoginResponse> loginResp = userControl.login(loginReq);
 	                    response = loginResp;

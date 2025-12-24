@@ -14,10 +14,10 @@ module bistro_Client {
 	//for later
 	opens manager_screen to javafx.fxml;
 	opens subscriber_screen to javafx.fxml;
-<<<<<<< HEAD
+    opens desktop_views to javafx.fxml;
+
 	opens terminal_screen to javafx.fxml;
     opens desktop_screen to javafx.fxml;
 
-=======
->>>>>>> refs/remotes/origin/ronen-database/entities
+
 }

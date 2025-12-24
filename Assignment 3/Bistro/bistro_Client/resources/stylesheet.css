@@ -1,65 +1,55 @@
 /* =========================================================
-   Bistro "Domotic" Theme (JavaFX CSS) — dark glass + neon cyan
+   Bistro "Friendly" Theme (JavaFX CSS) — light glass + soft cyan
    JavaFX 17+ / 21+ | SceneBuilder-friendly | Single file
-   Inspired by the dashboard look you attached
+   Fixes: avoids looked-up SIZE vars in -fx-background-radius/-fx-border-radius
+   Adds: standard font-size + font-family for compatibility
    ========================================================= */
 
 /* ---------------------------------------------------------
-   0) THEME TOKENS (Looked-up colors)
+   0) THEME TOKENS (COLORS ONLY — safe looked-up usage)
    --------------------------------------------------------- */
 
 .root {
-    /* Typography */
+    /* Typography (JavaFX + standard) */
     -fx-font-family: "Inter", "Segoe UI", "Roboto", "Arial";
+    font-family: "Inter", "Segoe UI", "Roboto", "Arial";
+
     -fx-font-size: 13px;
+    font-size: 13px;
 
-    /* ===== Dark Dashboard Theme (DEFAULT) ===== */
-    -b-bg:               #0A1226;   /* outer background */
-    -b-bg-2:             #0D1933;   /* subtle gradient stop */
-    -b-surface:          #0F2244;   /* main panels */
-    -b-surface-2:        #0C1B36;   /* deeper panels */
-    -b-surface-3:        rgba(255,255,255,0.04); /* glass sheen */
-    -b-border:           rgba(255,255,255,0.10);
-    -b-border-strong:    rgba(255,255,255,0.18);
+    /* ===== Light Theme (DEFAULT) ===== */
+    -b-bg:               #F6FAFF;     /* outer background */
+    -b-bg-2:             #EEF6FF;     /* subtle gradient stop */
+    -b-surface:          #FFFFFF;     /* cards/panels */
+    -b-surface-2:        #F3F7FF;     /* deeper panels */
+    -b-surface-3:        rgba(255,255,255,0.70); /* glass sheen */
 
-    -b-text:             #EAF2FF;
-    -b-text-muted:       rgba(234,242,255,0.72);
-    -b-text-faint:       rgba(234,242,255,0.52);
+    -b-border:           rgba(15,23,42,0.10);
+    -b-border-strong:    rgba(15,23,42,0.16);
 
-    /* Accent: neon cyan */
-    -b-accent:           #55D6FF;
-    -b-accent-2:         #3FB7FF;
-    -b-accent-press:     #2EA6F2;
+    -b-text:             #0F172A;
+    -b-text-muted:       rgba(15,23,42,0.70);
+    -b-text-faint:       rgba(15,23,42,0.50);
+
+    /* Accent: friendly cyan */
+    -b-accent:           #22B8F2;
+    -b-accent-2:         #0EA5E9;
+    -b-accent-press:     #0284C7;
 
     /* Status */
-    -b-success:          #2DE37D;
-    -b-danger:           #FF4D6D;
-    -b-warning:          #FFB020;
+    -b-success:          #22C55E;
+    -b-danger:           #EF4444;
+    -b-warning:          #F59E0B;
 
     /* Focus glow */
-    -b-focus:            rgba(85,214,255,0.92);
-    -b-focus-glow:       rgba(85,214,255,0.22);
+    -b-focus:            rgba(14,165,233,0.95);
+    -b-focus-glow:       rgba(14,165,233,0.22);
 
-    /* Shapes (IMPORTANT: px so JavaFX treats them as Size, not Double) */
-    -b-radius-xs:  8px;
-    -b-radius-sm:  10px;
-    -b-radius-md:  14px;
-    -b-radius-lg:  18px;
-    -b-radius-xl:  22px;
-    -b-pill:       999px;
-
-    /* Spacing */
-    -b-pad-xs: 6px;
-    -b-pad-sm: 10px;
-    -b-pad-md: 14px;
-    -b-pad-lg: 18px;
-    -b-pad-xl: 22px;
-
-    /* JavaFX theme props */
-    background-color:linear-gradient(to bottom right, -b-bg, -b-bg-2);
+    /* App background */
     -fx-background-color: linear-gradient(to bottom right, -b-bg, -b-bg-2);
     -fx-text-fill: -b-text;
 
+    /* JavaFX theme props */
     -fx-accent: -b-accent;
     -fx-focus-color: -b-accent;
     -fx-faint-focus-color: -b-focus-glow;
@@ -69,22 +59,33 @@
     -fx-background: -b-bg;
 }
 
-/* Optional: if you ever want light mode later, add .light on root */
-.root.light {
-    -b-bg: #F6F7FB;
-    -b-bg-2: #EEF2FF;
-    -b-surface: #FFFFFF;
-    -b-surface-2: #F2F4F8;
-    -b-border: rgba(17,24,39,0.10);
-    -b-border-strong: rgba(17,24,39,0.16);
-    -b-text: #0F172A;
-    -b-text-muted: rgba(15,23,42,0.68);
-    -b-text-faint: rgba(15,23,42,0.50);
+/* Optional: dark mode later (add "dark" style class on root) */
+.root.dark {
+    -b-bg:               #0A1226;
+    -b-bg-2:             #0D1933;
+    -b-surface:          #0F2244;
+    -b-surface-2:        #0C1B36;
+    -b-border:           rgba(255,255,255,0.10);
+    -b-border-strong:    rgba(255,255,255,0.18);
+    -b-text:             #EAF2FF;
+    -b-text-muted:       rgba(234,242,255,0.72);
+    -b-text-faint:       rgba(234,242,255,0.52);
+
+    -b-accent:           #55D6FF;
+    -b-accent-2:         #3FB7FF;
+    -b-accent-press:     #2EA6F2;
+
+    -b-focus:            rgba(85,214,255,0.92);
+    -b-focus-glow:       rgba(85,214,255,0.22);
+
     -fx-background-color: linear-gradient(to bottom right, -b-bg, -b-bg-2);
+    -fx-control-inner-background: -b-surface;
+    -fx-base: -b-surface;
+    -fx-background: -b-bg;
 }
 
 /* ---------------------------------------------------------
-   1) GLOBAL POLISH
+   1) GLOBAL TEXT
    --------------------------------------------------------- */
 
 .label { -fx-text-fill: -b-text; }
@@ -92,20 +93,20 @@
 .label.faint { -fx-text-fill: -b-text-faint; }
 
 .label.title {
-    -fx-font-size: 28px;
+    -fx-font-size: 26px;
+    font-size: 26px;
     -fx-font-weight: 900;
-    -fx-text-fill: -b-text;
 }
 .label.h2 {
     -fx-font-size: 16px;
+    font-size: 16px;
     -fx-font-weight: 900;
-    -fx-text-fill: -b-text;
 }
 .label.subtle {
     -fx-font-size: 12px;
+    font-size: 12px;
     -fx-font-weight: 800;
     -fx-text-fill: -b-text-muted;
-    -fx-letter-spacing: 0.5px;
 }
 
 /* Thin divider */
@@ -120,42 +121,39 @@
 
 .surface, .card {
     -fx-background-color:
-        linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
+        linear-gradient(to bottom, rgba(255,255,255,0.85), rgba(255,255,255,0.65)),
         -b-surface;
-    -fx-background-radius: -b-radius-lg;
-    -fx-border-radius: -b-radius-lg;
+    -fx-background-radius: 18px;
+    -fx-border-radius: 18px;
     -fx-border-color: -b-border;
     -fx-border-width: 1px;
-    -fx-padding: -b-pad-lg;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 22px, 0.20, 0px, 10px);
+    -fx-padding: 18px;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.10), 22px, 0.20, 0px, 10px);
 }
 
-/* Slightly deeper panel */
 .panel {
     -fx-background-color:
-        linear-gradient(to bottom, rgba(255,255,255,0.05), rgba(255,255,255,0.015)),
+        linear-gradient(to bottom, rgba(255,255,255,0.75), rgba(255,255,255,0.55)),
         -b-surface-2;
-    -fx-background-radius: -b-radius-lg;
-    -fx-border-radius: -b-radius-lg;
+    -fx-background-radius: 18px;
+    -fx-border-radius: 18px;
     -fx-border-color: -b-border;
     -fx-border-width: 1px;
-    -fx-padding: -b-pad-lg;
+    -fx-padding: 18px;
 }
 
-/* Top bar */
 .topbar {
     -fx-background-color:
-        linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
+        linear-gradient(to bottom, rgba(255,255,255,0.80), rgba(255,255,255,0.60)),
         -b-surface;
     -fx-border-color: -b-border;
     -fx-border-width: 0px 0px 1px 0px;
     -fx-padding: 12px 16px;
 }
 
-/* Sidebar */
 .sidebar {
     -fx-background-color:
-        linear-gradient(to bottom, rgba(255,255,255,0.05), rgba(255,255,255,0.01)),
+        linear-gradient(to bottom, rgba(255,255,255,0.75), rgba(255,255,255,0.55)),
         -b-surface-2;
     -fx-border-color: -b-border;
     -fx-border-width: 0px 1px 0px 0px;
@@ -163,51 +161,50 @@
 }
 
 /* ---------------------------------------------------------
-   3) TILES (device cards like in the screenshot)
+   3) TILES
    --------------------------------------------------------- */
 
 .tile {
     -fx-background-color:
-        linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
-        rgba(255,255,255,0.03);
-    -fx-background-radius: -b-radius-lg;
-    -fx-border-radius: -b-radius-lg;
-    -fx-border-color: rgba(255,255,255,0.14);
+        linear-gradient(to bottom, rgba(255,255,255,0.85), rgba(255,255,255,0.60)),
+        rgba(255,255,255,0.55);
+    -fx-background-radius: 18px;
+    -fx-border-radius: 18px;
+    -fx-border-color: rgba(15,23,42,0.12);
     -fx-border-width: 1px;
     -fx-padding: 18px;
 }
 
 .tile:hover {
-    -fx-border-color: rgba(255,255,255,0.22);
+    -fx-border-color: rgba(15,23,42,0.18);
     -fx-background-color:
-        linear-gradient(to bottom, rgba(255,255,255,0.08), rgba(255,255,255,0.03)),
-        rgba(255,255,255,0.04);
+        linear-gradient(to bottom, rgba(255,255,255,0.92), rgba(255,255,255,0.68)),
+        rgba(255,255,255,0.62);
 }
 
 .tile.active {
-    -fx-border-color: rgba(85,214,255,0.75);
+    -fx-border-color: rgba(14,165,233,0.55);
     -fx-border-width: 1.2px;
-    -fx-effect: dropshadow(gaussian, rgba(85,214,255,0.22), 20px, 0.25, 0px, 0px);
+    -fx-effect: dropshadow(gaussian, rgba(14,165,233,0.18), 20px, 0.25, 0px, 0px);
 }
 
-/* Small cyan label/pill */
 .pill {
-    -fx-background-color: rgba(85,214,255,0.16);
+    -fx-background-color: rgba(14,165,233,0.14);
     -fx-text-fill: -b-text;
-    -fx-background-radius: -b-pill;
+    -fx-background-radius: 999px;
     -fx-padding: 4px 10px;
     -fx-font-weight: 900;
 }
 
 /* ---------------------------------------------------------
-   4) NAV ITEMS (left list like “House exterior / Lights / Cams”)
+   4) NAV ITEMS
    --------------------------------------------------------- */
 
 .nav-item {
-    -fx-background-color: rgba(255,255,255,0.03);
-    -fx-background-radius: -b-radius-md;
-    -fx-border-radius: -b-radius-md;
-    -fx-border-color: rgba(255,255,255,0.10);
+    -fx-background-color: rgba(15,23,42,0.03);
+    -fx-background-radius: 14px;
+    -fx-border-radius: 14px;
+    -fx-border-color: rgba(15,23,42,0.10);
     -fx-border-width: 1px;
     -fx-padding: 10px 12px;
     -fx-text-fill: -b-text;
@@ -216,14 +213,14 @@
 }
 
 .nav-item:hover {
-    -fx-background-color: rgba(255,255,255,0.045);
-    -fx-border-color: rgba(255,255,255,0.18);
+    -fx-background-color: rgba(15,23,42,0.05);
+    -fx-border-color: rgba(15,23,42,0.16);
 }
 
 .nav-item.selected {
-    -fx-background-color: rgba(85,214,255,0.18);
-    -fx-border-color: rgba(85,214,255,0.65);
-    -fx-effect: dropshadow(gaussian, rgba(85,214,255,0.18), 18px, 0.22, 0px, 0px);
+    -fx-background-color: rgba(14,165,233,0.14);
+    -fx-border-color: rgba(14,165,233,0.45);
+    -fx-effect: dropshadow(gaussian, rgba(14,165,233,0.14), 18px, 0.22, 0px, 0px);
 }
 
 /* ---------------------------------------------------------
@@ -231,14 +228,15 @@
    --------------------------------------------------------- */
 
 .button {
-    -fx-background-color: rgba(255,255,255,0.04);
+    -fx-background-color: rgba(255,255,255,0.70);
     -fx-text-fill: -b-text;
     -fx-font-size: 13px;
+    font-size: 13px;
     -fx-font-weight: 900;
 
-    -fx-background-radius: -b-radius-sm;
-    -fx-border-radius: -b-radius-sm;
-    -fx-border-color: rgba(255,255,255,0.12);
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-border-color: rgba(15,23,42,0.12);
     -fx-border-width: 1px;
 
     -fx-padding: 9px 14px;
@@ -246,30 +244,33 @@
 }
 
 .button:hover {
-    -fx-background-color: rgba(255,255,255,0.06);
-    -fx-border-color: rgba(255,255,255,0.20);
+    -fx-background-color: rgba(255,255,255,0.85);
+    -fx-border-color: rgba(15,23,42,0.18);
 }
+
 .button:pressed {
-    -fx-background-color: rgba(255,255,255,0.03);
+    -fx-background-color: rgba(255,255,255,0.60);
 }
+
 .button:disabled {
-    -fx-opacity: 0.55;
+    -fx-opacity: 0.60;
     -fx-cursor: default;
 }
 
 .button.primary {
     -fx-background-color: -b-accent;
-    -fx-text-fill: #061022;
-    -fx-border-color: rgba(85,214,255,0.55);
+    -fx-text-fill: white;
+    -fx-border-color: rgba(14,165,233,0.45);
 }
+
 .button.primary:hover { -fx-background-color: -b-accent-2; }
 .button.primary:pressed { -fx-background-color: -b-accent-press; }
 
 .button.ghost {
     -fx-background-color: transparent;
-    -fx-border-color: rgba(255,255,255,0.14);
+    -fx-border-color: rgba(15,23,42,0.14);
 }
-.button.ghost:hover { -fx-background-color: rgba(255,255,255,0.05); }
+.button.ghost:hover { -fx-background-color: rgba(15,23,42,0.04); }
 
 .button.icon {
     -fx-padding: 8px 10px;
@@ -280,21 +281,21 @@
 /* Default button */
 .button:default {
     -fx-background-color: -b-accent;
-    -fx-text-fill: #061022;
+    -fx-text-fill: white;
 }
 
 /* ---------------------------------------------------------
-   6) INPUTS (Search bar vibe)
+   6) INPUTS
    --------------------------------------------------------- */
 
 .text-field, .password-field, .text-area {
-    -fx-background-color: rgba(255,255,255,0.03);
+    -fx-background-color: rgba(255,255,255,0.78);
     -fx-text-fill: -b-text;
     -fx-prompt-text-fill: -b-text-faint;
 
-    -fx-background-radius: -b-radius-sm;
-    -fx-border-radius: -b-radius-sm;
-    -fx-border-color: rgba(255,255,255,0.12);
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-border-color: rgba(15,23,42,0.12);
     -fx-border-width: 1px;
 
     -fx-padding: 9px 12px;
@@ -303,7 +304,7 @@
 .text-area { -fx-padding: 10px 12px; }
 
 .text-field:hover, .password-field:hover, .text-area:hover {
-    -fx-border-color: rgba(255,255,255,0.20);
+    -fx-border-color: rgba(15,23,42,0.18);
 }
 
 .text-field:focused, .password-field:focused, .text-area:focused {
@@ -316,16 +317,16 @@
    --------------------------------------------------------- */
 
 .combo-box-base, .choice-box, .date-picker {
-    -fx-background-color: rgba(255,255,255,0.03);
-    -fx-background-radius: -b-radius-sm;
-    -fx-border-radius: -b-radius-sm;
-    -fx-border-color: rgba(255,255,255,0.12);
+    -fx-background-color: rgba(255,255,255,0.78);
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-border-color: rgba(15,23,42,0.12);
     -fx-border-width: 1px;
     -fx-padding: 2px;
 }
 
 .combo-box-base:hover, .choice-box:hover, .date-picker:hover {
-    -fx-border-color: rgba(255,255,255,0.20);
+    -fx-border-color: rgba(15,23,42,0.18);
 }
 
 .combo-box-base:focused, .choice-box:focused, .date-picker:focused {
@@ -341,83 +342,85 @@
 .combo-box-popup .list-view,
 .context-menu {
     -fx-background-color: -b-surface;
-    -fx-background-radius: -b-radius-md;
-    -fx-border-radius: -b-radius-md;
-    -fx-border-color: rgba(255,255,255,0.14);
+    -fx-background-radius: 14px;
+    -fx-border-radius: 14px;
+    -fx-border-color: rgba(15,23,42,0.14);
     -fx-border-width: 1px;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.45), 24px, 0.25, 0px, 10px);
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.18), 24px, 0.25, 0px, 10px);
     -fx-padding: 6px;
 }
 
 .menu-item .label { -fx-text-fill: -b-text; }
 .menu-item:focused, .menu-item:hovered {
-    -fx-background-color: rgba(85,214,255,0.14);
+    -fx-background-color: rgba(14,165,233,0.12);
 }
 
 /* ---------------------------------------------------------
-   8) CHECK / RADIO / TOGGLE (dashboard toggles)
+   8) CHECK / RADIO / TOGGLE
    --------------------------------------------------------- */
 
 .check-box, .radio-button { -fx-text-fill: -b-text; }
 
 .check-box .box, .radio-button .radio {
-    -fx-background-color: rgba(255,255,255,0.03);
-    -fx-border-color: rgba(255,255,255,0.18);
+    -fx-background-color: rgba(255,255,255,0.78);
+    -fx-border-color: rgba(15,23,42,0.18);
     -fx-background-radius: 6px;
     -fx-border-radius: 6px;
 }
 
 .check-box:selected .box {
     -fx-background-color: -b-accent;
-    -fx-border-color: rgba(85,214,255,0.55);
+    -fx-border-color: rgba(14,165,233,0.45);
 }
-.check-box:selected .mark { -fx-background-color: #061022; }
+.check-box:selected .mark { -fx-background-color: white; }
 
-/* ToggleButton as “chip switch” */
+/* ToggleButton (IMPORTANT FIX: explicit px radii, no variables) */
 .toggle-button {
-    -fx-background-color: rgba(255,255,255,0.04);
+    -fx-background-color: rgba(255,255,255,0.72);
     -fx-text-fill: -b-text;
-    -fx-background-radius: -b-radius-sm;
-    -fx-border-radius: -b-radius-sm;
-    -fx-border-color: rgba(255,255,255,0.12);
+
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-border-color: rgba(15,23,42,0.12);
     -fx-border-width: 1px;
+
     -fx-padding: 8px 12px;
     -fx-font-weight: 900;
 }
-.toggle-button:hover { -fx-border-color: rgba(255,255,255,0.20); }
+.toggle-button:hover { -fx-border-color: rgba(15,23,42,0.18); }
 .toggle-button:selected {
-    -fx-background-color: rgba(85,214,255,0.18);
-    -fx-border-color: rgba(85,214,255,0.65);
-    -fx-effect: dropshadow(gaussian, rgba(85,214,255,0.18), 18px, 0.22, 0px, 0px);
+    -fx-background-color: rgba(14,165,233,0.14);
+    -fx-border-color: rgba(14,165,233,0.45);
+    -fx-effect: dropshadow(gaussian, rgba(14,165,233,0.14), 18px, 0.22, 0px, 0px);
 }
 
-/* Slider (thermostat vibe) */
+/* Slider */
 .slider .track {
-    -fx-background-color: rgba(255,255,255,0.10);
-    -fx-background-radius: -b-pill;
+    -fx-background-color: rgba(15,23,42,0.10);
+    -fx-background-radius: 999px;
 }
 .slider .thumb {
     -fx-background-color: -b-accent;
-    -fx-background-radius: -b-pill;
-    -fx-effect: dropshadow(gaussian, rgba(85,214,255,0.25), 14px, 0.25, 0px, 0px);
+    -fx-background-radius: 999px;
+    -fx-effect: dropshadow(gaussian, rgba(14,165,233,0.20), 14px, 0.25, 0px, 0px);
 }
 
 /* ---------------------------------------------------------
-   9) TABLEVIEW / LISTVIEW (clean + dark)
+   9) TABLEVIEW / LISTVIEW
    --------------------------------------------------------- */
 
 .table-view {
     -fx-background-color: transparent;
-    -fx-border-color: rgba(255,255,255,0.12);
+    -fx-border-color: rgba(15,23,42,0.12);
     -fx-border-width: 1px;
-    -fx-border-radius: -b-radius-md;
-    -fx-background-radius: -b-radius-md;
+    -fx-border-radius: 14px;
+    -fx-background-radius: 14px;
 }
 
 .table-view .column-header-background {
-    -fx-background-color: rgba(255,255,255,0.03);
-    -fx-background-radius: -b-radius-md -b-radius-md 0px 0px;
-    -fx-border-color: rgba(255,255,255,0.12);
+    -fx-background-color: rgba(15,23,42,0.03);
+    -fx-background-radius: 14px 14px 0px 0px;
+    -fx-border-color: rgba(15,23,42,0.12);
     -fx-border-width: 0px 0px 1px 0px;
 }
 
@@ -430,12 +433,12 @@
 }
 
 .table-row-cell {
-    -fx-background-color: rgba(255,255,255,0.02);
-    -fx-border-color: rgba(255,255,255,0.06);
+    -fx-background-color: rgba(255,255,255,0.55);
+    -fx-border-color: rgba(15,23,42,0.06);
     -fx-border-width: 0px 0px 1px 0px;
 }
-.table-row-cell:filled:hover { -fx-background-color: rgba(255,255,255,0.04); }
-.table-row-cell:filled:selected { -fx-background-color: rgba(85,214,255,0.14); }
+.table-row-cell:filled:hover { -fx-background-color: rgba(14,165,233,0.06); }
+.table-row-cell:filled:selected { -fx-background-color: rgba(14,165,233,0.12); }
 
 .table-cell {
     -fx-padding: 10px 12px;
@@ -443,10 +446,10 @@
 }
 
 .list-view {
-    -fx-background-color: rgba(255,255,255,0.02);
-    -fx-background-radius: -b-radius-md;
-    -fx-border-radius: -b-radius-md;
-    -fx-border-color: rgba(255,255,255,0.12);
+    -fx-background-color: rgba(255,255,255,0.55);
+    -fx-background-radius: 14px;
+    -fx-border-radius: 14px;
+    -fx-border-color: rgba(15,23,42,0.12);
     -fx-border-width: 1px;
 }
 
@@ -455,16 +458,16 @@
     -fx-background-color: transparent;
     -fx-text-fill: -b-text;
 }
-.list-cell:filled:hover { -fx-background-color: rgba(255,255,255,0.04); }
-.list-cell:filled:selected { -fx-background-color: rgba(85,214,255,0.14); }
+.list-cell:filled:hover { -fx-background-color: rgba(14,165,233,0.06); }
+.list-cell:filled:selected { -fx-background-color: rgba(14,165,233,0.12); }
 
 /* ---------------------------------------------------------
    10) TOOLBARS / MENUS
    --------------------------------------------------------- */
 
 .menu-bar, .tool-bar {
-    -fx-background-color: rgba(255,255,255,0.03);
-    -fx-border-color: rgba(255,255,255,0.10);
+    -fx-background-color: rgba(255,255,255,0.70);
+    -fx-border-color: rgba(15,23,42,0.10);
     -fx-border-width: 0px 0px 1px 0px;
 }
 
@@ -477,36 +480,36 @@
    11) SCROLLPANE + SCROLLBAR
    --------------------------------------------------------- */
 
-.scroll-pane { -fx-background: transparent; -fx-background-color: transparent; }
+.scroll-pane { -fx-background-color: transparent; }
 .scroll-pane > .viewport { -fx-background-color: transparent; }
 
 .scroll-bar:vertical, .scroll-bar:horizontal { -fx-background-color: transparent; }
 
 .scroll-bar .track {
-    -fx-background-color: rgba(255,255,255,0.08);
-    -fx-background-radius: -b-pill;
+    -fx-background-color: rgba(15,23,42,0.08);
+    -fx-background-radius: 999px;
 }
 .scroll-bar .thumb {
-    -fx-background-color: rgba(255,255,255,0.20);
-    -fx-background-radius: -b-pill;
+    -fx-background-color: rgba(15,23,42,0.20);
+    -fx-background-radius: 999px;
 }
-.scroll-bar .thumb:hover { -fx-background-color: rgba(255,255,255,0.28); }
+.scroll-bar .thumb:hover { -fx-background-color: rgba(15,23,42,0.28); }
 
 /* ---------------------------------------------------------
    12) PROGRESS / INDICATOR
    --------------------------------------------------------- */
 
 .progress-bar {
-    -fx-background-radius: -b-pill;
-    -fx-border-radius: -b-pill;
+    -fx-background-radius: 999px;
+    -fx-border-radius: 999px;
 }
 .progress-bar .track {
-    -fx-background-color: rgba(255,255,255,0.10);
-    -fx-background-radius: -b-pill;
+    -fx-background-color: rgba(15,23,42,0.10);
+    -fx-background-radius: 999px;
 }
 .progress-bar .bar {
     -fx-background-color: -b-accent;
-    -fx-background-radius: -b-pill;
+    -fx-background-radius: 999px;
 }
 
 .progress-indicator { -fx-progress-color: -b-accent; }
@@ -516,13 +519,15 @@
    --------------------------------------------------------- */
 
 .tooltip {
-    -fx-background-color: rgba(10,18,38,0.96);
+    -fx-background-color: rgba(255,255,255,0.95);
     -fx-text-fill: -b-text;
     -fx-background-radius: 10px;
     -fx-padding: 8px 10px;
     -fx-font-size: 12px;
-    -fx-border-color: rgba(255,255,255,0.12);
+    font-size: 12px;
+    -fx-border-color: rgba(15,23,42,0.12);
     -fx-border-width: 1px;
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.18), 18px, 0.20, 0px, 8px);
 }
 
 /* ---------------------------------------------------------
@@ -531,16 +536,16 @@
 
 .dialog-pane {
     -fx-background-color: -b-surface;
-    -fx-background-radius: -b-radius-xl;
-    -fx-border-radius: -b-radius-xl;
-    -fx-border-color: rgba(255,255,255,0.14);
+    -fx-background-radius: 22px;
+    -fx-border-radius: 22px;
+    -fx-border-color: rgba(15,23,42,0.14);
     -fx-border-width: 1px;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.55), 28px, 0.30, 0px, 12px);
+    -fx-effect: dropshadow(gaussian, rgba(15,23,42,0.22), 28px, 0.30, 0px, 12px);
 }
 
 .dialog-pane .header-panel {
-    -fx-background-color: rgba(255,255,255,0.03);
-    -fx-background-radius: -b-radius-xl -b-radius-xl 0px 0px;
+    -fx-background-color: rgba(15,23,42,0.03);
+    -fx-background-radius: 22px 22px 0px 0px;
     -fx-padding: 14px 16px;
 }
 
@@ -561,3 +566,30 @@
 .list-view:focused {
     -fx-effect: dropshadow(gaussian, -b-focus-glow, 18px, 0.25, 0px, 0px);
 }
+
+/* Time slot blocks (modern web-like) */
+.slot-btn {
+    -fx-background-color: rgba(255,255,255,0.04);
+    -fx-text-fill: -b-text;
+    -fx-font-weight: 900;
+    -fx-padding: 14px 16px;
+    -fx-background-radius: 14px;
+    -fx-border-radius: 14px;
+    -fx-border-color: rgba(255,255,255,0.14);
+    -fx-border-width: 1px;
+    -fx-cursor: hand;
+    -fx-min-width: 150px;
+    -fx-min-height: 70px;
+}
+
+.slot-btn:hover {
+    -fx-background-color: rgba(255,255,255,0.06);
+    -fx-border-color: rgba(255,255,255,0.22);
+}
+
+.slot-btn.selected {
+    -fx-background-color: rgba(85,214,255,0.18);
+    -fx-border-color: rgba(85,214,255,0.65);
+    -fx-effect: dropshadow(gaussian, rgba(85,214,255,0.18), 18px, 0.22, 0px, 0px);
+}
+

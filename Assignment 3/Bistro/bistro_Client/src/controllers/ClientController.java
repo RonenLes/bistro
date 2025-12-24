@@ -76,8 +76,12 @@ public class ClientController {
         	
         	Object responseData = response.getData();
         	
-        	if(responseData instanceof LoginResponse loginResponse) safeUiInfo("Login successful",response.getMessage());
-        		
+        	if (responseData instanceof LoginResponse loginResponse) {
+        	    safeUiInfo("Login successful", response.getMessage());
+
+        	    // TODO later:
+        	    // ui.routeToDesktop(loginResponse.getRole(), loginResponse.getUsername());
+        	}        		
         	
         	
         }catch(Exception e) {

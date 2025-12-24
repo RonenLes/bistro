@@ -15,10 +15,8 @@ public class LoginScreenController {
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
 
-    // ADD in FXML: a ChoiceBox with fx:id="roleChoiceBox"
     @FXML private ChoiceBox<DesktopScreenController.Role> roleChoiceBox;
 
-    // FIX: you used loginButton but didn't declare it
     @FXML private Button loginButton;
 
     @FXML private Label statusLabel;
@@ -70,15 +68,34 @@ public class LoginScreenController {
             passwordField.setOnAction(e -> onLoginClicked());
         }
     }
-
+    /**
+     * Login button click
+     * calls the client controller with a request
+     */
     @FXML
     private void onLoginClicked() {
-        // TEMP TEST MODE: ignore server, just route by chosen role
 
-        setStatus("Logging in as " + DesktopScreenController.Role.SUBSCRIBER + " (test)...", false);
+        String username = usernameField == null ? "" : usernameField.getText();
+        String password = passwordField == null ? "" : passwordField.getText();
 
+        if (clientController == null) {
+            setStatus("Client controller not ready.", true);
+            return;
+        }
+
+        // Send login request via controller
+        clientController.requestLogin(username, password);
+
+        // TEMP (until server responds with role):
+        DesktopScreenController.Role role =
+                roleChoiceBox != null ? roleChoiceBox.getValue()
+                                      : DesktopScreenController.Role.MANAGER;
+
+        setStatus("Login request sent (" + role + ")", false);
+
+        // TEMP navigation (replace later with server response)
         if (onLoginAsRole != null) {
-            onLoginAsRole.accept(DesktopScreenController.Role.SUBSCRIBER);
+            onLoginAsRole.accept(role);
         }
     }
 

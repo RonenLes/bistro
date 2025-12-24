@@ -1,7 +1,9 @@
 package desktop_screen;
 
 import controllers.ClientController;
+import controllers.ClientControllerAware;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.ToggleButton;
@@ -9,6 +11,7 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,7 +20,7 @@ import java.util.Map;
  * Handles:
  *  - Role-based nav visibility (Rep/Subscriber/Manager)
  *  - Single selection across all nav toggle buttons
- *  - Content swapping into contentHost (placeholder for now)
+ *  - Content swapping into contentHost
  */
 public class DesktopScreenController {
 
@@ -27,15 +30,15 @@ public class DesktopScreenController {
 
     @FXML private StackPane contentHost;
 
-    // Role groups from FXML
+    // Role groups
     @FXML private VBox repGroup;
     @FXML private VBox subscriberGroup;
     @FXML private VBox managerGroup;
 
-    // Optional UI elements
+    // Top bar
     @FXML private Label welcomeNameLabel;
 
-    // Nav buttons (recommended to have fx:id)
+    // Nav buttons
     @FXML private ToggleButton reservationsBtn;
     @FXML private ToggleButton waitlistBtn;
     @FXML private ToggleButton tablesBtn;
@@ -53,8 +56,7 @@ public class DesktopScreenController {
     private Role role = Role.GUEST;
     private Runnable onLogout;
 
-
-    // What screens exist (placeholder keys)
+    // Screens
     private enum ScreenKey {
         RESERVATIONS,
         WAITLIST,
@@ -65,27 +67,33 @@ public class DesktopScreenController {
         ANALYTICS
     }
 
+    // Public API
     public void setClientController(ClientController controller) {
         this.clientController = controller;
     }
 
-    /** Call this after loading, based on login response/session */
     public void setRole(Role role) {
         this.role = role != null ? role : Role.GUEST;
         applyRoleVisibility();
-        selectDefaultForRole();
+        navToggleGroup.selectToggle(null);
     }
 
-    /** Optional: show the name in the top bar */
     public void setWelcomeName(String name) {
         if (welcomeNameLabel != null) {
-            welcomeNameLabel.setText("Welcome," + (name == null || name.isBlank() ? "" : " " + name));
+            welcomeNameLabel.setText(
+                    "Welcome," + (name == null || name.isBlank() ? "" : " " + name)
+            );
         }
     }
 
+    public void setOnLogout(Runnable onLogout) {
+        this.onLogout = onLogout;
+    }
+
+    // Initialization
     @FXML
     private void initialize() {
-        // 1) Register buttons into one ToggleGroup (single selection)
+
         registerNavButton(reservationsBtn, ScreenKey.RESERVATIONS);
         registerNavButton(waitlistBtn, ScreenKey.WAITLIST);
         registerNavButton(tablesBtn, ScreenKey.TABLES);
@@ -96,58 +104,38 @@ public class DesktopScreenController {
         registerNavButton(reportsBtn, ScreenKey.REPORTS);
         registerNavButton(analyticsBtn, ScreenKey.ANALYTICS);
 
-        // 2) Default visibility (safe)
         applyRoleVisibility();
 
-        // 3) Default content
-        // You can choose a better initial screen later
-        selectFirstAvailable();
+
         navToggleGroup.selectedToggleProperty().addListener((obs, oldT, newT) -> {
-
-            // Prevent having NO selected nav item (keeps highlight always)
-            if (newT == null && oldT != null) {
-                oldT.setSelected(true);
-                return;
-            }
-
+            // Allow "no selection" so welcome screen can remain visible.
             if (newT instanceof ToggleButton btn) {
                 ScreenKey key = navMap.get(btn);
-                if (key != null) {
-                    navigate(key);
-                }
+                if (key != null) navigate(key);
             }
         });
     }
-
+    
     private void registerNavButton(ToggleButton btn, ScreenKey key) {
         if (btn == null) return;
-
         btn.setToggleGroup(navToggleGroup);
         navMap.put(btn, key);
     }
 
+    // Role visibility
     private void applyRoleVisibility() {
-        // Rep tools: Reservations / Waitlist / Tables
-        boolean repVisible = (role == Role.REP || role == Role.MANAGER);
-        setGroupVisible(repGroup, repVisible);
-
-        // Subscriber tools: History / Edit Details
-        boolean subscriberVisible = (role == Role.SUBSCRIBER || role == Role.MANAGER);
-        setGroupVisible(subscriberGroup, subscriberVisible);
-
-        // Manager tools: Reports / Analytics
-        boolean managerVisible = (role == Role.MANAGER);
-        setGroupVisible(managerGroup, managerVisible);
+        setGroupVisible(repGroup, role == Role.REP || role == Role.MANAGER);
+        setGroupVisible(subscriberGroup, role == Role.SUBSCRIBER || role == Role.MANAGER);
+        setGroupVisible(managerGroup, role == Role.MANAGER);
     }
 
     private void setGroupVisible(VBox group, boolean visible) {
         if (group == null) return;
         group.setVisible(visible);
-        group.setManaged(visible); // IMPORTANT: removed from layout when hidden
+        group.setManaged(visible);
     }
 
     private void selectDefaultForRole() {
-        // Choose a sensible default per role
         switch (role) {
             case MANAGER -> selectIfVisible(reportsBtn);
             case REP -> selectIfVisible(reservationsBtn);
@@ -157,7 +145,6 @@ public class DesktopScreenController {
     }
 
     private void selectFirstAvailable() {
-        // Pick the first visible nav button
         for (ToggleButton btn : navMap.keySet()) {
             if (btn != null && btn.isVisible() && btn.isManaged() && !btn.isDisable()) {
                 btn.setSelected(true);
@@ -165,8 +152,7 @@ public class DesktopScreenController {
                 return;
             }
         }
-        // If none: clear content
-        if (contentHost != null) contentHost.getChildren().clear();
+        contentHost.getChildren().clear();
     }
 
     private void selectIfVisible(ToggleButton btn) {
@@ -178,70 +164,73 @@ public class DesktopScreenController {
         }
     }
 
-    // ---------- FXML Handlers ----------
 
-    /** All ToggleButtons can point to this single handler via onAction="#onNavClicked" */
+    // FXML handlers
     @FXML
     private void onNavClicked(javafx.event.ActionEvent event) {
         if (!(event.getSource() instanceof ToggleButton btn)) return;
-
         ScreenKey key = navMap.get(btn);
-        if (key == null) return;
-
-        // Ensure selected state (toggle group already does this)
-        btn.setSelected(true);
-        navigate(key);
+        if (key != null) {
+            btn.setSelected(true);
+            navigate(key);
+        }
     }
 
-    public void setOnLogout(Runnable onLogout) {
-        this.onLogout = onLogout;
-    }
-    
     @FXML
     private void onLogoutClicked() {
-
         if (onLogout != null) {
             onLogout.run();
-            return;
+        } else {
+            setRole(Role.GUEST);
+            setWelcomeName("");
         }
-
-        // fallback behavior if no callback is set:
-        setRole(Role.GUEST);
-        setWelcomeName("");
     }
 
-    // ---------- Navigation ----------
+
+    // Navigation (REAL SCREEN LOADING)
 
     private void navigate(ScreenKey key) {
-        System.out.println("Navigate to: " + key);
+        switch (key) {
+            case RESERVATIONS ->
+                    loadIntoContentHost("/desktop_views/ReservationsView.fxml");
 
-        // For now: placeholder node so you SEE something swap in
-        Node screen = PlaceholderScreens.make(key);
+            case WAITLIST ->
+                    loadIntoContentHost("/desktop_views/WaitlistView.fxml");
 
-        contentHost.getChildren().setAll(screen);
+            case TABLES ->
+                    loadIntoContentHost("/desktop_views/TablesView.fxml");
 
-        // Later: replace with FXMLLoader-based loading:
-        // loadIntoContentHost("/main_screen/Reservations.fxml");
+            case HISTORY ->
+                    loadIntoContentHost("/desktop_views/HistoryView.fxml");
+
+            case EDIT_DETAILS ->
+                    loadIntoContentHost("/desktop_views/EditDetailsView.fxml");
+
+            case REPORTS ->
+                    loadIntoContentHost("/desktop_views/ReportsView.fxml");
+
+            case ANALYTICS ->
+                    loadIntoContentHost("/desktop_views/AnalyticsView.fxml");
+        }
     }
 
-    /**
-     * Minimal placeholder screens so navigation feels real.
-     * Replace this with actual FXML loads later.
-     */
-    private static class PlaceholderScreens {
-        static Node make(ScreenKey key) {
-            VBox box = new VBox(10);
-            box.getStyleClass().add("card");
-            box.setPrefWidth(900);
+    private void loadIntoContentHost(String fxmlPath) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            Node view = loader.load();
 
-            Label title = new Label(key.name().replace('_', ' '));
-            title.getStyleClass().add("title");
+            Object ctrl = loader.getController();
+            if (ctrl instanceof ClientControllerAware aware) {
+                aware.setClientController(clientController, clientController != null);
+            }
 
-            Label hint = new Label("Placeholder screen. Connect to real FXML later.");
-            hint.getStyleClass().add("muted");
+            contentHost.getChildren().setAll(view);
 
-            box.getChildren().addAll(title, hint);
-            return box;
+        } catch (IOException e) {
+            e.printStackTrace();
+            Label error = new Label("Failed to load screen:\n" + fxmlPath);
+            error.getStyleClass().add("muted");
+            contentHost.getChildren().setAll(error);
         }
     }
 }

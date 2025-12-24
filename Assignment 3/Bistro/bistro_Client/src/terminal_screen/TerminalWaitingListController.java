@@ -49,13 +49,13 @@ public class TerminalWaitingListController implements ClientControllerAware {
         if (size < 1 || size > 20) { setStatus("Party size must be 1-20."); return; }
 
         if (!connected || clientController == null) {
-            setStatus("✅ Demo: added " + name + " (party of " + size + ") to waiting list.");
+            setStatus("Demo: added " + name + " (party of " + size + ") to waiting list.");
             return;
         }
 
         // Later:
         // clientController.sendRequest(new JoinWaitingListRequest(name, phone, size));
-        setStatus("✅ Sent waiting list request (placeholder).");
+        setStatus("Sent waiting list request (placeholder).");
     }
 
     @FXML

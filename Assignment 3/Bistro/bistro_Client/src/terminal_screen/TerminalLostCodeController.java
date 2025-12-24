@@ -52,13 +52,13 @@ public class TerminalLostCodeController implements ClientControllerAware {
         if (!email && !phone) { setStatus("Enter a valid phone/email."); return; }
 
         if (!connected || clientController == null) {
-            setStatus("✅ Demo: recovery sent to " + contact + " (offline).");
+            setStatus("Demo: recovery sent to " + contact + " (offline).");
             return;
         }
 
         // Later:
         // clientController.sendRequest(new LostCodeRequest(contact));
-        setStatus("✅ Sent recovery request (placeholder).");
+        setStatus("Sent recovery request (placeholder).");
     }
 
     @FXML

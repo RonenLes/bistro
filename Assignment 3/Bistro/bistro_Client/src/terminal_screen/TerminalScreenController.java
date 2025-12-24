@@ -17,6 +17,9 @@ public class TerminalScreenController {
     private ClientController clientController;
     private boolean connected;
 
+    // Back to main callback (set by MainScreenController)
+    private Runnable onBackToMain;
+
     private enum View {
         CHECK_IN, WAITING_LIST, PAY_BILL, LOST_CODE
     }
@@ -28,22 +31,28 @@ public class TerminalScreenController {
         this.connected = connected;
     }
 
+    public void setOnBackToMain(Runnable onBackToMain) {
+        this.onBackToMain = onBackToMain;
+    }
+
     @FXML
     private void initialize() {
         show(View.CHECK_IN);
     }
 
-    @FXML private void onCheckIn()        { show(View.CHECK_IN); }
-    @FXML private void onJoinWaitingList(){ show(View.WAITING_LIST); }
-    @FXML private void onPayBill()        { show(View.PAY_BILL); }
-    @FXML private void onLostCode()       { show(View.LOST_CODE); }
+    // Toolbar actions
+    @FXML private void onBackToMain()      { if (onBackToMain != null) onBackToMain.run(); }
+    @FXML private void onCheckIn()         { show(View.CHECK_IN); }
+    @FXML private void onJoinWaitingList() { show(View.WAITING_LIST); }
+    @FXML private void onPayBill()         { show(View.PAY_BILL); }
+    @FXML private void onLostCode()        { show(View.LOST_CODE); }
 
     private void show(View view) {
         Parent root = cache.computeIfAbsent(view, this::loadView);
         contentHolder.getChildren().setAll(root);
     }
-    
-    // view loader for the fxml sub-pages inside termianl UI
+
+    // View loader for the fxml sub-pages inside terminal UI
     private Parent loadView(View view) {
         try {
             String fxml = switch (view) {

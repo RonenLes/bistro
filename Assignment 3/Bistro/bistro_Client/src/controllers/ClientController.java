@@ -59,9 +59,8 @@ public class ClientController {
     // public void requestCreateReservation(ReservationRequest req) { sendRequest(req); }
     // public void requestJoinWaitingList(WaitingListRequest req) { sendRequest(req); }
 
-    // =========================
     // Network -> Controller
-    // =========================
+   
 
     /** Called ONLY by BistroEchoClient.handleMessageFromServer(msg) */
     public void handleServerResponse(Object msg) {
@@ -91,7 +90,7 @@ public class ClientController {
             return;
         }
         //END
-        // Build request from your common library
+        // Build request from  common library
         sendRequest(new LoginRequest(username, password));
     }
     
@@ -103,6 +102,7 @@ public class ClientController {
         if (!u.matches("[A-Za-z0-9._-]+")) return "Username can only contain letters, numbers, . _ -";
         return null;
     }
+    
     // helper function for requestLogin
     private String validatePassword(String p) {
         if (p.isEmpty()) return "Password is required.";

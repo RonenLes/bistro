@@ -33,16 +33,6 @@
                   <Insets />
                </HBox.margin>
             </Region>
-            <VBox alignment="CENTER_LEFT" prefHeight="79.0" prefWidth="199.0">
-               <children>
-                  <Label prefHeight="19.0" prefWidth="182.0" text="Welcome,">
-                     <font>
-                        <Font size="14.0" />
-                     </font>
-                  </Label>
-                  <Button mnemonicParsing="false" onAction="#onLogoutClicked" prefHeight="39.0" prefWidth="84.0" text="Logout" />
-               </children>
-            </VBox>
          </children>
          <BorderPane.margin>
             <Insets left="5.0" right="10.0" top="10.0" />
@@ -50,7 +40,7 @@
       </HBox>
    </top>
    <left>
-      <VBox alignment="TOP_CENTER" prefHeight="701.0" prefWidth="127.0" spacing="8.0" BorderPane.alignment="CENTER">
+      <VBox alignment="TOP_CENTER" prefHeight="589.0" prefWidth="127.0" spacing="8.0" BorderPane.alignment="CENTER">
          <children>
             <VBox fx:id="repGroup" prefHeight="200.0" prefWidth="100.0" spacing="10.0">
                <children>
@@ -77,4 +67,27 @@
          </BorderPane.margin>
       </VBox>
    </left>
+   <bottom>
+      <VBox prefHeight="51.0" prefWidth="1280.0" BorderPane.alignment="CENTER">
+         <children>
+            <HBox prefHeight="72.0" prefWidth="1127.0">
+               <children>
+                  <VBox prefHeight="67.0" prefWidth="240.0">
+                     <children>
+                        <Label text="Welcome, ">
+                           <font>
+                              <Font size="18.0" />
+                           </font>
+                        </Label>
+                        <Button mnemonicParsing="false" onAction="#onLogoutClicked" prefHeight="39.0" prefWidth="84.0" text="Logout" />
+                     </children>
+                     <padding>
+                        <Insets bottom="5.0" left="5.0" />
+                     </padding>
+                  </VBox>
+               </children>
+            </HBox>
+         </children>
+      </VBox>
+   </bottom>
 </BorderPane>

@@ -140,7 +140,7 @@ public class ReservationControl {
 	        if (req.getReservationDate() == null || req.getStartTime() == null) {
 	            return failResponse("Missing reservation date/time");
 	        }
-	        return createReservation(req);
+	        return createReservation(req,ReservationResponseType.SECOND_PHASE_CONFIRMED);
 	    } catch (IllegalArgumentException e) {
 	        return failResponse("Party too large");
 	    } catch (Exception e) {
@@ -157,10 +157,11 @@ public class ReservationControl {
 	 * Insert reservation into DB using {@link database.ReservationDAO#insertNewReservation(...)}
 	 * Send notification to subscriber or guest
 	 * @param req the request to create reservation from
-     * @return success response with {@link ReservationResponseType#SECOND_PHASE_CONFIRMED} and confirmation code,or failure response        
+	 * @param reservtaion response type (SECOND_PHASE_CONFIRMED or WALKING_SEATED)
+     * @return success response with {@link ReservationResponseType#SECOND_PHASE_CONFIRMED,WALKING_SEATED} and confirmation code,or failure response        
 	 * @throws Exception
 	 */
-	private Response<ReservationResponse> createReservation(ReservationRequest req) throws Exception{
+	private Response<ReservationResponse> createReservation(ReservationRequest req,ReservationResponseType type) throws Exception{
 		
 		int partySize = req.getPartySize();
         int allocatedCapacity = roundToCapacity(partySize);
@@ -181,28 +182,27 @@ public class ReservationControl {
         
         sendConfirmationNotification(req, confirmationCode);
         
-        ReservationResponse rr = new ReservationResponse(req.getReservationDate(),
-        		partySize,req.getStartTime(),confirmationCode,
-        		userId !=null ? userId  : guestContact,ReservationResponse.ReservationResponseType.SECOND_PHASE_CONFIRMED);
+        ReservationResponse rr = new ReservationResponse(req.getReservationDate(),partySize,req.getStartTime(),confirmationCode,userId !=null ? userId  : guestContact,type);
         
         return successResponse("Reservation created", rr);                      
 	}
 	
 	private Response<ReservationResponse> handleWalkIn(ReservationRequest req){
 		try {
-			//TO_DO implment a walked in customer with no reservation 
-			//if available table give add his reservation ,seating database and give him a table
-			//if no send back available time and wait for another reservation with fixed date and add to waiting list
+				if(req.getReservationDate()==null||req.getStartTime()==null) {
+					return failResponse("No Time Has Been Sent");
+				}
+				if(isStillAvailable(req.getReservationDate(),req.getStartTime(),roundToCapacity(req.getPartySize()))) {
+					return createReservation(req,ReservationResponseType.WALKIN_SEATED);
+				}
+				ReservationResponse rr=new ReservationResponse(req.getReservationDate(),req.getPartySize(),req.getStartTime(),req.getConfirmationCode(),req.getGuestContact(),ReservationResponse.ReservationResponseType.WALKIN_WAITING);
+				return failResponse("There is not Available Space,Ask Client To Enter Waiting List",rr);
 		
-			
-			
-			
 		}catch(IllegalArgumentException e) {
 			return failResponse("Party too large");
 		}catch(Exception e) {
 			return failResponse("Failed to interact with DB");
 		}
-		
 	}
 	
 	/**
@@ -250,6 +250,9 @@ public class ReservationControl {
 
 	private Response<ReservationResponse> failResponse(String msg) {
 	    return new Response<>(false, msg, null);
+	}
+	private Response<ReservationResponse> failResponse(String msg,ReservationResponse rr) {
+	    return new Response<>(false, msg, rr);
 	}
 	//----------------------------------------------------
 	//---------------HELPER METHODS-----------------------

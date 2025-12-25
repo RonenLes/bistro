@@ -26,7 +26,7 @@ public class OpeningHoursDAOStub extends OpeningHoursDAO {
         openings.put(date, new OpeningHours(date, day, open, close, occasion));
     }
 
-    @Override
+   
     public OpeningHours getOpeningHour(LocalDate date) throws SQLException {
         return openings.get(date); // can be null -> represents "closed / not found"
     }

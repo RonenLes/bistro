@@ -3,6 +3,7 @@ package controllers;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+import database.DBManager;
 import database.ReservationDAO;
 import database.TableDAO;
 import database.SeatingDAO;
@@ -21,7 +22,7 @@ public class BillingControl {
 	}
 	public void sendBillForSeating(int seatingId) throws SQLException {
 	    // 1) load seating -> reservationID -> reservation
-		
+		Connection conn = DBManager.getConnection();
 		boolean isCheckedOut= seatingDAO.checkOutBySeatingId(conn, seatingId);
 		
 		

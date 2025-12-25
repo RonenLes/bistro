@@ -41,6 +41,12 @@ public class ReservationDAO {
 	        "UPDATE `reservation` " +
 	        "SET reservationDate = ?, status = ?, partySize = ?, guestContact = ?, userID = ?, startTime = ? " +
 	        "WHERE confirmationCode = ?";
+	private static final String SELECT_RESERVATION_BY_USER_ID =
+	        "SELECT * FROM reservation " +
+	        "WHERE userID = ? " +
+	        "ORDER BY reservationDate DESC, startTime DESC " +
+	        "LIMIT 1";
+
 
 	
 	
@@ -120,6 +126,37 @@ public class ReservationDAO {
 	                                    confirmationCode, userID, startTime, status, guest);
 	    }
 	}
+	public Reservation getReservationByUserID(String userID) throws SQLException {
+
+	    if (userID == null || userID.isBlank()) {
+	        return null;
+	    }
+
+	    try (Connection conn = DBManager.getConnection();
+	         PreparedStatement ps = conn.prepareStatement(SELECT_RESERVATION_BY_USER_ID)) {
+
+	        ps.setString(1, userID);
+
+	        try (ResultSet rs = ps.executeQuery()) {
+	            if (!rs.next()) {
+	                return null;
+	            }
+
+	            return new Reservation(
+	                    rs.getInt("reservationID"),
+	                    rs.getDate("reservationDate").toLocalDate(),
+	                    rs.getString("status"),
+	                    rs.getInt("partySize"),
+	                    rs.getInt("allocatedCapacity"),
+	                    rs.getInt("confirmationCode"),
+	                    rs.getString("guestContact"),
+	                    rs.getString("userID"),
+	                    rs.getTime("startTime").toLocalTime()
+	            );
+	        }
+	    }
+	}
+
 
 	
 	/**

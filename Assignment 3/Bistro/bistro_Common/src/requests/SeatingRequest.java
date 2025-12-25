@@ -10,9 +10,11 @@ public class SeatingRequest {
 
 		this.confirmationCode = confirmationCode;
 	}
-
+	
 	public int getConfirmationCode() {
+		
 		return confirmationCode;
 	}
+	
 	
 }

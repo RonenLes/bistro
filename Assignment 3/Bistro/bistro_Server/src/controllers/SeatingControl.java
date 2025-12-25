@@ -78,7 +78,6 @@ public class SeatingControl {
         		conn.rollback();
                 return new Response<>(false, "Failed to add to waiting list", null);
         	}
-            
             boolean statusUpdated = reservationDAO.updateStatus(conn,confirmationCode, "WAITING");
             if(!statusUpdated) {
         		conn.rollback();

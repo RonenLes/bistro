@@ -76,6 +76,5 @@ public class SeatingDAO {
             ps.setInt(1, seatingId);
             return ps.executeUpdate() == 1;
         }
-    
     }
 }

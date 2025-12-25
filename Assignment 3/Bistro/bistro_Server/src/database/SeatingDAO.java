@@ -1,6 +1,8 @@
 package database;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SeatingDAO {
 
@@ -10,7 +12,7 @@ public class SeatingDAO {
             "VALUES (?, ?, NOW(), NULL)";
 
     // UPDATE
-    private static final String UPDATE_CHEKOT_BY_SEATING_ID ="UPDATE `seating` SET checkOutTime = NOW() WHERE seatingID = ?";
+    private static final String UPDATE_CHEKOUT_BY_SEATING_ID ="UPDATE `seating` SET checkOutTime = NOW() WHERE seatingID = ?";
             
             
     
@@ -20,7 +22,9 @@ public class SeatingDAO {
     													 "WHERE tableID = ? AND checkOutTime IS NULL "+
     													 "ORDER BY checkInTime DESC "+
     													 "LIMIT 1 FOR UPDATE";
+    private static final String SELECT_SEATINGS_DUE_FOR_BILL ="SELECT seatingID " +"FROM seating " +"WHERE checkOutTime IS NULL " +"AND billSent = 0 " +"AND checkInTime <= DATE_SUB(NOW(), INTERVAL 2 HOUR)";
 
+    			
     /**
      * Inserts a check-in row (opens its own connection).
      * @return seatingID (generated key) or -1 if failed.
@@ -72,9 +76,26 @@ public class SeatingDAO {
     }
     
     public boolean checkOutBySeatingId(Connection conn, int seatingId) throws SQLException {
-        try (PreparedStatement ps = conn.prepareStatement(UPDATE_CHEKOT_BY_SEATING_ID)) {
+        try (PreparedStatement ps = conn.prepareStatement(UPDATE_CHEKOUT_BY_SEATING_ID)) {
             ps.setInt(1, seatingId);
             return ps.executeUpdate() == 1;
         }
+    
     }
+    public List<Integer> getSeatingsDueForBill(Connection conn) throws SQLException {
+        if (conn == null) {
+            throw new IllegalArgumentException("Connection is null");
+        }
+        List<Integer> seatingIds = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(SELECT_SEATINGS_DUE_FOR_BILL);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                seatingIds.add(rs.getInt("seatingID"));
+            }
+        }
+
+        return seatingIds;
+    }
+
 }

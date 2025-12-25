@@ -21,6 +21,14 @@ public class ReservationResponse  {
 	private LocalDate date;
 	private int partySize;
 	private LocalTime time;
+	private String userID;
+	public String getUserID() {
+		return userID;
+	}
+
+	public void setUserID(String userID) {
+		this.userID = userID;
+	}
 	private String guestContact;
 	
 	private int tableNumber;
@@ -40,11 +48,12 @@ public class ReservationResponse  {
     	this.tableNumber = tableNumber;
     }
     
-    public ReservationResponse(LocalDate date,int partySize,LocalTime time,int confirmationCode,String guestContact,ReservationResponseType type) {
+    public ReservationResponse(LocalDate date,int partySize,LocalTime time,int confirmationCode,String userID,String guestContact,ReservationResponseType type) {
     	this.date= date;
     	this.partySize=partySize;
     	this.time = time;
     	this.confirmationCode = confirmationCode;
+    	this.userID=userID;
     	this.guestContact = guestContact;
     	this.type = type;
     }

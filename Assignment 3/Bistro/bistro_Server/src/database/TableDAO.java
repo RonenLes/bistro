@@ -42,10 +42,9 @@ public class TableDAO {
 	 * @return boolean if succedded 
 	 * @throws SQLException
 	 */
-	public boolean insertNewTable(int tableNumber,int capacity) throws SQLException {
+	public boolean insertNewTable(Connection conn,int tableNumber,int capacity) throws SQLException {
 		
-		try(Connection conn = DBManager.getConnection();
-			PreparedStatement ps = conn.prepareStatement(INSERT_newTable)) {
+		try(PreparedStatement ps = conn.prepareStatement(INSERT_newTable)) {
 			ps.setInt(1,tableNumber);
 			ps.setInt(2, capacity);
 			int isInserted = ps.executeUpdate();
@@ -62,11 +61,10 @@ public class TableDAO {
 	 * @return a map that connects capacity to the amount of tables for it
 	 * @throws SQLException
 	 */
-	public Map<Integer, Integer> getTotalTablesByCapacity() throws SQLException {	    
+	public Map<Integer, Integer> getTotalTablesByCapacity(Connection conn) throws SQLException {	    
 	    Map<Integer, Integer> totals = new HashMap<>();
 
-	    try (Connection conn = DBManager.getConnection();
-	         PreparedStatement ps = conn.prepareStatement(SELECT_tablesByCapacity);
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_tablesByCapacity);
 	         ResultSet rs = ps.executeQuery()) {
 
 	        while (rs.next()) {
@@ -82,10 +80,9 @@ public class TableDAO {
 	 * @return closest capacity of a table to the give partySize 
 	 * @throws SQLException
 	 */
-	public int getMinimalTableSize(int partySize) throws SQLException{
+	public int getMinimalTableSize(Connection conn,int partySize) throws SQLException{
 		
-		try (Connection conn = DBManager.getConnection();
-		     PreparedStatement ps = conn.prepareStatement(SELECT_minimalTableSize);
+		try (PreparedStatement ps = conn.prepareStatement(SELECT_minimalTableSize);
 		     ResultSet rs = ps.executeQuery()){
 			
 			if(rs.next()) return rs.getInt("roundedUp");

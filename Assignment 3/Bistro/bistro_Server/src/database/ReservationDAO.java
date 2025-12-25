@@ -32,8 +32,8 @@ public class ReservationDAO {
 	          AND status IN ('NEW','CONFIRMED','SEATED')
 	          AND (? < ADDTIME(startTime, '02:00:00') AND ? > startTime)
 	        GROUP BY allocatedCapacity
-	        """;
-	
+			""";
+	private static final String SELECT_CONFIRMATION_CODE_EXISTS = "SELECT 1 FROM reservation WHERE confirmationCode = ? LIMIT 1";
 	// UPDATE statement
 	private static final String UPDATE_STATUS_RESERVATION_SQL_BY_RESERVATION_ID ="UPDATE `reservation` SET status = ? WHERE reservationID = ?";
 	private static final String UPDATE_STATUS_RESERVATION_SQL ="UPDATE `reservation` " +"SET status = ? " +"WHERE confirmation_code = ?";
@@ -41,22 +41,16 @@ public class ReservationDAO {
 	        "UPDATE `reservation` " +
 	        "SET reservationDate = ?, status = ?, partySize = ?, guestContact = ?, userID = ?, startTime = ? " +
 	        "WHERE confirmationCode = ?";
-	private static final String SELECT_RESERVATION_BY_USER_ID =
-	        "SELECT * FROM reservation " +
-	        "WHERE userID = ? " +
-	        "ORDER BY reservationDate DESC, startTime DESC " +
-	        "LIMIT 1";
-
 
 	
 	
-	public boolean updateReservation(LocalDate reservationDate,String status,int partySize,int confirmationCode,
+	public boolean updateReservation(Connection conn,LocalDate reservationDate,String status,int partySize,int confirmationCode,
 	        String guestContact,
 	        String userID,
 	        LocalTime startTime
 	) throws SQLException {
 
-	    try (Connection conn = DBManager.getConnection();
+	    try (
 	         PreparedStatement ps = conn.prepareStatement(UPDATE_RESERVATION_BY_CONFIRMATION_CODE)) {
 
 	        ps.setDate(1, java.sql.Date.valueOf(reservationDate));
@@ -126,37 +120,6 @@ public class ReservationDAO {
 	                                    confirmationCode, userID, startTime, status, guest);
 	    }
 	}
-	public Reservation getReservationByUserID(String userID) throws SQLException {
-
-	    if (userID == null || userID.isBlank()) {
-	        return null;
-	    }
-
-	    try (Connection conn = DBManager.getConnection();
-	         PreparedStatement ps = conn.prepareStatement(SELECT_RESERVATION_BY_USER_ID)) {
-
-	        ps.setString(1, userID);
-
-	        try (ResultSet rs = ps.executeQuery()) {
-	            if (!rs.next()) {
-	                return null;
-	            }
-
-	            return new Reservation(
-	                    rs.getInt("reservationID"),
-	                    rs.getDate("reservationDate").toLocalDate(),
-	                    rs.getString("status"),
-	                    rs.getInt("partySize"),
-	                    rs.getInt("allocatedCapacity"),
-	                    rs.getInt("confirmationCode"),
-	                    rs.getString("guestContact"),
-	                    rs.getString("userID"),
-	                    rs.getTime("startTime").toLocalTime()
-	            );
-	        }
-	    }
-	}
-
 
 	
 	/**
@@ -241,11 +204,10 @@ public class ReservationDAO {
 	    }
 	}
 
-	public Map<Integer, Integer> getBookedTablesByCapacity(LocalDate date, LocalTime start, LocalTime end)throws SQLException {
+	public Map<Integer, Integer> getBookedTablesByCapacity(Connection conn,LocalDate date, LocalTime start, LocalTime end)throws SQLException {
 		
 	    Map<Integer, Integer> booked = new HashMap<>();
-	    try (Connection conn = DBManager.getConnection();
-	         PreparedStatement ps = conn.prepareStatement(SELECT_amountOfUsedSeats)) {
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_amountOfUsedSeats)) {
 
 	        ps.setDate(1, java.sql.Date.valueOf(date));
 	        ps.setTime(2, java.sql.Time.valueOf(start));
@@ -258,6 +220,28 @@ public class ReservationDAO {
 	        }
 	    }
 	    return booked;
+	}
+	public boolean isConfirmationCodeUsed(Connection conn, int code) throws SQLException {
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_CONFIRMATION_CODE_EXISTS)) {
+	        ps.setInt(1, code);
+	        try (ResultSet rs = ps.executeQuery()) {
+	            return rs.next();
+	        }
+	    }
+	}
+
+	public int generateConfirmationCode(Connection conn) throws SQLException {
+	    if (conn == null) {
+	        throw new IllegalArgumentException("Connection is null");
+	    }
+
+	    int code;
+	    do {
+	        // 6-digit code
+	        code = 100000 + (int) (Math.random() * 900000);
+	    } while (isConfirmationCodeUsed(conn, code));
+
+	    return code;
 	}
 	
 	

@@ -79,7 +79,7 @@ public class ReservationControl {
 	        case SECOND_PHASE -> handleSecondPhase(req);
 	        case EDIT_RESERVATION -> handleEdit(req);
 	        case CANCEL_RESERVATION -> handleCancel(req);
-	        case WALKIN_RESERVATION -> handleWalkIn(req);
+	        
 	    };   		        	            	   
 	}
 	
@@ -186,22 +186,7 @@ public class ReservationControl {
         return successResponse("Reservation created", rr);                      
 	}
 	
-	private Response<ReservationResponse> handleWalkIn(ReservationRequest req){
-		try {
-			//TO_DO implment a walked in customer with no reservation 
-			//if available table give add his reservation ,seating database and give him a table
-			//if no send back available time and wait for another reservation with fixed date and add to waiting list
-		
-			
-			
-			
-		}catch(IllegalArgumentException e) {
-			return failResponse("Party too large");
-		}catch(Exception e) {
-			return failResponse("Failed to interact with DB");
-		}
-		
-	}
+	
 	
 	/**
 	 * Handles edit reservation request by delegating to {@link #editReservation(LocalDate, LocalTime, int, String, int)}

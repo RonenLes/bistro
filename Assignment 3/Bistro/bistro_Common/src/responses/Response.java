@@ -7,7 +7,6 @@ public class Response<T> {
 	private T data;
 	
 	
-	
 	public Response() {}
 
 	public Response(boolean isSuccess, String message, T data) {

@@ -8,8 +8,8 @@ public class ReservationRequest   {
 		FIRST_PHASE,
 		SECOND_PHASE,
 		EDIT_RESERVATION,
-		CANCEL_RESERVATION,
-		WALKIN_RESERVATION
+		CANCEL_RESERVATION
+		
 	}
 	private ReservationRequestType type;
     private LocalDate reservationDate;   // Client-selected date

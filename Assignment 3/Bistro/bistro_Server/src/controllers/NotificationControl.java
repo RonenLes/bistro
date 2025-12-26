@@ -67,4 +67,14 @@ public class NotificationControl {
         System.out.println("[SMS] To: " + phoneNumber);
         System.out.println("[SMS] Message: " + message);
     }
+
+	public void sendBillToGuest(String guestContact, String billMessage) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void sendBillToUser(User user, String billMessage) {
+		// TODO Auto-generated method stub
+		
+	}
 }

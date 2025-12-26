@@ -10,16 +10,15 @@ public class Seating {
 	private int tableID;
 	private LocalTime checkInTime;
 	private LocalTime checkOutTime;
+	private int billSent;
 	
 	public Seating(int seatingID, int reservationID, int tableID, LocalTime checkInTime, LocalTime checkOutTime){
-			
-		super();
 		SeatingID = seatingID;
 		this.reservationID = reservationID;
 		this.tableID = tableID;
 		this.checkInTime = checkInTime;
 		this.checkOutTime = checkOutTime;
-		
+		this.billSent=0;
 	}
 	public int getSeatingID() {
 		return SeatingID;
@@ -36,6 +35,10 @@ public class Seating {
 	public LocalTime getCheckOutTime() {
 		return checkOutTime;
 	}
+	public int getBillSent() {
+		return billSent;
+	}
+	
 	
 	
 	

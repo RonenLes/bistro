@@ -4,7 +4,9 @@ import entities.Reservation;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -24,7 +26,9 @@ public class ReservationDAO {
 															"VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 	
 	//SELECT statements	
+	private static final String SELECT_RESERVATIONS_DUE_FOR_NO_SHOW_PARAM ="SELECT reservationID FROM reservation WHERE reservationDate = ? AND status IN ('NEW','CONFIRMED') AND startTime <= ?";
 	private static final String SELECT_reservationByConfirmationCode = "SELECT * FROM `reservation` WHERE confirmationCode = ?";
+	private static final String SELECT_reservationByReservationId = "SELECT * FROM `reservation` WHERE reservationID = ?";
 	private static final String SELECT_amountOfUsedSeats ="""
 	        SELECT allocatedCapacity, COUNT(*) AS booked
 	        FROM reservation
@@ -69,6 +73,27 @@ public class ReservationDAO {
 	        throw e;
 	    }
 	}
+	
+	public List<Integer> getReservationsDueForNoShow(Connection conn, LocalDate date, LocalTime lateCutoffTime)
+	        throws SQLException {
+
+	    if (conn == null) throw new IllegalArgumentException("conn is null");
+
+	    List<Integer> ids = new ArrayList<>();
+
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_RESERVATIONS_DUE_FOR_NO_SHOW_PARAM)) {
+	        ps.setDate(1, java.sql.Date.valueOf(date));
+	        ps.setTime(2, java.sql.Time.valueOf(lateCutoffTime));
+
+	        try (ResultSet rs = ps.executeQuery()) {
+	            while (rs.next()) {
+	                ids.add(rs.getInt("reservationID"));
+	            }
+	        }
+	    }
+	    return ids;
+	}
+
 	
 	public boolean updateStatusByReservationID(Connection conn, int reservationID,String status) throws SQLException {
 	    if (conn == null) throw new IllegalArgumentException("conn is null(updateStatus)");
@@ -203,7 +228,40 @@ public class ReservationDAO {
 	        throw e;
 	    }
 	}
+	public Reservation getReservationByReservationID(Connection conn,int reservationID) throws SQLException {
 
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_reservationByReservationId)) {
+	         
+	        ps.setInt(1, reservationID);
+
+	        try (ResultSet rs = ps.executeQuery()) {
+
+	            if (!rs.next()) {
+	                return null; 
+	            }
+
+	            return new Reservation(
+	                rs.getInt("reservationID"),
+	                rs.getDate("reservationDate").toLocalDate(),
+	                rs.getString("status"),
+	                rs.getInt("partySize"),
+	                rs.getInt("allocatedCapacity"),
+	                rs.getInt("confirmationCode"),
+	                rs.getString("guestContact"),  // may be null
+	                rs.getString("userID"),        // may be null
+	                rs.getTime("startTime") != null
+	                        ? rs.getTime("startTime").toLocalTime()
+	                        : null
+	            );
+	        }
+
+	    } catch (SQLException e) {
+	        System.err.println(
+	            "DB error fetching reservation by reservationID=" + reservationID
+	        );
+	        throw e;
+	    }
+	}
 	public Map<Integer, Integer> getBookedTablesByCapacity(Connection conn,LocalDate date, LocalTime start, LocalTime end)throws SQLException {
 		
 	    Map<Integer, Integer> booked = new HashMap<>();

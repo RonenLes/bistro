@@ -23,9 +23,7 @@ public class BillingScheduler {
 
     private volatile boolean started = false;
 
-    public BillingScheduler(SeatingDAO seatingDAO,
-                            BillingControl billingControl,
-                            ReservationDAO reservationDAO) {
+    public BillingScheduler(SeatingDAO seatingDAO,BillingControl billingControl,ReservationDAO reservationDAO) {
 
         this.seatingDAO = seatingDAO;
         this.billingControl = billingControl;
@@ -41,47 +39,29 @@ public class BillingScheduler {
     public synchronized void start() {
         if (started) return;
         started = true;
-
         scheduler.scheduleAtFixedRate(() -> {
             try (Connection conn = DBManager.getConnection()) {
+                if (conn == null) {
+                    System.err.println("tick failed: conn is null");
+                    return;
+                }
                 conn.setAutoCommit(false);
-
-                // 1) Bills
-                List<Integer> dueSeatingIds = seatingDAO.getSeatingsDueForBill(conn);
-
-                for (int seatingId : dueSeatingIds) {
-                    try {
-                        boolean ok = billingControl.sendBillAutomatically(conn, seatingId);
-
-                        if (!ok) {
-                            // Optional: log only (do not throw)
-                            System.err.println("bill failed for seatingId=" + seatingId);
-                        }
-
-                    } catch (Exception ex) {
-                        // Never stop the scheduler because of one seating
-                        System.err.println("exception while billing seatingId=" + seatingId + ": " + ex.getMessage());
-
-                        // Best effort: release claim so it can retry next tick
-                        try {
-                            seatingDAO.updateBillSent(conn, seatingId, 0); // release (2->0)
-                        } catch (Exception ignore) {}
-                    }
+                try {
+                    mark2HoursSeating(conn);
+                } catch (Exception ex) {
+                    System.err.println("mark2HoursSeating failed: " + ex.getMessage());
                 }
 
-                // 2) No-Shows
                 try {
                     markNoShows(conn);
                 } catch (Exception ex) {
-                    // No-shows failure should also NOT stop the scheduler
-                    System.err.println("[BillingScheduler] markNoShows failed: " + ex.getMessage());
+                    System.err.println("markNoShows failed: " + ex.getMessage());
                 }
 
                 conn.commit();
 
             } catch (Exception e) {
-                // Connection-level failure (DB down, etc.) — still don't stop scheduler
-                System.err.println("[BillingScheduler] tick failed: " + e.getMessage());
+                System.err.println("tick failed: " + e.getMessage());
             }
         }, 0, 60, TimeUnit.SECONDS);
     }
@@ -92,7 +72,18 @@ public class BillingScheduler {
     private void mark2HoursSeating(Connection conn) throws SQLException {
         List<Integer> dueSeatingIds = seatingDAO.getSeatingsDueForBill(conn);
         for (int seatingId : dueSeatingIds) {
-            billingControl.sendBillAutomatically(conn,seatingId);
+            try {
+                boolean ok = billingControl.sendBillAutomatically(conn, seatingId);
+                if (!ok) {
+                    System.err.println("bill failed for seatingId=" + seatingId);
+                }
+            } catch (Exception ex) {
+                System.err.println("exception while billing seatingId=" + seatingId + ": " + ex.getMessage());
+                try {
+                    seatingDAO.updateBillSent(conn, seatingId, 0);
+                } catch (Exception ignore) {
+                }
+            }
         }
     }
 
@@ -103,14 +94,13 @@ public class BillingScheduler {
         LocalDate today = LocalDate.now();
         LocalTime cutoff = LocalTime.now().minusMinutes(15);
 
-        List<Integer> reservationIds =
-                reservationDAO.getReservationsDueForNoShow(conn, today, cutoff);
+        List<Integer> reservationIds =reservationDAO.getReservationsDueForNoShow(conn, today, cutoff);
 
         for (int reservationId : reservationIds) {
             reservationDAO.updateStatusByReservationID(conn, reservationId, "NO SHOW");
         }
     }
-
+    
     public synchronized void stop() {
         scheduler.shutdownNow();
         started = false;

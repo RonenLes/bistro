@@ -68,12 +68,11 @@ public class NotificationControl {
         System.out.println("[SMS] Message: " + message);
     }
 
-	public void sendBillToGuest(String guestContact, String billMessage) {
+	public void sendBillToGuest(String guestContact, String billMessage,double bill) {
 		// TODO Auto-generated method stub
-		
 	}
-
-	public void sendBillToUser(User user, String billMessage) {
+	
+	public void sendBillToUser(User user, String billMessage,double bill) {
 		// TODO Auto-generated method stub
 		
 	}

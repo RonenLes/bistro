@@ -7,11 +7,10 @@ public class Bill {
 	private int billID;
 	private int seatingID;
 	private double totalPrice;
-	private String status;
+	private String status; // OPEN,PAID
 	private LocalDateTime createdAt;
 	private LocalDateTime paidAt;
-	public Bill(int billID, int seatingID, double totalPrice, String status, LocalDateTime createdAt,
-			LocalDateTime paidAt) {
+	public Bill(int billID, int seatingID, double totalPrice, String status, LocalDateTime createdAt,LocalDateTime paidAt) {
 		this.billID = billID;
 		this.seatingID = seatingID;
 		this.totalPrice = totalPrice;
@@ -37,5 +36,9 @@ public class Bill {
 	public LocalDateTime getPaidAt() {
 		return paidAt;
 	}
-					
+	
+	
+	
+	
+	
 }

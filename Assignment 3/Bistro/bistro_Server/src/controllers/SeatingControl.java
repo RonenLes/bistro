@@ -53,7 +53,7 @@ public class SeatingControl {
             conn.setAutoCommit(false);
 
             try {
-                int partySize = rr.getPartySize(); 
+            	int partySize = rr.getPartySize(); 
                 if (partySize <= 0) {
                     rollback(conn);
                     return new Response<>(false, "Party size is invalid", null);

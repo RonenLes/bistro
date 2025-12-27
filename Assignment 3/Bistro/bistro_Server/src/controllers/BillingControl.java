@@ -27,7 +27,7 @@ public class BillingControl {
 	}
 	/**
      * Called by the Scheduler.
-     * Creates its own Connection (as you requested).
+     * Creates its own Connection 
      *
      * @return TRUE only if bill was sent and marked as sent.
      *         FALSE otherwise (including if claim failed / not due / missing contact / notification failed).

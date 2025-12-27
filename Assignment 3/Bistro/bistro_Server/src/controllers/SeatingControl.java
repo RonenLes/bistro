@@ -67,15 +67,11 @@ public class SeatingControl {
                 }
 
                 Table table = tableDAO.findAvailableTable(conn, allocatedCapacity);
-
                 
                 int confirmationCode = reservationDAO.generateConfirmationCode(conn);
-
                 int reservationId = reservationDAO.insertNewReservation(conn,LocalDate.now(),partySize,allocatedCapacity,confirmationCode,null, LocalTime.now(),
-                        "NEW",
-                        rr.getGuestContact() 
-                );
-
+                        "NEW",rr.getGuestContact());
+                                        
                 if (reservationId <= 0) {
                     rollback(conn);
                     return new Response<>(false, "Failed to create reservation for walk-in", null);
@@ -99,8 +95,7 @@ public class SeatingControl {
                             new SeatingResponse(table.getTableNumber(), table.getCapacity(), LocalTime.now());
 
                     return new Response<>(true,
-                            "Bon apetite your table number: " + table.getTableNumber(),
-                            seatingResponse);
+                            "Bon apetite your table number: " + table.getTableNumber(),seatingResponse);                            
                 }
 
                 // 6) Otherwise -> move to waiting list (priority=0)

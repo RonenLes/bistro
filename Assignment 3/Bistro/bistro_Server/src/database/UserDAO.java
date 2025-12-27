@@ -48,7 +48,7 @@ public class UserDAO {
 
 		    } catch (SQLException e) {
 		        System.err.println("DB error during login");
-		        throw e;   // חשוב: אל תבלע את החריגה
+		        throw e;   
 		    }
 
 		    return null;
@@ -96,4 +96,6 @@ public class UserDAO {
 		    		return ps.executeUpdate() == 1;		    		
 		    	}		    			    	
 		    }
+		    
+		    
 }

@@ -37,9 +37,5 @@ public class Bill {
 	public LocalDateTime getPaidAt() {
 		return paidAt;
 	}
-	
-	
-	
-	
-	
+					
 }

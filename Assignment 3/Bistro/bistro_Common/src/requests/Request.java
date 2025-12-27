@@ -26,7 +26,5 @@ public class Request<T> {
 	public T getData() {
 		return data;
 	}	
-	
-	 
-	
+		 	
 }

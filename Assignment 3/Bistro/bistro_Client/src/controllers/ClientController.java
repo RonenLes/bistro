@@ -4,6 +4,8 @@ import client.BistroEchoClient;
 import desktop_screen.DesktopScreenController;
 import kryo.KryoUtil;
 import requests.LoginRequest;
+import requests.LoginRequest.UserCommand;
+import requests.Request;
 import responses.LoginResponse;
 import responses.Response;
 
@@ -116,16 +118,16 @@ public class ClientController {
     // Login and information verification
     public void requestLogin(String usernameRaw, String passwordRaw) {
         String username = usernameRaw == null ? "" : usernameRaw.trim();
-        String password = passwordRaw == null ? "" : passwordRaw;
+        String password = passwordRaw == null ? "" : passwordRaw.trim();
 
         String err = validateUsername(username);
         if (err != null) { safeUiWarning("Login", err); return; }
 
         err = validatePassword(password);
         if (err != null) { safeUiWarning("Login", err); return; }
-
-
-        sendRequest(new LoginRequest(username, password, LoginRequest.UserCommand.LOGIN_REQUEST));
+        LoginRequest loginRequest = new LoginRequest(username,password,UserCommand.LOGIN_REQUEST);       
+        Request<LoginRequest> req = new Request<LoginRequest>(Request.Command.USER_REQUEST,loginRequest);
+        sendRequest(req);
     }
     
     // helper function for requestLogin

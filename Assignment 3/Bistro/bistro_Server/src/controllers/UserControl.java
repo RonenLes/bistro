@@ -19,7 +19,7 @@ public class UserControl {
 	public UserControl() {this(new UserDAO());} //constructors for server use
 	
 	public Response<LoginResponse> handleUserRequest(LoginRequest req,String userID){
-		if(req==null) new Response<>(false, "LoginRequest is missing", null);
+		if(req==null) return new Response<>(false, "LoginRequest is missing", null);
 		if (req.getUserCommand() == null) return new Response<>(false, "user command is missing", null);
 		
 		return switch(req.getUserCommand()) {
@@ -33,6 +33,7 @@ public class UserControl {
     public Response<LoginResponse> login(LoginRequest req)  {
     	
     	try (Connection conn=DBManager.getConnection()){
+    		System.out.println("DB connection OK: " + conn.getMetaData().getURL());    		
     		User user = userDAO.getUserByUsernameAndPassword(conn,req.getUsername(), req.getPassword());
 
     		if (user == null) {
@@ -42,8 +43,14 @@ public class UserControl {
     		LoginResponse data = new LoginResponse(user.getUserID(), user.getRole(),user.getUsername(),UserReponseCommand.LOGIN_RESPONSE);
     		return new Response<>(true, "Hello"+user.getUsername(), data);
     		
-    	}catch(Exception e) {
+    	}catch(SQLException e) {
+    		System.err.println("LOGIN DB ERROR: " + e.getMessage());
+    		e.printStackTrace();
     		return new Response<>(false, "login db error", null);
+    	}catch(Exception e) {
+    		System.err.println("LOGIN ERROR: " + e.getMessage());
+            e.printStackTrace();
+            return new Response<>(false, "login server error", null);
     	}
         
     }
@@ -56,9 +63,14 @@ public class UserControl {
     		LoginResponse loginResponse = new LoginResponse(null,null,null,UserReponseCommand.EDIT_RESPONSE);
     		
     		return new Response<>(true,"details edited successfully",loginResponse);
+    	}catch(SQLException e) {
+    		System.err.println("LOGIN DB ERROR: " + e.getMessage());
+    		e.printStackTrace();
+    		return new Response<>(false, "login db error", null);
     	}catch(Exception e) {
-    		return new Response<>(false, "Failed to edit details", null);
-    		
+    		System.err.println("LOGIN ERROR: " + e.getMessage());
+            e.printStackTrace();
+            return new Response<>(false, "login server error", null);
     	}
     }
 }

@@ -34,6 +34,10 @@ public class LoginRequest {
 		this.userCommand = userCommand;
 	}
 
+	public void setUserCommand(UserCommand userCommand) {
+		this.userCommand = userCommand;
+	}
+
 	public String getUsername() {
 		return username;
 	}

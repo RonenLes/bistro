@@ -14,7 +14,7 @@ import java.time.LocalDate;
 public class UserDAO {
 
 	//SELECT statements
-		private static final String SELECT_LOGIN ="SELECT userID, username, role, phoneNumber, email FROM `user` WHERE username=? AND password=?";
+		private static final String SELECT_LOGIN ="SELECT userID, username, role, phone, email FROM `user` WHERE username= ? AND password= ?";
 		private static final String SELECT_USER_BY_ID ="SELECT userID, username, role, phoneNumber, email FROM `user` WHERE userID = ?";
 		
 	//UPDATE
@@ -36,19 +36,20 @@ public class UserDAO {
 		        ResultSet rs = ps.executeQuery();
 
 		        if (rs.next()) {
-		        	return new User(
+		        	User user = new User(
 		        		    rs.getString("userID"),
 		        		    rs.getString("username"),
 		        		    null,                    // password is not exposed
 		        		    rs.getString("role"),
-		        		    rs.getString("phoneNumber"),
+		        		    rs.getString("phone"),
 		        		    rs.getString("email")
-		        		);
+		        		);		        	
+		        	return user;
 		        }
 
 		    } catch (SQLException e) {
 		        System.err.println("DB error during login");
-		        throw e;   
+		           
 		    }
 
 		    return null;

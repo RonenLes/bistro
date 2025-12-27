@@ -30,7 +30,7 @@ public class TableDAOStub extends TableDAO {
         this.throwOnMinimal = value;
     }
 
-    @Override
+    
     public Map<Integer, Integer> getTotalTablesByCapacity() throws SQLException {
         return new HashMap<>(totals);
     }
@@ -39,7 +39,7 @@ public class TableDAOStub extends TableDAO {
      * Returns the minimal capacity that can fit partySize (round up).
      * Example: if totals contains {2,4,6} and partySize=3 -> returns 4.
      */
-    @Override
+    
     public int getMinimalTableSize(int partySize) throws SQLException {
         if (throwOnMinimal) {
             throw new SQLException("Forced failure (no suitable table size)");

@@ -21,7 +21,7 @@ public class UserDAOStub extends UserDAO {
         this.throwOnGet = value;
     }
 
-    @Override
+   
     public User getUserByUserID(String userID) throws SQLException {
         if (throwOnGet) throw new SQLException("Forced SQLException from UserDAOStub");
         return byUserId.get(userID);

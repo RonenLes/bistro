@@ -15,8 +15,10 @@ public class UserDAO {
 
 	//SELECT statements
 		private static final String SELECT_LOGIN ="SELECT userID, username, role, phoneNumber, email FROM `user` WHERE username=? AND password=?";
-
 		private static final String SELECT_USER_BY_ID ="SELECT userID, username, role, phoneNumber, email FROM `user` WHERE userID = ?";
+		
+	//UPDATE
+		private final String UPDATE_USER_DETAILS_BY_ID = "UPDATE `user` SET phone = ?, email = ? WHERE userID = ?";
 		
 		/**
 		 * @param username- username field
@@ -24,10 +26,9 @@ public class UserDAO {
 		 * @return the user with matching username and password,null if there are no matches.
 		 * @throws SQLException if there is a database error
 		 */
-		public User getUserByUsernameAndPassword(String username, String password) throws SQLException {
+		public User getUserByUsernameAndPassword(Connection conn,String username, String password) throws SQLException {
 
-		    try (Connection conn = DBManager.getConnection();
-		         PreparedStatement ps = conn.prepareStatement(SELECT_LOGIN)) {
+		    try (PreparedStatement ps = conn.prepareStatement(SELECT_LOGIN)) {
 
 		        ps.setString(1, username);
 		        ps.setString(2, password);
@@ -47,7 +48,7 @@ public class UserDAO {
 
 		    } catch (SQLException e) {
 		        System.err.println("DB error during login");
-		        throw e;   // חשוב: אל תבלע את החריגה
+		        throw e;   
 		    }
 
 		    return null;
@@ -62,11 +63,9 @@ public class UserDAO {
 		 * @return User object if found, null otherwise
 		 * @throws SQLException if a database error occurs
 		 */
-		    public User getUserByUserID(String userID) throws SQLException {
+		    public User getUserByUserID(Connection conn,String userID) throws SQLException {
 
-		        try (Connection conn = DBManager.getConnection();
-		             PreparedStatement ps = conn.prepareStatement(SELECT_USER_BY_ID)) {
-
+		        try (PreparedStatement ps = conn.prepareStatement(SELECT_USER_BY_ID)) {
 		            ps.setString(1, userID);
 		            ResultSet rs = ps.executeQuery();
 
@@ -87,4 +86,16 @@ public class UserDAO {
 
 		        return null;
 		    }
+		    
+		    
+		    public boolean updateUserDetailsByUserID(Connection conn,String userID,String email,String phone)throws SQLException{
+		    	try(PreparedStatement ps = conn.prepareStatement(UPDATE_USER_DETAILS_BY_ID)){
+		    		ps.setString(1, phone);
+		    		ps.setString(2, email);
+		    		ps.setString(3,userID);
+		    		return ps.executeUpdate() == 1;		    		
+		    	}		    			    	
+		    }
+		    
+		    
 }

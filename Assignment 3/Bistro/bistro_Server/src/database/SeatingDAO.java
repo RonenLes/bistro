@@ -1,20 +1,57 @@
 package database;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SeatingDAO {
 
     // INSERT
     private static final String INSERT_SEATING =
             "INSERT INTO seating (tableID, reservationID, checkInTime, checkOutTime) " +
-            "VALUES (?, ?, NOW(), NULL)";
+            "VALUES (?, ?, NOW(), NULL,0)";
 
     // UPDATE
-    private static final String UPDATE_SEATING_CHECKOUT_BY_TABLE =
-            "UPDATE seating SET checkOutTime = NOW() " +
-            "WHERE tableID = ? AND checkOutTime IS NULL " +
-            "LIMIT 1";
+    private static final String UPDATE_CHEKOUT_BY_SEATING_ID ="UPDATE `seating` SET checkOutTime = NOW() WHERE seatingID = ?";
+    private static final String CLAIM_AUTO_BILL_SEND ="UPDATE seating SET billSent = 2 " +"WHERE seatingID = ? AND billSent = 0 AND checkOutTime IS NULL " +
+    	    "AND checkInTime <= DATE_SUB(NOW(), INTERVAL 2 HOUR)";
+    private static final String UPDATE_BILL_SENT =
+    	    "UPDATE seating SET billSent = ? WHERE seatingID = ?";    
+        
+    
+    //SELECT
+    private final String SELECT_OPEN_SEATING_TO_UPDATE = "SELECT seatingID, reservationID "+
+    													 "FROM seating "+
+    													 "WHERE tableID = ? AND checkOutTime IS NULL "+
+    													 "ORDER BY checkInTime DESC "+
+    													 "LIMIT 1 FOR UPDATE";
+    private static final String SELECT_SEATINGS_DUE_FOR_BILL ="SELECT seatingID " +"FROM seating " +"WHERE checkOutTime IS NULL " +"AND billSent = 0 " +"AND checkInTime <= DATE_SUB(NOW(), INTERVAL 2 HOUR)";
+    private static final String SELECT_RESERVATION_ID_BY_SEATING_ID = "SELECT reservationID FROM seating WHERE seatingID = ?";
+    
 
+    public boolean claimAutoBillSend(Connection conn, int seatingId) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(CLAIM_AUTO_BILL_SEND)) {
+            ps.setInt(1, seatingId);
+            return ps.executeUpdate() == 1;
+        }
+    }
+    public boolean updateBillSent(Connection conn, int seatingId, int billSent) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(UPDATE_BILL_SENT)) {
+            ps.setInt(1, billSent);
+            ps.setInt(2, seatingId);
+            return ps.executeUpdate() == 1;
+        }
+    }
+    public Integer getReservationIdBySeatingId(Connection conn, int seatingId) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(SELECT_RESERVATION_ID_BY_SEATING_ID)) {
+            ps.setInt(1, seatingId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt("reservationID") : null;
+            }
+        }
+    }
+
+    
     /**
      * Inserts a check-in row (opens its own connection).
      * @return seatingID (generated key) or -1 if failed.
@@ -30,8 +67,7 @@ public class SeatingDAO {
      * @return seatingID (generated key) or -1 if failed.
      */
     public int checkIn(Connection conn, int tableID, int reservationID) throws SQLException {
-        try (PreparedStatement ps =
-                     conn.prepareStatement(INSERT_SEATING, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement ps =conn.prepareStatement(INSERT_SEATING, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setInt(1, tableID);
             ps.setInt(2, reservationID); // if you want to allow walk-in: use ps.setNull(2, Types.INTEGER)
@@ -45,22 +81,47 @@ public class SeatingDAO {
         }
     }
 
-    /**
-     * Checks out a table (opens its own connection).
-     */
-    public boolean checkOutByTable(int tableId) throws SQLException {
-        try (Connection conn = DBManager.getConnection()) {
-            return checkOutByTable(conn, tableId);
+   
+    public Integer fetchOpenSeatingID(Connection conn,int tableID)throws SQLException {
+    	try(PreparedStatement ps = conn.prepareStatement(SELECT_OPEN_SEATING_TO_UPDATE)){
+    		ps.setInt(1, tableID);
+    		ResultSet rs = ps.executeQuery();
+    		if(!rs.next()) return null;
+    		return rs.getInt("seatingID");
+    	}
+    }
+    
+    public Integer findOpenSeatingReservationId(Connection conn, int tableId) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(SELECT_OPEN_SEATING_TO_UPDATE)) {
+            ps.setInt(1, tableId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return null;
+                return rs.getInt("reservationID");
+            }
         }
     }
-
-    /**
-     * Checks out a table using an existing connection (for transactions).
-     */
-    public boolean checkOutByTable(Connection conn, int tableId) throws SQLException {
-        try (PreparedStatement ps = conn.prepareStatement(UPDATE_SEATING_CHECKOUT_BY_TABLE)) {
-            ps.setInt(1, tableId);
+    
+    public boolean checkOutBySeatingId(Connection conn, int seatingId) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(UPDATE_CHEKOUT_BY_SEATING_ID)) {
+            ps.setInt(1, seatingId);
             return ps.executeUpdate() == 1;
         }
+    
     }
+    public List<Integer> getSeatingsDueForBill(Connection conn) throws SQLException {
+        if (conn == null) {
+            throw new IllegalArgumentException("Connection is null");
+        }
+        List<Integer> seatingIds = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(SELECT_SEATINGS_DUE_FOR_BILL);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                seatingIds.add(rs.getInt("seatingID"));
+            }
+        }
+
+        return seatingIds;
+    }
+
 }

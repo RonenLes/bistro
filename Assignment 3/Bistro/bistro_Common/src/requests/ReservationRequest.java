@@ -9,7 +9,6 @@ public class ReservationRequest   {
 		SECOND_PHASE,
 		EDIT_RESERVATION,
 		CANCEL_RESERVATION,
-		WALKIN_RESERVATION
 	}
 	private ReservationRequestType type;
     private LocalDate reservationDate;   // Client-selected date

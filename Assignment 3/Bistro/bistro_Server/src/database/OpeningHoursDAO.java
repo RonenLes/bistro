@@ -17,14 +17,11 @@ public class OpeningHoursDAO {
 	 * @return OpeningHours entity 
 	 * @throws SQLException
 	 */
-	public OpeningHours getOpeningHour(LocalDate date) throws SQLException{
+	public OpeningHours getOpeningHour(Connection conn,LocalDate date) throws SQLException{
 		OpeningHours openHour = null;
 		java.sql.Date openDate = java.sql.Date.valueOf(date);
-		try(Connection conn = DBManager.getConnection();
-			PreparedStatement pstmt = conn.prepareStatement(SELECT_openingHoursByDate)){
-			
+		try(PreparedStatement pstmt = conn.prepareStatement(SELECT_openingHoursByDate)){
 			pstmt.setDate(1, openDate);
-			
 			ResultSet rs = pstmt.executeQuery();
 			
 			if(rs.next()) {

@@ -67,7 +67,7 @@ public class ReservationDAOStub extends ReservationDAO {
         return byCode.get(confirmationCode);
     }
 
-    @Override
+    
     public boolean updateReservation(LocalDate reservationDate, String status, int partySize, int confirmationCode,
                                      String guestContact, String userID, LocalTime startTime) throws SQLException {
 
@@ -118,7 +118,7 @@ public class ReservationDAOStub extends ReservationDAO {
         return updateStatus(confirmationCode, status);
     }
 
-    @Override
+
     public Map<Integer, Integer> getBookedTablesByCapacity(LocalDate date, LocalTime start, LocalTime end)
             throws SQLException {
 

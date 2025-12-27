@@ -42,58 +42,71 @@ public class BillingControl {
 		if(req.getType()==null) return failResponse("type is null");
 		return switch (req.getType()) {
 		case REQUEST_TO_SEE_BILL ->handleRequestToSeeBill(req);
+		case PAY_BILL -> handleRequestToPayBill(req);
 		};
 		
 		
 		}
 	
 	private Response<BillResponse> handleRequestToSeeBill(BillRequest req) {
-	    Connection conn = null;
-	    try {
-	        conn = DBManager.getConnection();
-	        if (conn == null) return failResponse("DB connection failed");
+	    
+	    try (Connection conn = DBManager.getConnection()){
 	        conn.setAutoCommit(false);
-	        Reservation r = reservationDAO.getReservationByConfirmationCode(conn, req.getConfirmationCode());
-	        if (r == null) {
-	            return failResponse("Reservation not found");
-	        }
-	        Integer seatingId = seatingDAO.getSeatingIdByReservationId(conn, r.getReservationID());
-	        if (seatingId == null) {
-	            return failResponse("No open seating found for this reservation");
-	        }
-	        Double existing = billDAO.getOpenBillTotalBySeatingId(conn, seatingId);
-	        double billAmount;
-	        boolean createdNow = false;
-	        if (existing != null) {
-	            billAmount = existing;
-	        } else {
-	            billAmount = generateRandomBillSum();
-	            int billId = billDAO.insertNewBill(conn, seatingId, billAmount, LocalDateTime.now(), null);
-	            if (billId == -1) {
-	                conn.rollback();
-	                return failResponse("Failed to create bill");
-	            }
-	            createdNow = true;
-	        }
-	        conn.commit();
-	        boolean notificationSent = false;
-	        try {
-	            notificationSent = sendBillToCorrectContact(conn,r.getGuestContact(), r.getUserID(),buildBillMessage(seatingId),billAmount);
-	        } catch (Exception e) {
-	            System.err.println("Notification failed: " + e.getMessage());
-	        }
+	    	try {
+	    		Reservation r = reservationDAO.getReservationByConfirmationCode(conn, req.getConfirmationCode());
+		        if (r == null) {
+		        	conn.rollback();
+		            return failResponse("Reservation not found");
+		        }
+		        Integer seatingId = seatingDAO.getSeatingIdByReservationId(conn, r.getReservationID());
+		        if (seatingId == null) {
+		        	conn.rollback();
+		            return failResponse("No open seating found for this reservation");
+		        }
+		        Double existing = billDAO.getOpenBillTotalBySeatingId(conn, seatingId);
+		        double billAmount;
+		        boolean createdNow = false;
+		        if (existing != null) {
+		            billAmount = existing;
+		        } else {
+		            billAmount = generateRandomBillSum();
+		            int billId = billDAO.insertNewBill(conn, seatingId,billAmount, LocalDateTime.now(), null);
+		            if (billId == -1) {
+		                conn.rollback();
+		                return failResponse("Failed to create bill");
+		            }
+		            createdNow = true;
+		        }
+		        conn.commit();
+		        conn.setAutoCommit(true);
+		        boolean notificationSent = false;
+		        try {
+		            notificationSent = sendBillToCorrectContact(conn,r.getGuestContact(), r.getUserID(),buildBillMessage(seatingId),billAmount);
+		        } catch (Exception e) {
+		            System.err.println("Notification failed: " + e.getMessage());
+		        }
 
-	        String msg = createdNow ? "Bill created successfully" : "Bill found";
-	        BillResponse br = new BillResponse(BillResponseType.ANSWER_TO_REQUEST_TO_SEE_BILL,billAmount,notificationSent);
-	        return successResponse(msg, br);
-
-	    } catch (Exception e) {
-	        try { if (conn != null) conn.rollback(); } catch (Exception ignore) {}
-	        return failResponse("Failed to interact with DB");
-
-	    } finally {
-	        try { if (conn != null) conn.close(); } catch (Exception ignore) {}
-	    }
+		        String msg = createdNow ? "Bill created successfully" : "Bill found";
+		        BillResponse br = new BillResponse(BillResponseType.ANSWER_TO_REQUEST_TO_SEE_BILL,billAmount,notificationSent);
+		        return successResponse(msg, br);
+	    	}
+	    	catch (Exception e) {
+                conn.rollback();
+                return new Response<>(false, "failed to add bill to db" + e.getMessage(), null);
+            }
+	    	
+        } catch (Exception e) {
+            return new Response<>(false, "DB connection failed: " + e.getMessage(), null);
+        }
+	}
+	private Response<BillResponse>handleRequestToPayBill(BillRequest req){
+		try (Connection conn=DBManager.getConnection()){
+			try {
+				
+			}
+		}
+		catch (Exception e) {
+            return new Response<>(false, "DB connection failed: " + e.getMessage(), null);
 	}
 
 	

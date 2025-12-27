@@ -3,6 +3,7 @@ package main_screen;
 import controllers.ClientController;
 import controllers.ClientUIHandler;
 import desktop_screen.DesktopScreenController;
+import desktop_screen.DesktopScreenController.Role;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -117,7 +118,7 @@ public class MainScreenController extends Application implements ClientUIHandler
             });
 
             // Temp “role select” login => open Desktop with role
-            loginCtrl.setOnLoginAsRole(role -> showDesktopScreen(role, loginCtrl.getUsernameForWelcome()));
+            // loginCtrl.setOnLoginAsRole(role -> showDesktopScreen(role, loginCtrl.getUsernameForWelcome()));
 
             stage.getScene().setRoot(loginRoot);
             stage.setTitle("Login");
@@ -177,7 +178,7 @@ public class MainScreenController extends Application implements ClientUIHandler
             TerminalScreenController ctrl = loader.getController();
             ctrl.setClientController(controller, connected);
 
-            // ✅ Back callback: restore original main root (no re-load)
+            // Back callback: restore original main root (no re-load)
             ctrl.setOnBackToMain(() -> {
                 stage.getScene().setRoot(mainRoot);
                 stage.setTitle("Bistro Client");
@@ -211,9 +212,7 @@ public class MainScreenController extends Application implements ClientUIHandler
         }
     }
 
-    // =========================
     // ClientUIHandler impl
-    // =========================
     @Override
     public void showInfo(String title, String message) {
         showAlert(title, message, Alert.AlertType.INFORMATION);
@@ -243,4 +242,9 @@ public class MainScreenController extends Application implements ClientUIHandler
             a.showAndWait();
         });
     }
+
+	@Override
+	public void routeToDesktop(DesktopScreenController.Role role, String username) {
+	    Platform.runLater(() -> showDesktopScreen(role, username));
+	}
 }

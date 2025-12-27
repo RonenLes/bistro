@@ -83,20 +83,11 @@ public class LoginScreenController {
             return;
         }
 
-        // Send login request via controller
+        // send login request via controller (with validation inside)
         clientController.requestLogin(username, password);
 
-        // TEMP (until server responds with role):
-        DesktopScreenController.Role role =
-                roleChoiceBox != null ? roleChoiceBox.getValue()
-                                      : DesktopScreenController.Role.MANAGER;
-
-        setStatus("Login request sent (" + role + ")", false);
-
-        // TEMP navigation (replace later with server response)
-        if (onLoginAsRole != null) {
-            onLoginAsRole.accept(role);
-        }
+        //Just update status – No navigation here
+        setStatus("Logging in...", false);
     }
 
     @FXML

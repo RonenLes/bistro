@@ -1,6 +1,7 @@
 package controllers;
 
 import client.BistroEchoClient;
+import desktop_screen.DesktopScreenController;
 import kryo.KryoUtil;
 import requests.LoginRequest;
 import responses.LoginResponse;
@@ -50,42 +51,65 @@ public class ClientController {
         }
 
         try {
-            client.sendToServer(request);
-        } catch (Exception e) {
+            // Convert to bytes using Kryo
+            byte[] payload = KryoUtil.serialize(request);
+
+            // Send the byte array using OCSF
+            client.sendToServer(payload); 
+        	}
+         catch (Exception e) {
             safeUiError("Connection Error", "Failed to send request to server.\n" + e.getMessage());
         }
     }
 
-    // TODO: implement when request classe ready
-    // public void requestLogin(LoginRequest req) { sendRequest(req); }
-    // public void requestCreateReservation(ReservationRequest req) { sendRequest(req); }
-    // public void requestJoinWaitingList(WaitingListRequest req) { sendRequest(req); }
 
     // Network -> Controller
-   
-
     /** Called ONLY by BistroEchoClient.handleMessageFromServer(msg) */
     public void handleServerResponse(Object msg) {
         try {
-        	Object decoded = msg;
-        	if(msg instanceof byte[] bytes) decoded =KryoUtil.deserialize(bytes);
-        	
-        	if(!(decoded instanceof Response<?> response)) {safeUiInfo("Failed", "failed to deserialize response"); return;}
-        	
-        	if(!response.isSuccess()) safeUiError("Failed operation", response.getMessage());
-        	
-        	Object responseData = response.getData();
-        	
-        	if (responseData instanceof LoginResponse loginResponse) {
-        	    safeUiInfo("Login successful", response.getMessage());
+            Object decoded = msg;
+            if (msg instanceof byte[] bytes) {
+                decoded = KryoUtil.deserialize(bytes);
+            }
 
-        	    // TODO later:
-        	    // ui.routeToDesktop(loginResponse.getRole(), loginResponse.getUsername());
-        	}        		
-        	
-        	
-        }catch(Exception e) {
-        	
+            if (!(decoded instanceof Response<?> response)) {
+                safeUiInfo("Failed", "failed to deserialize response");
+                return;
+            }
+
+            if (!response.isSuccess()) {
+                safeUiError("Failed operation", response.getMessage());
+                return;
+            }
+
+            Object responseData = response.getData();
+
+            if (responseData instanceof LoginResponse loginResponse) {
+                switch (loginResponse.getResponseCommand()) {
+                    case LOGIN_RESPONSE -> {
+                        DesktopScreenController.Role uiRole =
+                                mapRoleFromServer(loginResponse.getRole());
+
+                        // THIS is where we move to the next screen
+                        if (ui != null) {
+                        	//move on with the respected role, and username
+                            ui.routeToDesktop(uiRole, loginResponse.getUsername());
+                        } else {
+                            System.out.println("[INFO] Login success for " +
+                                    loginResponse.getUsername() + " as " + uiRole);
+                        }
+                    }
+                    case EDIT_RESPONSE -> {
+                        // handle other login-related responses if needed
+                    }
+                }
+            }
+
+            // handle other response types here (Reservations, etc.)
+
+        } catch (Exception e) {
+            safeUiError("Client Error", "Error handling server response:\n" + e.getMessage());
+            e.printStackTrace();
         }
     }
     
@@ -99,16 +123,9 @@ public class ClientController {
 
         err = validatePassword(password);
         if (err != null) { safeUiWarning("Login", err); return; }
-        //TODO temp, remove
-        if (!connected) {
-            boolean ok = username.equals("niko") && password.equals("123456");
-            if (ok) safeUiInfo("Login", "Welcome " + username + " (demo)");
-            else safeUiError("Login Failed", "Invalid username/password (demo).");
-            return;
-        }
-        //END
-        // Build request from  common library
-        sendRequest(new LoginRequest(username, password));
+
+
+        sendRequest(new LoginRequest(username, password, LoginRequest.UserCommand.LOGIN_REQUEST));
     }
     
     // helper function for requestLogin
@@ -124,10 +141,27 @@ public class ClientController {
     private String validatePassword(String p) {
         if (p.isEmpty()) return "Password is required.";
         if (p.length() < 6 || p.length() > 64) return "Password must be 6-64 characters.";
-        // don’t over-restrict passwords; allow symbols/spaces if you want
+        //allow symbols/spaces on password
         return null;
     }
     // END
+    
+    private DesktopScreenController.Role mapRoleFromServer(String rawRole) {
+        if (rawRole == null) {
+            return DesktopScreenController.Role.GUEST;
+        }
+
+        String normalized = rawRole.trim().toUpperCase();
+
+        // server sends exact enum names
+        try {
+            return DesktopScreenController.Role.valueOf(normalized);
+        } catch (IllegalArgumentException e) {
+            // Fallback – don't crash UI if server sends unexpected role
+            System.err.println("[WARN] Unknown role from server: " + rawRole);
+            return DesktopScreenController.Role.GUEST;
+        }
+    }
 
     public void handleConnectionLost(String message) {
         if (ui != null) {

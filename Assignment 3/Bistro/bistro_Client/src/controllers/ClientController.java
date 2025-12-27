@@ -130,6 +130,24 @@ public class ClientController {
         sendRequest(req);
     }
     
+    public void logout() {
+        try {
+            if (connected && client != null) {
+                client.closeConnection();   // OCSF AbstractClient.closeConnection()
+            }
+        } catch (Exception e) {
+            safeUiError("Logout", "Error while closing connection:\n" + e.getMessage());
+        } finally {
+            connected = false;
+            // Optionally notify UI to go back to login screen
+            if (ui != null) {
+                ui.showInfo("Logout", "You have been logged out.");
+                //ui.routeToLogin(); // <-- add this to your ClientUIHandler if you don't have it yet
+            }
+        }
+    }
+
+    
     // helper function for requestLogin
     private String validateUsername(String u) {
         if (u.isEmpty()) return "Username is required.";

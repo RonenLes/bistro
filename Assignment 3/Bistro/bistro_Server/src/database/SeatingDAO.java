@@ -27,7 +27,9 @@ public class SeatingDAO {
     													 "LIMIT 1 FOR UPDATE";
     private static final String SELECT_SEATINGS_DUE_FOR_BILL ="SELECT seatingID " +"FROM seating " +"WHERE checkOutTime IS NULL " +"AND billSent = 0 " +"AND checkInTime <= DATE_SUB(NOW(), INTERVAL 2 HOUR)";
     private static final String SELECT_RESERVATION_ID_BY_SEATING_ID = "SELECT reservationID FROM seating WHERE seatingID = ?";
-    
+    private static final String SELECT_SEATING_ID_BY_RESERVATION_ID ="SELECT seatingID " +"FROM seating " +"WHERE reservationID = ? " +"AND checkOutTime IS NULL " +
+"ORDER BY checkInTime DESC " +
+            "LIMIT 1";
 
     public boolean claimAutoBillSend(Connection conn, int seatingId) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(CLAIM_AUTO_BILL_SEND)) {
@@ -50,7 +52,23 @@ public class SeatingDAO {
             }
         }
     }
+    public Integer getSeatingIdByReservationId(Connection conn, int reservationId) throws SQLException {
+        if (conn == null) {
+            throw new IllegalArgumentException("conn is null");
+        }
 
+        try (PreparedStatement ps = conn.prepareStatement(SELECT_SEATING_ID_BY_RESERVATION_ID)) {
+            ps.setInt(1, reservationId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return null;
+                }
+                return rs.getInt("seatingID");
+            }
+        }
+    }
+    
     
     /**
      * Inserts a check-in row (opens its own connection).

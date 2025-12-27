@@ -1,14 +1,22 @@
 package controllers;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+
+import database.BillDAO;
 import database.DBManager;
 import database.ReservationDAO;
 import database.TableDAO;
 import database.UserDAO;
 import entities.Reservation;
 import entities.User;
+import requests.BillRequest;
+import responses.BillResponse;
+import responses.BillResponse.BillResponseType;
+import responses.ReservationResponse;
+import responses.Response;
 import database.SeatingDAO;
 
 public class BillingControl {
@@ -17,17 +25,97 @@ public class BillingControl {
 	private final SeatingDAO seatingDAO;
 	private final NotificationControl notificationControl;
 	private final UserDAO userDAO;
+	private final BillDAO billDAO;
 	
-	public BillingControl(ReservationDAO reservationDAO, TableDAO tableDAO, SeatingDAO seatingDAO,NotificationControl notificationControl,UserDAO userDAO) {
+	public BillingControl(ReservationDAO reservationDAO, TableDAO tableDAO, SeatingDAO seatingDAO,NotificationControl notificationControl,UserDAO userDAO,BillDAO billDAO) {
+		
 		this.reservationDAO = reservationDAO;
 		this.tableDAO = tableDAO;
 		this.seatingDAO = seatingDAO;
 		this.notificationControl=notificationControl;
 		this.userDAO=userDAO;
+		this.billDAO=billDAO;
 	}
+	
+	public Response<BillResponse> handleBillRequest(BillRequest req) throws SQLException{
+		if(req==null) return failResponse("request is null");
+		if(req.getType()==null) return failResponse("type is null");
+		return switch (req.getType()) {
+		case REQUEST_TO_SEE_BILL ->handleRequestToSeeBill(req);
+		
+		};
+		
+		
+		}
+	
+	private Response<BillResponse> handleRequestToSeeBill(BillRequest req) {
+	    Connection conn = null;
+	    try {
+	        conn = DBManager.getConnection();
+	        if (conn == null) return failResponse("DB connection failed");
+
+	        conn.setAutoCommit(false);
+
+	        Reservation r = reservationDAO.getReservationByConfirmationCode(conn, req.getConfirmationCode());
+	        if (r == null) {
+	            return failResponse("Reservation not found");
+	        }
+
+	        Integer seatingId = seatingDAO.getSeatingIdByReservationId(conn, r.getReservationID());
+	        if (seatingId == null) {
+	            return failResponse("No open seating found for this reservation");
+	        }
+	        Double existing = billDAO.getOpenBillTotalBySeatingId(conn, seatingId);
+	        double billAmount;
+	        boolean createdNow = false;
+	        if (existing != null) {
+	            billAmount = existing;
+	        } else {
+	            billAmount = generateRandomBillSum();
+	            int billId = billDAO.insertNewBill(conn, seatingId, billAmount, LocalDateTime.now(), null);
+	            if (billId == -1) {
+	                conn.rollback();
+	                return failResponse("Failed to create bill");
+	            }
+	            createdNow = true;
+	        }
+	        conn.commit();
+	        boolean notificationSent = false;
+	        try {
+	            notificationSent = sendBillToCorrectContact(conn,r.getGuestContact(), r.getUserID(),buildBillMessage(seatingId),billAmount);
+	        } catch (Exception e) {
+	            System.err.println("[BILL_NOTIFY] Notification failed: " + e.getMessage());
+	        }
+
+	        // 3) Response with notificationSent
+	        String msg = createdNow ? "Bill created successfully" : "Bill found";
+	        BillResponse br = new BillResponse(
+	                BillResponseType.ANSWER_TO_REQUEST_TO_SEE_BILL,
+	                billAmount,
+	                notificationSent
+	        );
+	        return successResponse(msg, br);
+
+	    } catch (Exception e) {
+	        try { if (conn != null) conn.rollback(); } catch (Exception ignore) {}
+	        return failResponse("Failed to interact with DB");
+
+	    } finally {
+	        try { if (conn != null) conn.close(); } catch (Exception ignore) {}
+	    }
+	}
+
+	
+	private Response<BillResponse> successResponse(String msg, BillResponse bR) {
+        return new Response<>(true, msg, bR);
+    }
+
+    private Response<BillResponse> failResponse(String msg) {
+        return new Response<>(false, msg, null);
+    }
 	/**
-     * Called by the Scheduler.
-     * Creates its own Connection (as you requested).
+     * 
+     * 
      *
      * @return TRUE only if bill was sent and marked as sent.
      *         FALSE otherwise (including if claim failed / not due / missing contact / notification failed).
@@ -63,20 +151,19 @@ public class BillingControl {
                 String userId = res.getUserID();
 
                 // 4) build bill message (placeholder)
-                String billMessage = buildBillMessage(seatingId, reservationId);
+                String billMessage = buildBillMessage(seatingId);
                 
                 // 5) send
-                boolean sentOk = sendBillToCorrectContact(conn, guestContact, userId, billMessage);
+                double bill=generateRandomBillSum();
+                boolean sentOk = sendBillToCorrectContact(conn, guestContact, userId, billMessage,bill);
                 if (!sentOk) {
                     seatingDAO.updateBillSent(conn, seatingId,0); // 2->0 so it can retry
                     conn.commit();
                     return false;
                 }
-
-                // 6) mark as sent (2->1)
                 boolean marked = seatingDAO.updateBillSent(conn, seatingId,1);
                 if (!marked) {
-                    // extremely rare, but be safe: release claim so it can retry
+                    
                     seatingDAO.updateBillSent(conn, seatingId,0);
                     conn.commit();
                     return false;
@@ -91,14 +178,12 @@ public class BillingControl {
             return false;
         }
     }
-    private String buildBillMessage(int seatingId, int reservationId) {
-        return "Your bill is ready. Reservation #" + reservationId +
-               ", Seating #" + seatingId + ". Thank you!";
+    private String buildBillMessage(int seatingId) {
+        return "Your bill is ready.Seating" + seatingId +". Thank you!";
     }
-    private boolean sendBillToCorrectContact(Connection conn,String guestContact,String userId,String billMessage) throws SQLException {
-
+    private boolean sendBillToCorrectContact(Connection conn,String guestContact,String userId,String billMessage,double bill) throws SQLException {
     	if (guestContact != null && !guestContact.isBlank()) {
-    		notificationControl.sendBillToGuest(guestContact, billMessage);
+    		notificationControl.sendBillToGuest(guestContact, billMessage,bill);
     		return true;
     	}
     	if (userId == null || userId.isBlank()) {
@@ -108,7 +193,15 @@ public class BillingControl {
     	if (user == null) {
     		return false;
     	}
-    	notificationControl.sendBillToUser(user, billMessage);
+    	notificationControl.sendBillToUser(user, billMessage,bill);
     	return true;
     }
+    
+    private double generateRandomBillSum() {
+	    double bill;
+	    bill = 50 + (double)(Math.random()*(1000-50+1));
+	    return bill;
+	}
+    
+    
 }

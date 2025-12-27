@@ -89,10 +89,13 @@ public class ServerMainScreenControl {
 	}
 	
 	public void onClientDisconnected(String ip) {
-        Platform.runLater(() ->
-            clients.removeIf(r -> r.getIp().equals(ip))
-        );
-    }
+	    Platform.runLater(() -> {
+	        System.out.println("UI disconnect ip=" + ip);	        
+	        boolean removed = clients.removeIf(r -> ip != null && ip.equals(r.getIp()));	       
+	        clientTable.refresh(); 
+	    });
+	}
+
 	
 	@FXML
 	private void startServer(ActionEvent event) {

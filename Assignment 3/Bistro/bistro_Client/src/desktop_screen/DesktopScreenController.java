@@ -178,11 +178,19 @@ public class DesktopScreenController {
 
     @FXML
     private void onLogoutClicked() {
+        // 1) Tell controller to log out + disconnect from server
+        if (clientController != null) {
+            clientController.logout();
+        }
+
+        // 2) Let the outer UI (MainScreenController) do its thing (go back to login window, etc.)
         if (onLogout != null) {
             onLogout.run();
         } else {
+            // Fallback: reset this shell to a “guest / empty” state
             setRole(Role.GUEST);
             setWelcomeName("");
+            contentHost.getChildren().clear();
         }
     }
 

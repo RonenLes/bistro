@@ -26,7 +26,7 @@ public class ClientTableRow {
 	public StringProperty ipProperty() {return ip;}
 	
 	
-	public String getIp() { return ipProperty().get(); }
+	public String getIp() { return ip.get(); }
 	public String getUserId() { return userID.get(); }
 	public String getUsername() { return username.get(); }
 	public String getRole() { return role.get(); }

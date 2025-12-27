@@ -75,11 +75,18 @@ public class BistroEchoServer extends AbstractServer {
 	
 	@Override
 	protected void clientDisconnected(ConnectionToClient client) {
+		System.out.println("SERVER clientDisconnected fired!");
 		ClientSession clientSession = loggedUsers.remove(client);
 		if(clientSession!=null) {
 			System.out.println("Client disconnected: " + clientSession.getIp());
 			serverGUI.onClientDisconnected(clientSession.getIp());
 		}
+	}
+	
+	@Override
+	protected void clientException(ConnectionToClient client, Throwable exception) {
+	    System.out.println("Client exception (treat as disconnect): " + exception.getMessage());
+	    clientDisconnected(client); // cleanup + GUI update
 	}
 	
 	

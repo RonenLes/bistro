@@ -1,10 +1,16 @@
 package database;
 
 import entities.User;
+import responses.UserHistoryResponse;
+
 import java.sql.*;
 import java.util.List;
+
+
+
 import java.util.ArrayList;
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 
 /**
@@ -12,13 +18,42 @@ import java.time.LocalDate;
  * 1.getUserByUsernameAndPassword - fetching user with username and password from database
  */
 public class UserDAO {
+	
+	//INSERT 
+		private final String INSERT_NEW_USER = "INSERT INTO user (userID, username, password, role, phone, email) (?, ?, ?, ?, ?, ?)";
 
-	//SELECT statements
+	//SELECT statements		
 		private static final String SELECT_LOGIN ="SELECT userID, username, role, phone, email FROM `user` WHERE username= ? AND password= ?";
 		private static final String SELECT_USER_BY_ID ="SELECT userID, username, role, phoneNumber, email FROM `user` WHERE userID = ?";
+		private static final String SELECT_HISTORY ="SELECT r.reservationDate, r.startTime, r.partySize, s.checkInTime, s.checkOutTime, t.tableNumber, b.totalPrice "+
+													"FROM reservation r " +
+													"JOIN seating s ON s.reservationID = r.reservationID "+
+													"JOIN restaurant_table t ON t.tableID = s.tableID "+
+													"LEFT JOIN bill b ON b.seatingID = s.seatingID "+
+													"WHERE r.userID = ? "+
+													"ORDER BY r.reservationDate DESC, r.startTime";
 		
 	//UPDATE
 		private final String UPDATE_USER_DETAILS_BY_ID = "UPDATE `user` SET phone = ?, email = ? WHERE userID = ?";
+		
+		
+		
+		
+		public boolean insertNewUser(String userID,String username,String password,String role,String phone, String email)throws SQLException{
+			try(Connection conn  = DBManager.getConnection();
+					PreparedStatement ps = conn.prepareStatement(INSERT_NEW_USER)){
+				ps.setString(1, userID);
+				ps.setString(2, username);
+				ps.setString(3, password);
+				ps.setString(4, role);
+				ps.setString(5, phone);
+				ps.setString(2, email);
+				
+				int insert = ps.executeUpdate();
+				return insert == 1;				
+			}
+		}
+		
 		
 		/**
 		 * @param username- username field
@@ -97,6 +132,38 @@ public class UserDAO {
 		    		return ps.executeUpdate() == 1;		    		
 		    	}		    			    	
 		    }
+		    
+		    public List<UserHistoryResponse> getHistoryByUserID(Connection conn,String userID) throws SQLException{
+		    	List<UserHistoryResponse> historyList = new ArrayList<>();
+		    	
+		    	try(PreparedStatement ps = conn.prepareStatement(SELECT_HISTORY)){
+		    		ps.setString(1, userID);
+		    		ResultSet rs = ps.executeQuery();
+		    		
+		    		while(rs.next()) {
+		    			LocalDate resDate = rs.getDate("reservationDate").toLocalDate();
+		                LocalTime reservedFor = rs.getTime("startTime").toLocalTime();
+		                
+		                Time inTime = rs.getTime("checkInTime");
+		                LocalTime checkIn = (inTime == null) ? null : inTime.toLocalTime();
+		                
+		                Time outTime = rs.getTime("checkOutTime");
+		                LocalTime checkOut = (outTime == null) ? null : outTime.toLocalTime();
+		                
+		                int tableNumber = rs.getInt("tableNumber");
+		                
+		                Double totalPrice = rs.getObject("totalPrice") == null ? null : rs.getDouble("totalPrice");
+		                
+		                int partySize = rs.getInt("partySize");
+		                
+		                historyList.add(new UserHistoryResponse(resDate,reservedFor,checkIn,checkOut,tableNumber,totalPrice,partySize));
+		                
+		    		}
+		    	}
+		    	return historyList;
+		    }
+		    
+		    
 		    
 		    
 }

@@ -42,6 +42,7 @@ public class BillingControl {
 		if(req.getType()==null) return failResponse("type is null");
 		return switch (req.getType()) {
 		case REQUEST_TO_SEE_BILL ->handleRequestToSeeBill(req);
+		case PAY_BILL -> 
 		};
 		
 		

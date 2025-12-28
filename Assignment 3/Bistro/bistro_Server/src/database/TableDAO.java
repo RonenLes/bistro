@@ -1,10 +1,13 @@
 package database;
 
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import entities.Table;
+import requests.TableInfo;
 
 public class TableDAO {
 	
@@ -12,6 +15,7 @@ public class TableDAO {
 	private final String INSERT_newTable ="INSERT INTO `restaurant_table` " + "(tableNumber, capacity) " +"(?, ?)";
 	
 	//SELECT
+	private final String SELECT_ALL_TABLES ="SELECT * FROM `restaurant_table`";
 	private final String SELECT_TABLE_BY_ID = "SELECT * FROM `restaurant_table` WHERE tableID = ?";
 	private final String SELECT_minimalTableSize = "SELECT MIN(capacity) as roundedUp FROM `restaurant_table` WHERE capacity >= ?";
 	private final String SELECT_tablesByCapacity = "SELECT capacity, COUNT(*) AS total FROM restaurant_table GROUP BY capacity";								
@@ -24,6 +28,9 @@ public class TableDAO {
 			+ "WHERE s.checkOutTime IS NULL) "
 			+ "ORDER BY t.capacity ASC, t.tableNumber ASC "
 			+ "LIMIT 1";
+	
+	//UPDATE
+	private final String UPDATE_TABLE_BY_TABLE_NUMBER = "UPDATE `restaurant_table` SET capacity = ? WHERE tableNumber = ?";
 			    	
 	
 	public Table fetchTableByID(Connection conn,int tableID)throws SQLException {
@@ -51,9 +58,10 @@ public class TableDAO {
 			return isInserted ==1;
 			
 		}catch(SQLException e) {
-			System.err.println("Database error: could not insert new table");
-			return false;
+			if (e.getErrorCode() == 1062) return false;
+			throw e;
 		}
+		
 	}
 	
 	/**
@@ -120,5 +128,27 @@ public class TableDAO {
 		}
 				
 	}
+	
+	
+	public boolean updateTableByTableNumber(Connection conn,int tableNumber,int newCap)throws SQLException{
+		try(PreparedStatement ps = conn.prepareStatement(UPDATE_TABLE_BY_TABLE_NUMBER)){
+			ps.setInt(1, newCap);
+			ps.setInt(2, tableNumber);
+			int insert = ps.executeUpdate();
+			return insert == 1;
+		}
+	}
+	
+	public List<TableInfo> fetchAllTables(Connection conn)throws SQLException{
+		List<TableInfo> tables = new ArrayList<>();
+		try(PreparedStatement ps = conn.prepareStatement(SELECT_ALL_TABLES)){
+			ResultSet rs = ps.executeQuery();
+			while(rs.next()) {
+				tables.add(new TableInfo(rs.getInt("tableNumber"),rs.getInt("capacity")));
+			}
+			return tables;
+		}
+	}
+	
 	
 }

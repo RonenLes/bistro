@@ -8,17 +8,22 @@ public class UserHistoryResponse {
 	private LocalDate reservationDate;
 	private LocalTime reservedForTime;
 	private LocalTime checkInTime;
-	private LocalTime CheckOutTime;
+	private LocalTime checkOutTime;
 	private int tableNumber;
-	private double totalPrice;
+	private Double totalPrice;
+	private int partySize;
+	
+	public UserHistoryResponse() {}
+	
 	public UserHistoryResponse(LocalDate reservationDate, LocalTime reservedForTime, LocalTime checkInTime,
-			LocalTime checkOutTime, int tableNumber, double totalPrice) {
+			LocalTime checkOutTime, int tableNumber, double totalPrice,int partySize) {
 		this.reservationDate = reservationDate;
 		this.reservedForTime = reservedForTime;
 		this.checkInTime = checkInTime;
-		CheckOutTime = checkOutTime;
+		this.checkOutTime = checkOutTime;
 		this.tableNumber = tableNumber;
 		this.totalPrice = totalPrice;
+		this.partySize = partySize;
 	}
 	public LocalDate getReservationDate() {
 		return reservationDate;
@@ -30,13 +35,18 @@ public class UserHistoryResponse {
 		return checkInTime;
 	}
 	public LocalTime getCheckOutTime() {
-		return CheckOutTime;
+		return checkOutTime;
 	}
 	public int getTableNumber() {
 		return tableNumber;
 	}
-	public double getTotalPrice() {
+	public Double getTotalPrice() {
 		return totalPrice;
 	}
+
+	public int getPartySize() {
+		return partySize;
+	}
+	
 					
 }

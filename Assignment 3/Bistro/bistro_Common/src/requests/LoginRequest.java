@@ -17,6 +17,7 @@ public class LoginRequest {
 	public enum UserCommand{
 		LOGIN_REQUEST,
 		EDIT_DETAIL_REQUEST,
+		HISTORY_REQUEST
 		
 	}
 	public LoginRequest() {

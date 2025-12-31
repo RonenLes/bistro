@@ -21,16 +21,14 @@ import database.SeatingDAO;
 
 public class BillingControl {
 	private final ReservationDAO reservationDAO;
-	private final TableDAO tableDAO;
 	private final SeatingDAO seatingDAO;
 	private final NotificationControl notificationControl;
 	private final UserDAO userDAO;
 	private final BillDAO billDAO;
 	
-	public BillingControl(ReservationDAO reservationDAO, TableDAO tableDAO, SeatingDAO seatingDAO,NotificationControl notificationControl,UserDAO userDAO,BillDAO billDAO) {
+	public BillingControl(ReservationDAO reservationDAO, SeatingDAO seatingDAO,NotificationControl notificationControl,UserDAO userDAO,BillDAO billDAO) {
 		
 		this.reservationDAO = reservationDAO;
-		this.tableDAO = tableDAO;
 		this.seatingDAO = seatingDAO;
 		this.notificationControl=notificationControl;
 		this.userDAO=userDAO;
@@ -44,8 +42,6 @@ public class BillingControl {
 		case REQUEST_TO_SEE_BILL ->handleRequestToSeeBill(req);
 		case PAY_BILL -> handleRequestToPayBill(req);
 		};
-		
-		
 		}
 	
 	private Response<BillResponse> handleRequestToSeeBill(BillRequest req) {
@@ -99,17 +95,66 @@ public class BillingControl {
             return new Response<>(false, "DB connection failed: " + e.getMessage(), null);
         }
 	}
-	private Response<BillResponse>handleRequestToPayBill(BillRequest req){
-		try (Connection conn=DBManager.getConnection()){
-			try {
-				
-			}
-		}
-		catch (Exception e) {
-            return new Response<>(false, "DB connection failed: " + e.getMessage(), null);
+	private Response<BillResponse> handleRequestToPayBill(BillRequest req) {
+
+	    try (Connection conn = DBManager.getConnection()) {
+	        if (conn == null)
+	            return failResponse("DB connection failed");
+	        conn.setAutoCommit(false);
+	        try {
+	            Reservation r = reservationDAO.getReservationByConfirmationCode(conn, req.getConfirmationCode());
+	            if (r == null) {
+	                conn.rollback();
+	                return failResponse("Reservation not found");
+	            }
+	            Integer seatingId = seatingDAO.getSeatingIdByReservationId(conn, r.getReservationID());
+	            if (seatingId == null) {
+	                conn.rollback();
+	                return failResponse("failed to find the Bill in the DB");
+	            }
+	            Double billTotal = billDAO.getOpenBillTotalBySeatingId(conn, seatingId);
+	            if (billTotal == null) {
+	                conn.rollback();
+	                return failResponse("failed to assess bill price");
+	            }
+
+	            if (!billDAO.markBillAsPaidBySeatingId(conn, seatingId)) {
+	                conn.rollback();
+	                return failResponse("failed to update Bill status in the DB");
+	            }
+
+	            conn.commit();
+	            conn.setAutoCommit(true); 
+
+	            
+	            boolean notificationSent = false;
+	            try {
+	                if (r.getGuestContact() == null || r.getGuestContact().isBlank()) {
+	                    User user = userDAO.getUserByUserID(conn, r.getUserID());
+	                    if (user != null) {
+	                        notificationSent = notificationControl.sendBillConfirmationToUser(user, "Bill confirmation has been sent to user");
+	                    }
+	                } else {
+	                    notificationSent = notificationControl.sendBillConfirmationToGuest(r.getGuestContact(), "Bill confirmation has been sent to guest");
+	                }
+	            } catch (Exception e) {
+	                System.err.println("Confirmation notification failed: " + e.getMessage());
+	                notificationSent = false;
+	            }
+
+	            BillResponse br = new BillResponse(BillResponse.BillResponseType.ANSWER_TO_PAY_BILL,billTotal,notificationSent);
+	            return successResponse("Payment Fulfilled", br);
+
+	        } catch (Exception e) {
+	            try { conn.rollback(); } catch (Exception ignore) {}
+	            return new Response<>(false, "failed to change bill's status to PAID: " + e.getMessage(), null);
+	        }
+
+	    } catch (Exception e) {
+	        return new Response<>(false, "DB connection failed: " + e.getMessage(), null);
+	    }
 	}
 
-	
 	private Response<BillResponse> successResponse(String msg, BillResponse bR) {
         return new Response<>(true, msg, bR);
     }

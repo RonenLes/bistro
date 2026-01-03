@@ -1,9 +1,13 @@
 package server;
 
 import controllers.BillingControl;
+import controllers.NotificationControl;
 import database.DBManager;
 import database.ReservationDAO;
 import database.SeatingDAO;
+import database.UserDAO;
+import entities.Reservation;
+import entities.User;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -16,24 +20,31 @@ import java.util.concurrent.TimeUnit;
 
 public class BillingScheduler {
 
-    private final ScheduledExecutorService scheduler;
+	private final ScheduledExecutorService reminderScheduler =Executors.newSingleThreadScheduledExecutor(r -> {
+	            Thread t1 = new Thread(r, "ReminderScheduler");
+	            t1.setDaemon(true);
+	            return t1;
+	        });
+    private final ScheduledExecutorService scheduler= Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t2 = new Thread(r, "BillingScheduler");
+        t2.setDaemon(true);
+        return t2;
+    });
     private final SeatingDAO seatingDAO;
     private final BillingControl billingControl;
     private final ReservationDAO reservationDAO;
-
+    private final UserDAO userDAO;
+    private final NotificationControl notificationControl;
     private volatile boolean started = false;
 
-    public BillingScheduler(SeatingDAO seatingDAO,BillingControl billingControl,ReservationDAO reservationDAO) {
+    public BillingScheduler(SeatingDAO seatingDAO,BillingControl billingControl,ReservationDAO reservationDAO,UserDAO userDAO,NotificationControl notificationControl) {
 
         this.seatingDAO = seatingDAO;
         this.billingControl = billingControl;
         this.reservationDAO = reservationDAO;
-
-        this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "BillingScheduler");
-            t.setDaemon(true);
-            return t;
-        });
+        this.userDAO=userDAO;
+        this.notificationControl=notificationControl;
+        
     }
 
     public synchronized void start() {
@@ -64,6 +75,71 @@ public class BillingScheduler {
                 System.err.println("tick failed: " + e.getMessage());
             }
         }, 0, 60, TimeUnit.SECONDS);
+        reminderScheduler.scheduleAtFixedRate(() -> {
+            try (Connection conn = DBManager.getConnection()) {
+                if (conn == null) {
+                    System.err.println("reminder tick failed: conn is null");
+                    return;
+                }
+
+                conn.setAutoCommit(false);
+
+                try {
+                    findPrior2HourReservation(conn);
+                    conn.commit();
+                } catch (Exception ex) {
+                    try { conn.rollback(); } catch (Exception ignore) {}
+                    System.err.println("findPrior2HourReservation failed: " + ex.getMessage());
+                }
+
+            } catch (Exception e) {
+                System.err.println("reminder tick failed: " + e.getMessage());
+            }
+        }, 0, 30, TimeUnit.MINUTES);
+    }
+    private void findPrior2HourReservation(Connection conn) throws SQLException {
+    	List<Reservation> reservations=reservationDAO.getReservationsDueForReminder(conn);
+    	for(Reservation r : reservations) {
+    		String guestContact=r.getGuestContact();
+    		if(guestContact==null ||guestContact.isBlank()) {
+    			String userID=r.getUserID();
+    			if (userID == null || userID.isBlank()) {
+                    System.out.println("Reminder skipped: missing userID (reservationID=" + r.getReservationID() + ")");
+                    continue;
+                }
+    			User user=userDAO.getUserByUserID(conn, userID);
+    			if (user == null) {
+                    System.out.println("Reminder skipped: user not found for userID=" + userID);
+                    continue;
+                }
+    			String email=user.getEmail();
+    			String phoneNumber=user.getPhone();
+    			if (email != null && !email.isBlank()) {
+    				if(!notificationControl.sendAutomaticEmailTwoHourPrior(email)) {
+        				System.out.println("failed to send email to " +userID);
+        			}
+    			}
+    			if (phoneNumber != null && !phoneNumber.isBlank()) {
+                    if (!notificationControl.sendAutomaticSMSTwoHourPrior(phoneNumber)) {
+                        System.out.println("Failed to send SMS to " + userID + " (" + phoneNumber + ")");
+                    }
+                }
+    		}
+    		else {
+
+                String c = guestContact.trim();
+                boolean isEmail = c.contains("@") && c.contains(".");
+                if (isEmail) {
+                    if (!notificationControl.sendAutomaticEmailTwoHourPrior(c)) {
+                        System.out.println("Failed to send EMAIL to guestContact=" + c);
+                    }
+                } else {
+                    if (!notificationControl.sendAutomaticSMSTwoHourPrior(c)) {
+                        System.out.println("Failed to send SMS to guestContact=" + c);
+                    }
+                }
+            }
+    	}
     }
 
     /**
@@ -103,6 +179,7 @@ public class BillingScheduler {
     
     public synchronized void stop() {
         scheduler.shutdownNow();
+        reminderScheduler.shutdownNow();
         started = false;
     }
 }

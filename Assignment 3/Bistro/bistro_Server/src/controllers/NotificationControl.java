@@ -3,7 +3,17 @@ package controllers;
 import entities.User;
 
 public class NotificationControl {
-
+	
+	public boolean sendAutomaticEmailTwoHourPrior(String email) {
+			
+			System.out.println("Sending email reminder to "+email);
+			return true;
+	}
+	public boolean sendAutomaticSMSTwoHourPrior(String phoneNumber) {
+		
+		System.out.println("Sending SMS reminder to "+phoneNumber);
+		return true;
+}
     /**
      * Sends the confirmation code to a user via both email and SMS (if present).
      */

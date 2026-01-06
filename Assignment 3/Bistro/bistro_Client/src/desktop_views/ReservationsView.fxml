@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.geometry.Pos?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.TilePane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="800.0" prefWidth="1280.0" styleClass="surface"
+            xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="desktop_views.ReservationsViewController">
+
+    <!-- Optional: keep header small and calm -->
+    <top>
+        <HBox spacing="12.0" alignment="CENTER_LEFT" BorderPane.alignment="CENTER">
+            <children>
+                <VBox spacing="2.0">
+                    <children>
+                        <Label text="Reservations" styleClass="h2"/>
+                        <Label text="Pick a date, party size, then choose a time" styleClass="muted"/>
+                    </children>
+                </VBox>
+                <Region HBox.hgrow="ALWAYS"/>
+            </children>
+            <BorderPane.margin>
+                <Insets top="14.0" right="14.0" bottom="10.0" left="14.0"/>
+            </BorderPane.margin>
+        </HBox>
+    </top>
+
+    <center>
+        <!-- Centered stage host -->
+        <VBox alignment="CENTER" spacing="18.0" BorderPane.alignment="CENTER">
+            <BorderPane.margin>
+                <Insets top="0.0" right="14.0" bottom="14.0" left="14.0"/>
+            </BorderPane.margin>
+
+            <!-- STEP 1: minimal, centered (no big box) -->
+            <VBox fx:id="step1Pane" alignment="CENTER" spacing="16.0" maxWidth="720.0">
+                <children>
+
+                    <Label text="Create a reservation" styleClass="h2"/>
+
+                    <HBox alignment="CENTER" spacing="12.0">
+                        <children>
+                            <VBox spacing="6.0" alignment="CENTER_LEFT">
+                                <children>
+                                    <Label text="Party size" styleClass="subtle"/>
+                                    <Spinner fx:id="partySizeSpinner" prefWidth="160.0"/>
+                                </children>
+                            </VBox>
+
+                            <VBox spacing="6.0" alignment="CENTER_LEFT">
+                                <children>
+                                    <Label text="Date" styleClass="subtle"/>
+                                    <DatePicker fx:id="datePicker" prefWidth="220.0"/>
+                                </children>
+                            </VBox>
+
+                            <VBox spacing="6.0" alignment="CENTER_LEFT">
+                                <children>
+                                    <Label text=" " />
+                                    <Button text="Show times"
+                                            styleClass="primary"
+                                            onAction="#onFindTimes"
+                                            prefWidth="160.0"/>
+                                </children>
+                            </VBox>
+                        </children>
+                    </HBox>
+
+                    <Label fx:id="infoLabel" text="" styleClass="muted"/>
+
+                </children>
+            </VBox>
+
+            <!-- STEP 2: time picker is the main focus -->
+            <VBox fx:id="step2Pane"
+                  alignment="TOP_CENTER"
+                  spacing="14.0"
+                  maxWidth="920.0"
+                  visible="false" managed="false">
+                <children>
+
+                    <HBox alignment="CENTER" spacing="10.0" maxWidth="920.0">
+                        <children>
+                            <VBox spacing="2.0">
+                                <children>
+                                    <Label text="Choose a time" styleClass="h2"/>
+                                    <Label fx:id="slotHeaderLabel" text="—" styleClass="muted"/>
+                                </children>
+                            </VBox>
+
+                            <Region HBox.hgrow="ALWAYS"/>
+
+                            <Button text="Change date"
+                                    styleClass="ghost"
+                                    onAction="#onBackToForm"/>
+                        </children>
+                    </HBox>
+
+                    <!-- The only "main" selection element -->
+                    <TilePane fx:id="slotsTile"
+                              alignment="TOP_CENTER"
+                              prefColumns="4"
+                              hgap="12" vgap="12"
+                              prefTileWidth="200"
+                              prefTileHeight="70"
+                              />
+
+                    <Label fx:id="slotInfoLabel" text="" styleClass="muted"/>
+
+                </children>
+            </VBox>
+
+        </VBox>
+    </center>
+
+</BorderPane>

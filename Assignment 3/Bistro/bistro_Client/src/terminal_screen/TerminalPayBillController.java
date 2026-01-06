@@ -69,13 +69,13 @@ public class TerminalPayBillController implements ClientControllerAware {
         //END PLACEHOLDER
 
         if (!connected || clientController == null) {
-            setStatus("✅ Demo: bill loaded (offline).");
+            setStatus("Demo: bill loaded (offline).");
             return;
         }
 
         // Later:
         // clientController.sendRequest(new FetchBillRequest(reservationNumber));
-        setStatus("✅ Sent fetch bill request (placeholder).");
+        setStatus("Sent fetch bill request (placeholder).");
     }
 
     @FXML
@@ -84,7 +84,7 @@ public class TerminalPayBillController implements ClientControllerAware {
 
         billLoaded = false;
         if (billArea != null) billArea.setText("Payment completed. תודה! ✅");
-        setStatus("✅ Demo: payment succeeded (total: " + demoTotal + ").");
+        setStatus("Demo: payment succeeded (total: " + demoTotal + ").");
 
         // Later:
         // clientController.sendRequest(new PayBillRequest(...));

@@ -43,13 +43,13 @@ public class TerminalCheckInController implements ClientControllerAware {
 
         // Placeholder (no DB)
         if (!connected || clientController == null) {
-            setStatus("✅ Demo: checked-in reservation " + reservationNumber + " (offline).");
+            setStatus("Demo: checked-in reservation " + reservationNumber + " (offline).");
             return;
         }
 
         // Later:
         // clientController.sendRequest(new TerminalCheckInRequest(reservationNumber));
-        setStatus("✅ Sent check-in request (placeholder).");
+        setStatus("Sent check-in request (placeholder).");
     }
 
     private void setStatus(String msg) {

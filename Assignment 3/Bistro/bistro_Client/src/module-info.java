@@ -1,5 +1,4 @@
 module bistro_Client {
-	exports customer_screen;
 	exports subscriber_screen;
 	exports manager_screen;
 	exports client;
@@ -13,7 +12,12 @@ module bistro_Client {
 	
 	opens main_screen to javafx.fxml;
 	//for later
-	opens customer_screen to javafx.fxml;
 	opens manager_screen to javafx.fxml;
 	opens subscriber_screen to javafx.fxml;
+    opens desktop_views to javafx.fxml;
+
+	opens terminal_screen to javafx.fxml;
+    opens desktop_screen to javafx.fxml;
+
+
 }

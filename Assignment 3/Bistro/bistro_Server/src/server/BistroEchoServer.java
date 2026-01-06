@@ -75,11 +75,18 @@ public class BistroEchoServer extends AbstractServer {
 	
 	@Override
 	protected void clientDisconnected(ConnectionToClient client) {
+		System.out.println("SERVER clientDisconnected fired!");
 		ClientSession clientSession = loggedUsers.remove(client);
 		if(clientSession!=null) {
 			System.out.println("Client disconnected: " + clientSession.getIp());
 			serverGUI.onClientDisconnected(clientSession.getIp());
 		}
+	}
+	
+	@Override
+	protected void clientException(ConnectionToClient client, Throwable exception) {
+	    System.out.println("Client exception (treat as disconnect): " + exception.getMessage());
+	    clientDisconnected(client); // cleanup + GUI update
 	}
 	
 	
@@ -104,7 +111,10 @@ public class BistroEchoServer extends AbstractServer {
 		
 	    try {
 	        Object decoded = msg;
-	        if (msg instanceof byte[] bytes)  decoded = KryoUtil.deserialize(bytes);	           	        
+	        if (msg instanceof byte[] bytes)  decoded = KryoUtil.deserialize(bytes);	
+	        System.out.println("SERVER decoded = " + decoded.getClass().getName()
+	                + " | module=" + decoded.getClass().getModule().getName());
+
 
 	        if (!(decoded instanceof Request<?> request)) {response = new Response<>(false, "Invalid request type", null);}
 	            
@@ -117,6 +127,7 @@ public class BistroEchoServer extends AbstractServer {
 	                    Response<LoginResponse> loginResp = userControl.login(loginReq);
 	                    response = loginResp;
 	                    handleLoginSuccess(client, loginReq, loginResp);
+	                    System.out.println(session != null ? session.getUserId() : "session=null");
 	                    
 	                }
 	                case RESERVATION_REQUEST->{

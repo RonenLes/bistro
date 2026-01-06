@@ -1,5 +1,6 @@
 package serverGUI;
 
+import database.DBManager;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -88,10 +89,13 @@ public class ServerMainScreenControl {
 	}
 	
 	public void onClientDisconnected(String ip) {
-        Platform.runLater(() ->
-            clients.removeIf(r -> r.getIp().equals(ip))
-        );
-    }
+	    Platform.runLater(() -> {
+	        System.out.println("UI disconnect ip=" + ip);	        
+	        boolean removed = clients.removeIf(r -> ip != null && ip.equals(r.getIp()));	       
+	        clientTable.refresh(); 
+	    });
+	}
+
 	
 	@FXML
 	private void startServer(ActionEvent event) {
@@ -102,6 +106,11 @@ public class ServerMainScreenControl {
 	    }
 
 	    try {
+	    	if (bistroServer == null) {
+	            lblStatus.setText("Server status: no server instance");
+	            return;
+	        }
+	    	DBManager.init();
 	        bistroServer.listen();
 
 	        btnStart.setVisible(false);

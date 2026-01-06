@@ -1,5 +1,4 @@
-module bistro_Server {
-			
+module bistro_Server {		
 	exports serverGUI;
 			
 	requires OCSF;
@@ -11,4 +10,7 @@ module bistro_Server {
 	requires javafx.fxml;
 	requires javafx.graphics;
 	requires junit;
+	opens serverGUI to javafx.fxml;
+	opens server to javafx.graphics;
+	
 }

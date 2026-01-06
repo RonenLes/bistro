@@ -2,6 +2,8 @@ package main_screen;
 
 import controllers.ClientController;
 import controllers.ClientUIHandler;
+import desktop_screen.DesktopScreenController;
+import desktop_screen.DesktopScreenController.Role;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -32,6 +34,9 @@ public class MainScreenController extends Application implements ClientUIHandler
     // =========================
     private Stage stage;
 
+    // Keep the already-loaded main root so we can go back without reloading
+    private Parent mainRoot;
+
     // =========================
     // FXML fields
     // =========================
@@ -44,7 +49,6 @@ public class MainScreenController extends Application implements ClientUIHandler
     public void start(Stage stage) {
         this.stage = stage;
         stage.setResizable(false);
-
 
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/main_screen/MainScreen.fxml"));
@@ -59,7 +63,8 @@ public class MainScreenController extends Application implements ClientUIHandler
                 }
             });
 
-            Parent root = loader.load(); // injects @FXML fields into THIS instance
+            Parent root = loader.load();         // injects @FXML fields into THIS instance
+            this.mainRoot = root;                // <-- SAVE MAIN ROOT
 
             // Allow ClientController -> UI callbacks
             if (controller != null) {
@@ -77,8 +82,6 @@ public class MainScreenController extends Application implements ClientUIHandler
             if (!connected) {
                 showWarning("Offline Mode", "Server connection failed. UI is running offline.");
             }
-            
-
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -92,28 +95,65 @@ public class MainScreenController extends Application implements ClientUIHandler
         }
     }
 
-    // =========================
-    // Button handlers (from FXML)
-    // =========================
     @FXML
     private void onRemoteClicked() {
+        showLoginScreen();
+    }
+
+    private void showLoginScreen() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/main_screen/DesktopScreen.fxml"));
-            Parent root = loader.load();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/main_screen/LoginScreen.fxml"));
+            Parent loginRoot = loader.load();
 
-            DesktopScreenController c = loader.getController();
-            c.setClientController(controller, connected);
+            LoginScreenController loginCtrl = loader.getController();
+            loginCtrl.setClientController(controller, connected);
 
-            Stage desktopStage = new Stage();
-            desktopStage.setTitle("Desktop Login");
-            desktopStage.setScene(new Scene(root));
+            // Back goes to main root (no reload)
+            loginCtrl.setOnBackToMain(() -> {
+                stage.getScene().setRoot(mainRoot);
+                stage.setTitle("Bistro Client");
+                stage.sizeToScene();
+                stage.centerOnScreen();
+                updateConnectionLabel();
+            });
 
-            // IMPORTANT: bring main back when desktop closes
-            desktopStage.setOnHidden(e -> this.stage.show());
-            desktopStage.setOnCloseRequest(e -> this.stage.show());
+            // Temp “role select” login => open Desktop with role
+            // loginCtrl.setOnLoginAsRole(role -> showDesktopScreen(role, loginCtrl.getUsernameForWelcome()));
 
-            desktopStage.show();
-            this.stage.hide();
+            stage.getScene().setRoot(loginRoot);
+            stage.setTitle("Login");
+            stage.sizeToScene();
+            stage.centerOnScreen();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError("Navigation Error", "Failed to open LoginScreen.\n" + e.getMessage());
+        }
+    }
+
+    private void showDesktopScreen(desktop_screen.DesktopScreenController.Role role, String welcomeName) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/desktop_screen/DesktopScreen.fxml"));
+            Parent desktopRoot = loader.load();
+
+            DesktopScreenController desktopCtrl = loader.getController();
+            desktopCtrl.setClientController(controller);     // your Desktop controller already has this
+            desktopCtrl.setRole(role);
+            desktopCtrl.setWelcomeName(welcomeName);
+
+            // Logout goes back to main (you can change to showLoginScreen() if you prefer)
+            desktopCtrl.setOnLogout(() -> {
+                stage.getScene().setRoot(mainRoot);
+                stage.setTitle("Bistro Client");
+                stage.sizeToScene();
+                stage.centerOnScreen();
+                updateConnectionLabel();
+            });
+
+            stage.getScene().setRoot(desktopRoot);
+            stage.setTitle("Desktop");
+            stage.sizeToScene();
+            stage.centerOnScreen();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -132,15 +172,24 @@ public class MainScreenController extends Application implements ClientUIHandler
             }
 
             FXMLLoader loader = new FXMLLoader(url);
-            Parent root = loader.load();
+            Parent terminalRoot = loader.load();
 
             // Inject controller dependencies
-            terminal_screen.TerminalScreenController ctrl = loader.getController();
+            TerminalScreenController ctrl = loader.getController();
             ctrl.setClientController(controller, connected);
 
+            // Back callback: restore original main root (no re-load)
+            ctrl.setOnBackToMain(() -> {
+                stage.getScene().setRoot(mainRoot);
+                stage.setTitle("Bistro Client");
+                stage.sizeToScene();
+                stage.centerOnScreen();
+                updateConnectionLabel();
+            });
+
             // Swap in same window
-            stage.getScene().setRoot(root);
-            stage.sizeToScene(); 
+            stage.getScene().setRoot(terminalRoot);
+            stage.sizeToScene();
             stage.centerOnScreen();
             stage.setTitle("Terminal");
 
@@ -163,9 +212,7 @@ public class MainScreenController extends Application implements ClientUIHandler
         }
     }
 
-    // =========================
     // ClientUIHandler impl
-    // =========================
     @Override
     public void showInfo(String title, String message) {
         showAlert(title, message, Alert.AlertType.INFORMATION);
@@ -195,4 +242,9 @@ public class MainScreenController extends Application implements ClientUIHandler
             a.showAndWait();
         });
     }
+
+	@Override
+	public void routeToDesktop(DesktopScreenController.Role role, String username) {
+	    Platform.runLater(() -> showDesktopScreen(role, username));
+	}
 }

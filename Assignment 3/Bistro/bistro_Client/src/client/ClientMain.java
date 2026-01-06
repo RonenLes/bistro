@@ -9,7 +9,7 @@ public class ClientMain {
 
         // config connection
         String host = "localhost";
-        int port = 3000;
+        int port = 5555;
 
         // networking
         BistroEchoClient echoClient = new BistroEchoClient(host, port);

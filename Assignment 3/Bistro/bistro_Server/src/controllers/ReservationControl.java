@@ -42,11 +42,8 @@ public class ReservationControl {
                 new UserDAO(), new NotificationControl());
     }
 
-    public ReservationControl(ReservationDAO reservationDAO,
-                              TableDAO tableDAO,
-                              OpeningHoursDAO openingHoursDAO,
-                              UserDAO userDAO,
-                              NotificationControl notificationControl) {
+    public ReservationControl(ReservationDAO reservationDAO, TableDAO tableDAO,OpeningHoursDAO openingHoursDAO,
+                             UserDAO userDAO,  NotificationControl notificationControl) {                                                                                      
         this.reservationDAO = reservationDAO;
         this.tableDAO = tableDAO;
         this.openingHoursDAO = openingHoursDAO;

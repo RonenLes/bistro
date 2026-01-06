@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Spinner?>
 <?import javafx.scene.control.TextField?>
-<?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
@@ -15,8 +16,8 @@
    <children>
       <GridPane prefHeight="187.0" prefWidth="600.0">
         <columnConstraints>
-          <ColumnConstraints hgrow="SOMETIMES" maxWidth="295.0" minWidth="10.0" prefWidth="166.0" />
-          <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" maxWidth="455.0" minWidth="10.0" prefWidth="434.0" />
+          <ColumnConstraints halignment="RIGHT" hgrow="SOMETIMES" maxWidth="295.0" minWidth="10.0" prefWidth="166.0" />
+          <ColumnConstraints halignment="LEFT" hgrow="SOMETIMES" maxWidth="455.0" minWidth="10.0" prefWidth="434.0" />
         </columnConstraints>
         <rowConstraints>
           <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
@@ -24,44 +25,59 @@
           <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
         </rowConstraints>
          <children>
-            <Label alignment="CENTER" prefHeight="19.0" prefWidth="167.0" text="Name:" textAlignment="CENTER">
+            <Label prefHeight="19.0" prefWidth="167.0" text="Name:" textAlignment="CENTER" GridPane.halignment="CENTER">
                <font>
                   <Font size="18.0" />
                </font>
+               <padding>
+                  <Insets left="20.0" />
+               </padding>
             </Label>
-            <Label alignment="CENTER" prefHeight="19.0" prefWidth="167.0" text="Phone:" textAlignment="CENTER" GridPane.rowIndex="1">
+            <Label prefHeight="19.0" prefWidth="167.0" text="Phone:" textAlignment="CENTER" GridPane.halignment="CENTER" GridPane.rowIndex="1">
                <font>
                   <Font size="18.0" />
                </font>
+               <padding>
+                  <Insets left="20.0" />
+               </padding>
             </Label>
-            <Label alignment="CENTER" prefHeight="19.0" prefWidth="167.0" text="Party size:" textAlignment="CENTER" GridPane.rowIndex="2">
+            <Label prefHeight="19.0" prefWidth="167.0" text="Party size:" textAlignment="CENTER" GridPane.halignment="CENTER" GridPane.rowIndex="2">
                <font>
                   <Font size="18.0" />
                </font>
+               <padding>
+                  <Insets left="20.0" />
+               </padding>
             </Label>
-            <TextField fx:id="nameField" GridPane.columnIndex="1" />
-            <TextField fx:id="phoneField" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+            <TextField fx:id="nameField" GridPane.columnIndex="1">
+               <GridPane.margin>
+                  <Insets right="20.0" />
+               </GridPane.margin></TextField>
+            <TextField fx:id="phoneField" GridPane.columnIndex="1" GridPane.rowIndex="1">
+               <GridPane.margin>
+                  <Insets right="20.0" />
+               </GridPane.margin></TextField>
             <Spinner fx:id="partySizeField" GridPane.columnIndex="1" GridPane.rowIndex="2" />
          </children>
       </GridPane>
-      <BorderPane prefHeight="63.0" prefWidth="600.0">
-         <center>
-            <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#onJoin" prefHeight="39.0" prefWidth="173.0" text="Join" BorderPane.alignment="CENTER">
-               <font>
-                  <Font size="18.0" />
-               </font>
-            </Button>
-         </center>
-      </BorderPane>
       <VBox alignment="CENTER" prefHeight="80.0" prefWidth="600.0">
          <children>
-            <Button mnemonicParsing="false" onAction="#onClear" prefHeight="69.0" prefWidth="176.0" text="Clear" />
-            <Label fx:id="statusLabel" alignment="CENTER" contentDisplay="CENTER" prefHeight="64.0" prefWidth="574.0" text="status" textAlignment="CENTER" textFill="RED">
-               <font>
-                  <Font size="18.0" />
-               </font>
-            </Label>
+            <HBox alignment="CENTER" prefHeight="91.0" prefWidth="600.0" spacing="20.0">
+               <children>
+                  <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#onJoin" prefHeight="46.0" prefWidth="177.0" text="Join">
+                     <font>
+                        <Font size="18.0" />
+                     </font>
+                  </Button>
+                  <Button mnemonicParsing="false" onAction="#onClear" prefHeight="46.0" prefWidth="171.0" text="Clear" />
+               </children>
+            </HBox>
          </children>
       </VBox>
+      <Label fx:id="statusLabel" alignment="CENTER" contentDisplay="CENTER" prefHeight="64.0" prefWidth="604.0" text="status" textAlignment="CENTER" textFill="RED">
+         <font>
+            <Font size="18.0" />
+         </font>
+      </Label>
    </children>
 </VBox>

@@ -7,7 +7,8 @@ public class Request<T> {
 	public enum Command{
 		USER_REQUEST,
 		RESERVATION_REQUEST,	
-		SEATING_REQUEST;
+		SEATING_REQUEST,
+		MANAGER_REQUEST;
 	}
 	
 	public Request() {}
@@ -25,7 +26,5 @@ public class Request<T> {
 	public T getData() {
 		return data;
 	}	
-	
-	 
-	
+		 	
 }

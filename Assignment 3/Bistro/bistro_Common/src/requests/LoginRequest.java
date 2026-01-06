@@ -16,7 +16,9 @@ public class LoginRequest {
 	
 	public enum UserCommand{
 		LOGIN_REQUEST,
-		EDIT_DETAIL_REQUEST
+		EDIT_DETAIL_REQUEST,
+		HISTORY_REQUEST
+		
 	}
 	public LoginRequest() {
 		
@@ -30,6 +32,10 @@ public class LoginRequest {
 	public LoginRequest(String username, String password,UserCommand userCommand) {
 		this.username = username;
 		this.password = password;
+		this.userCommand = userCommand;
+	}
+
+	public void setUserCommand(UserCommand userCommand) {
 		this.userCommand = userCommand;
 	}
 

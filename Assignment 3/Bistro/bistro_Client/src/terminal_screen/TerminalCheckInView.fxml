@@ -10,16 +10,16 @@
 <StackPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="terminal_screen.TerminalCheckInController">
    <children>
       <VBox prefHeight="200.0" prefWidth="0.0" />
-      <VBox alignment="CENTER" prefHeight="260.0" prefWidth="396.0" spacing="12.0">
+      <VBox alignment="CENTER" prefHeight="571.0" prefWidth="635.0" spacing="12.0">
          <children>
             <Label text="Check-in">
                <font>
                   <Font size="24.0" />
                </font>
             </Label>
-            <TextField fx:id="reservationNumberField" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="25.0" prefWidth="344.0" />
-            <Button mnemonicParsing="false" onAction="#onEnter" prefHeight="41.0" prefWidth="130.0" text="Enter" />
-            <Label fx:id="statusLabel" alignment="CENTER" prefHeight="65.0" prefWidth="364.0" text="status" textFill="RED">
+            <TextField fx:id="reservationNumberField" alignment="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="73.0" prefWidth="449.0" promptText="Enter reservation/confirmation number" />
+            <Button mnemonicParsing="false" onAction="#onEnter" prefHeight="48.0" prefWidth="149.0" text="Enter" />
+            <Label fx:id="statusLabel" alignment="CENTER" prefHeight="65.0" prefWidth="477.0" text="status" textFill="RED">
                <font>
                   <Font size="18.0" />
                </font>

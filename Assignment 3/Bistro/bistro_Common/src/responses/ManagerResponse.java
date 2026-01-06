@@ -27,6 +27,12 @@ public class ManagerResponse {
 
 	public ManagerResponse() {}
 	
+	public ManagerResponse(ManagerResponseCommand cmd, TableInfo table, List<?> infoList) {
+		this.responseCommand = cmd;
+		this.table = table;
+		this.infoList = infoList;
+	}
+	
 	public ManagerResponse(List<?> infoList, ManagerResponseCommand cmd) {
 		this.responseCommand = cmd;
 		this.infoList = infoList;

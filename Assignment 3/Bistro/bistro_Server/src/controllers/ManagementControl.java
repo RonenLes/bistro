@@ -104,15 +104,48 @@ public class ManagementControl {
 	 * @return
 	 */
 	public Response<ManagerResponse> editTalbeCap(ManagerRequest req){
-		try(Connection conn = DBManager.getConnection()){
-			if(!tableDAO.updateTableByTableNumber(conn, req.getTableNumber(), req.getNewCap())) {
-				return new Response<>(false,"failed to edit table number: "+req.getTableNumber(),null);
+		Connection conn = null;
+		List<Integer> cancelledCodes = new ArrayList<>();
+		List<String> victimContacts = new ArrayList<>();
+
+		try {
+			conn = DBManager.getConnection();
+			conn.setAutoCommit(false);
+
+			Integer currentCap = tableDAO.getCapacityByTableNumber(conn, req.getTableNumber());
+			if (currentCap == null) {
+				conn.rollback();
+				return new Response<>(false, "table not found for number: " + req.getTableNumber(), null);
 			}
-			ManagerResponse resp = new ManagerResponse(ManagerResponseCommand.EDIT_TABLE_RESPONSE,new TableInfo(req.getTableNumber(),req.getNewCap()));
-			return new Response<>(true,"Edit successful",resp);
-		}catch(SQLException e) {
+			if (req.getNewCap() < currentCap) {
+				int newTotal = computeNewTotalAfterReduction(conn, currentCap);
+				cancelVictimsForOverbookedSlots(conn, currentCap, newTotal, cancelledCodes, victimContacts);
+			}
+
+			if (!tableDAO.updateTableByTableNumber(conn, req.getTableNumber(), req.getNewCap())) {
+				conn.rollback();
+				return new Response<>(false, "failed to edit table number: " + req.getTableNumber(), null);
+			}
+
+			conn.commit();
+		}catch(Exception e) {
+			safeRollback(conn);
 			return new Response<>(false,"DB fail to edit table",null);
+		}finally {
+			closeQuietly(conn);
 		}
+		notifyVictims(victimContacts);
+		ManagerResponse resp = new ManagerResponse(ManagerResponseCommand.EDIT_TABLE_RESPONSE,new TableInfo(req.getTableNumber(), req.getNewCap()),victimContacts);												
+		String msg = "Edit successful";
+		if (!cancelledCodes.isEmpty()) {
+			msg += ". Cancelled " + cancelledCodes.size() + " reservation(s).";
+		}
+		return new Response<>(true, msg, resp);
+	}
+	
+	private int computeNewTotalAfterReduction(Connection conn, int cap) throws SQLException {
+	    int totalActive = tableDAO.countActiveTablesByCapacity(conn, cap);
+	    return Math.max(totalActive - 1, 0);
 	}
 	
 	/**

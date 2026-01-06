@@ -38,4 +38,6 @@ public class OpeningHoursDAO {
 		}
 		return openHour;
 	}
+	
+	
 }

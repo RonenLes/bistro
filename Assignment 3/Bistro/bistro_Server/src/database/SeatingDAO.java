@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SeatingDAO {
-
     // INSERT
     private static final String INSERT_SEATING =
             "INSERT INTO seating (tableID, reservationID, checkInTime, checkOutTime) " +

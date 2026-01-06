@@ -9,7 +9,6 @@ import requests.TableInfo;
 import responses.CurrentSeatingResponse;
 
 public class SeatingDAO {
-
     // INSERT
     private static final String INSERT_SEATING =
             "INSERT INTO seating (tableID, reservationID, checkInTime, checkOutTime) " +

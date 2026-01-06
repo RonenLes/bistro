@@ -88,7 +88,6 @@ public class NotificationControl {
 	public boolean sendBillToUser(User user, String billMessage,double bill) {
 		System.out.println("SentBillToUser");
 		return true;
-		
 	}
 	public boolean sendBillConfirmationToGuest(String guestContact, String billMessage) {
 		System.out.println("SentBillConfirmationToGuest");

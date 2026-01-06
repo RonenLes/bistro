@@ -138,7 +138,6 @@ public class BillingControl {
 	            	conn.rollback();
 	            	return failResponse("Failed to check out seating");
 	            }
-	            
 	            conn.commit();
 	            conn.setAutoCommit(true); 
 	            BillResponse br = new BillResponse(BillResponse.BillResponseType.ANSWER_TO_PAY_BILL,bill.getTotalPrice(),notificationSent);
@@ -153,7 +152,7 @@ public class BillingControl {
 	        return new Response<>(false, "DB connection failed: " + e.getMessage(), null);
 	    }
 	}
-
+	
 	private boolean sendConfirmationToCorrectContact(Connection conn, Reservation r) throws SQLException {
 		if(r.getGuestContact()==null ||r.getGuestContact().isBlank()) {
 			User user= userDAO.getUserByUserID(conn, r.getUserID());

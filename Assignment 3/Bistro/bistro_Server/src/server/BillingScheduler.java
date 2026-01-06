@@ -36,7 +36,7 @@ public class BillingScheduler {
     private final UserDAO userDAO;
     private final NotificationControl notificationControl;
     private volatile boolean started = false;
-
+    
     public BillingScheduler(SeatingDAO seatingDAO,BillingControl billingControl,ReservationDAO reservationDAO,UserDAO userDAO,NotificationControl notificationControl) {
 
         this.seatingDAO = seatingDAO;
@@ -46,7 +46,7 @@ public class BillingScheduler {
         this.notificationControl=notificationControl;
         
     }
-
+    
     public synchronized void start() {
         if (started) return;
         started = true;

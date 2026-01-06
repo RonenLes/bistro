@@ -101,7 +101,6 @@ public class ManagementControl {
     		e.printStackTrace();
     		return new Response<>(false, "DB fail to add new table", null);
 		}
-		
 	}
 	
 }

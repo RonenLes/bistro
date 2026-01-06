@@ -3,41 +3,51 @@ package controllers;
 import entities.User;
 
 public class NotificationControl {
-
+	
+	public boolean sendAutomaticEmailTwoHourPrior(String email) {
+			
+			System.out.println("Sending email reminder to "+email);
+			return true;
+	}
+	public boolean sendAutomaticSMSTwoHourPrior(String phoneNumber) {
+		
+		System.out.println("Sending SMS reminder to "+phoneNumber);
+		return true;
+}
     /**
      * Sends the confirmation code to a user via both email and SMS (if present).
      */
-    public void sendConfirmationToUser(User user, int confirmationCode) {
-        if (user == null) return;
+    public boolean sendConfirmationToUser(User user, int confirmationCode) {
+        if (user == null) return false;
 
         String subject = "Reservation Confirmation";
         String message = "Your reservation confirmation code is: " + confirmationCode;
 
         String email = user.getEmail();
         if (email != null && !email.isBlank()) {
-            sendEmail(email, subject, message);
+            return sendEmail(email, subject, message);
         }
-
         String phone = user.getPhone();
         if (phone != null && !phone.isBlank()) {
-            sendSms(phone, message);
+            return sendSms(phone, message);
         }
+        return false;
     }
 
     /**
      * Sends the confirmation code to a guest via the contact method they provided.
      * guestContact may be an email or a phone number.
      */
-    public void sendConfirmationToGuest(String guestContact, int confirmationCode) {
-        if (guestContact == null || guestContact.isBlank()) return;
+    public boolean sendConfirmationToGuest(String guestContact, int confirmationCode) {
+        if (guestContact == null || guestContact.isBlank()) return false;
 
         String subject = "Reservation Confirmation";
         String message = "Your reservation confirmation code is: " + confirmationCode;
 
         if (looksLikeEmail(guestContact)) {
-            sendEmail(guestContact, subject, message);
+            return sendEmail(guestContact, subject, message);
         } else {
-            sendSms(guestContact, message);
+            return sendSms(guestContact, message);
         }
     }
 
@@ -53,27 +63,39 @@ public class NotificationControl {
      * Email sending implementation.
      * Replace this with JavaMail / SMTP / provider API when needed.
      */
-    private void sendEmail(String to, String subject, String body) {
-        System.out.println("[EMAIL] To: " + to);
-        System.out.println("[EMAIL] Subject: " + subject);
-        System.out.println("[EMAIL] Body: " + body);
+    private boolean sendEmail(String to, String subject, String body) {
+        System.out.println("To: " + to);
+        System.out.println("Subject: " + subject);
+        System.out.println("Body: " + body);
+        return true;
     }
 
     /**
      * SMS sending implementation.
      * Replace this with an SMS provider API when needed.
      */
-    private void sendSms(String phoneNumber, String message) {
+    private boolean sendSms(String phoneNumber, String message) {
         System.out.println("[SMS] To: " + phoneNumber);
         System.out.println("[SMS] Message: " + message);
+        return true;
     }
 
-	public void sendBillToGuest(String guestContact, String billMessage,double bill) {
-		// TODO Auto-generated method stub
+	public boolean sendBillToGuest(String guestContact, String billMessage,double bill) {
+		System.out.println("SentBillToGuest");
+		return true;
 	}
 	
-	public void sendBillToUser(User user, String billMessage,double bill) {
-		// TODO Auto-generated method stub
+	public boolean sendBillToUser(User user, String billMessage,double bill) {
+		System.out.println("SentBillToUser");
+		return true;
 		
+	}
+	public boolean sendBillConfirmationToGuest(String guestContact, String billMessage) {
+		System.out.println("SentBillConfirmationToGuest");
+		return true;
+	}
+	public boolean sendBillConfirmationToUser(User user, String billMessage) {
+		System.out.println("SentBillConfirmationToUser");
+		return true;
 	}
 }

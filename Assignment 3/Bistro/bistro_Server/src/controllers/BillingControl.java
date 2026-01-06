@@ -21,16 +21,14 @@ import database.SeatingDAO;
 
 public class BillingControl {
 	private final ReservationDAO reservationDAO;
-	private final TableDAO tableDAO;
 	private final SeatingDAO seatingDAO;
 	private final NotificationControl notificationControl;
 	private final UserDAO userDAO;
 	private final BillDAO billDAO;
 	
-	public BillingControl(ReservationDAO reservationDAO, TableDAO tableDAO, SeatingDAO seatingDAO,NotificationControl notificationControl,UserDAO userDAO,BillDAO billDAO) {
+	public BillingControl(ReservationDAO reservationDAO, SeatingDAO seatingDAO,NotificationControl notificationControl,UserDAO userDAO,BillDAO billDAO) {
 		
 		this.reservationDAO = reservationDAO;
-		this.tableDAO = tableDAO;
 		this.seatingDAO = seatingDAO;
 		this.notificationControl=notificationControl;
 		this.userDAO=userDAO;
@@ -42,62 +40,121 @@ public class BillingControl {
 		if(req.getType()==null) return failResponse("type is null");
 		return switch (req.getType()) {
 		case REQUEST_TO_SEE_BILL ->handleRequestToSeeBill(req);
-		case PAY_BILL -> 
+		case PAY_BILL -> handleRequestToPayBill(req);
 		};
-		
-		
 		}
 	
 	private Response<BillResponse> handleRequestToSeeBill(BillRequest req) {
-	    Connection conn = null;
-	    try {
-	        conn = DBManager.getConnection();
-	        if (conn == null) return failResponse("DB connection failed");
+	    
+	    try (Connection conn = DBManager.getConnection()){
 	        conn.setAutoCommit(false);
-	        Reservation r = reservationDAO.getReservationByConfirmationCode(conn, req.getConfirmationCode());
-	        if (r == null) {
-	            return failResponse("Reservation not found");
-	        }
-	        Integer seatingId = seatingDAO.getSeatingIdByReservationId(conn, r.getReservationID());
-	        if (seatingId == null) {
-	            return failResponse("No open seating found for this reservation");
-	        }
-	        Double existing = billDAO.getOpenBillTotalBySeatingId(conn, seatingId);
-	        double billAmount;
-	        boolean createdNow = false;
-	        if (existing != null) {
-	            billAmount = existing;
-	        } else {
-	            billAmount = generateRandomBillSum();
-	            int billId = billDAO.insertNewBill(conn, seatingId, billAmount, LocalDateTime.now(), null);
-	            if (billId == -1) {
-	                conn.rollback();
-	                return failResponse("Failed to create bill");
-	            }
-	            createdNow = true;
-	        }
-	        conn.commit();
-	        boolean notificationSent = false;
-	        try {
-	            notificationSent = sendBillToCorrectContact(conn,r.getGuestContact(), r.getUserID(),buildBillMessage(seatingId),billAmount);
-	        } catch (Exception e) {
-	            System.err.println("Notification failed: " + e.getMessage());
-	        }
+	    	try {
+	    		Reservation r = reservationDAO.getReservationByConfirmationCode(conn, req.getConfirmationCode());
+		        if (r == null) {
+		        	conn.rollback();
+		            return failResponse("Reservation not found");
+		        }
+		        Integer seatingId = seatingDAO.getSeatingIdByReservationId(conn, r.getReservationID());
+		        if (seatingId == null) {
+		        	conn.rollback();
+		            return failResponse("No open seating found for this reservation");
+		        }
+		        Double existing = billDAO.getOpenBillTotalBySeatingId(conn, seatingId);
+		        double billAmount;
+		        boolean createdNow = false;
+		        if (existing != null) {
+		            billAmount = existing;
+		        } else {
+		            billAmount = generateRandomBillSum();
+		            int billId = billDAO.insertNewBill(conn, seatingId,billAmount, LocalDateTime.now(), null);
+		            if (billId == -1) {
+		                conn.rollback();
+		                return failResponse("Failed to create bill");
+		            }
+		            createdNow = true;
+		        }
+		        conn.commit();
+		        conn.setAutoCommit(true);
+		        boolean notificationSent = false;
+		        try {
+		            notificationSent = sendBillToCorrectContact(conn,r.getGuestContact(), r.getUserID(),buildBillMessage(seatingId),billAmount);
+		        } catch (Exception e) {
+		            System.err.println("Notification failed: " + e.getMessage());
+		        }
 
-	        String msg = createdNow ? "Bill created successfully" : "Bill found";
-	        BillResponse br = new BillResponse(BillResponseType.ANSWER_TO_REQUEST_TO_SEE_BILL,billAmount,notificationSent);
-	        return successResponse(msg, br);
+		        String msg = createdNow ? "Bill created successfully" : "Bill found";
+		        BillResponse br = new BillResponse(BillResponseType.ANSWER_TO_REQUEST_TO_SEE_BILL,billAmount,notificationSent);
+		        return successResponse(msg, br);
+	    	}
+	    	catch (Exception e) {
+                conn.rollback();
+                return new Response<>(false, "failed to add bill to db" + e.getMessage(), null);
+            }
+	    	
+        } catch (Exception e) {
+            return new Response<>(false, "DB connection failed: " + e.getMessage(), null);
+        }
+	}
+	private Response<BillResponse> handleRequestToPayBill(BillRequest req) {
+
+	    try (Connection conn = DBManager.getConnection()) {
+	        if (conn == null)
+	            return failResponse("DB connection failed");
+	        conn.setAutoCommit(false);
+	        try {
+	            Reservation r = reservationDAO.getReservationByConfirmationCode(conn, req.getConfirmationCode());
+	            if (r == null) {
+	                conn.rollback();
+	                return failResponse("Reservation not found");
+	            }
+	            Integer seatingId = seatingDAO.getSeatingIdByReservationId(conn, r.getReservationID());
+	            if (seatingId == null) {
+	                conn.rollback();
+	                return failResponse("failed to find the Bill in the DB");
+	            }
+	            Double billTotal = billDAO.getOpenBillTotalBySeatingId(conn, seatingId);
+	            if (billTotal == null) {
+	                conn.rollback();
+	                return failResponse("failed to assess bill price");
+	            }
+
+	            if (!billDAO.markBillAsPaidBySeatingId(conn, seatingId)) {
+	                conn.rollback();
+	                return failResponse("failed to update Bill status in the DB");
+	            }
+
+	            conn.commit();
+	            conn.setAutoCommit(true); 
+
+	            
+	            boolean notificationSent = false;
+	            try {
+	                if (r.getGuestContact() == null || r.getGuestContact().isBlank()) {
+	                    User user = userDAO.getUserByUserID(conn, r.getUserID());
+	                    if (user != null) {
+	                        notificationSent = notificationControl.sendBillConfirmationToUser(user, "Bill confirmation has been sent to user");
+	                    }
+	                } else {
+	                    notificationSent = notificationControl.sendBillConfirmationToGuest(r.getGuestContact(), "Bill confirmation has been sent to guest");
+	                }
+	            } catch (Exception e) {
+	                System.err.println("Confirmation notification failed: " + e.getMessage());
+	                notificationSent = false;
+	            }
+
+	            BillResponse br = new BillResponse(BillResponse.BillResponseType.ANSWER_TO_PAY_BILL,billTotal,notificationSent);
+	            return successResponse("Payment Fulfilled", br);
+
+	        } catch (Exception e) {
+	            try { conn.rollback(); } catch (Exception ignore) {}
+	            return new Response<>(false, "failed to change bill's status to PAID: " + e.getMessage(), null);
+	        }
 
 	    } catch (Exception e) {
-	        try { if (conn != null) conn.rollback(); } catch (Exception ignore) {}
-	        return failResponse("Failed to interact with DB");
-
-	    } finally {
-	        try { if (conn != null) conn.close(); } catch (Exception ignore) {}
+	        return new Response<>(false, "DB connection failed: " + e.getMessage(), null);
 	    }
 	}
 
-	
 	private Response<BillResponse> successResponse(String msg, BillResponse bR) {
         return new Response<>(true, msg, bR);
     }

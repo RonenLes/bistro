@@ -37,7 +37,15 @@ public class ReservationDAO {
 	          AND (? < ADDTIME(startTime, '02:00:00') AND ? > startTime)
 	        GROUP BY allocatedCapacity
 			""";
+	private static final String SELECT_RESERVATIONS_DUE_FOR_REMINDER =
+	        "SELECT reservationID, reservationDate, status, partySize, allocatedCapacity, " +
+	        "       confirmationCode, guestContact, userID, startTime " +
+	        "FROM reservations " +
+	        "WHERE TIMESTAMP(reservationDate, startTime) >= (NOW() + INTERVAL 2 HOUR) " +
+	        "  AND TIMESTAMP(reservationDate, startTime) <  (NOW() + INTERVAL 150 MINUTE) " +
+	        "  AND status = 'APPROVED'";
 	private static final String SELECT_CONFIRMATION_CODE_EXISTS = "SELECT 1 FROM reservation WHERE confirmationCode = ? LIMIT 1";
+	
 	// UPDATE statement
 	private static final String UPDATE_STATUS_RESERVATION_SQL_BY_RESERVATION_ID ="UPDATE `reservation` SET status = ? WHERE reservationID = ?";
 	private static final String UPDATE_STATUS_RESERVATION_SQL ="UPDATE `reservation` " +"SET status = ? " +"WHERE confirmation_code = ?";
@@ -73,7 +81,33 @@ public class ReservationDAO {
 	        throw e;
 	    }
 	}
-	
+	public List<Reservation> getReservationsDueForReminder(Connection conn) throws SQLException {
+
+	    List<Reservation> reservations = new ArrayList<>();
+
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_RESERVATIONS_DUE_FOR_REMINDER);
+	         ResultSet rs = ps.executeQuery()) {
+
+	        while (rs.next()) {
+	            Reservation r = new Reservation(
+	                    rs.getInt("reservationID"),
+	                    rs.getDate("reservationDate").toLocalDate(),
+	                    rs.getString("status"),
+	                    rs.getInt("partySize"),
+	                    rs.getInt("allocatedCapacity"),
+	                    rs.getInt("confirmationCode"),
+	                    rs.getString("guestContact"),
+	                    rs.getString("userID"),
+	                    rs.getTime("startTime").toLocalTime()
+	            );
+	            reservations.add(r);
+	        }
+	    }
+
+	    return reservations;
+	}
+
+
 	public List<Integer> getReservationsDueForNoShow(Connection conn, LocalDate date, LocalTime lateCutoffTime)
 	        throws SQLException {
 

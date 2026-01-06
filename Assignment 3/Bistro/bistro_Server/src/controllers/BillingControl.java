@@ -42,6 +42,7 @@ public class BillingControl {
 		case REQUEST_TO_SEE_BILL ->handleRequestToSeeBill(req);
 		case PAY_BILL -> handleRequestToPayBill(req);
 		};
+		
 		}
 	
 	private Response<BillResponse> handleRequestToSeeBill(BillRequest req) {

@@ -8,6 +8,9 @@ public class BillResponse {
 		ANSWER_TO_REQUEST_TO_SEE_BILL,
 		ANSWER_TO_PAY_BILL
 	}
+	
+	public BillResponse() {}
+	
 	public BillResponse(BillResponseType type,double bill,boolean notificationSent) {
 		this.type=type;
 		this.bill = bill;

@@ -19,6 +19,7 @@ public class ManagerRequest {
 		EDIT_TABLES,
 		ADD_NEW_TABLE,
 		VIEW_CURRENT_SEATING,
+		DELETE_TABLE
 	}
 
 	public ManagerRequest() {}
@@ -31,9 +32,14 @@ public class ManagerRequest {
 		this.phone = phone;
 		this.email = email;
 	}
+	
+	public ManagerRequest(ManagerCommand managerCommand,int tableNumber) {
+		this.managerCommand = managerCommand;
+		this.tableNumber=tableNumber;
+	}
 
-	public ManagerRequest(int tableNumber,int newCap) {
-		this.managerCommand = ManagerCommand.ADD_NEW_TABLE;
+	public ManagerRequest(int tableNumber,int newCap,ManagerCommand managerCommand) {
+		this.managerCommand = managerCommand;
 		this.tableNumber = tableNumber;
 		this.newCap = newCap;
 	}

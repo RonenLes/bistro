@@ -1,8 +1,12 @@
 package database;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
+import requests.TableInfo;
+import responses.CurrentSeatingResponse;
 
 public class SeatingDAO {
 
@@ -20,6 +24,16 @@ public class SeatingDAO {
         
     
     //SELECT
+    private final String SELECT_CURRENT_SEATINGS ="SELECT s.seatingID,t.tableNumber, t.capacity, s.checkInTime, s.checkOutTime, "+
+    											  "DATE_ADD(s.checkInTime, INTERVAL 2 HOUR) AS estimatedCheckOutTime, r.reservationID, r.confirmationCode, r.partySize, "+
+    											  "r.userID, r.guestContact, u.username "+
+    											  "FROM seating s JOIN restaurant_table t ON t.tableID = s.tableID "+
+    											  "JOIN reservation r ON r.reservationID = s.reservationID "+
+    											  "LEFT JOIN user u ON u.userID = r.userID "+
+    											  "WHERE s.checkOutTime IS NULL "+
+    											  "ORDER BY t.tableNumber ASC";
+    
+    
     private final String SELECT_OPEN_SEATING_TO_UPDATE = "SELECT seatingID, reservationID "+
     													 "FROM seating "+
     													 "WHERE tableID = ? AND checkOutTime IS NULL "+
@@ -28,8 +42,8 @@ public class SeatingDAO {
     private static final String SELECT_SEATINGS_DUE_FOR_BILL ="SELECT seatingID " +"FROM seating " +"WHERE checkOutTime IS NULL " +"AND billSent = 0 " +"AND checkInTime <= DATE_SUB(NOW(), INTERVAL 2 HOUR)";
     private static final String SELECT_RESERVATION_ID_BY_SEATING_ID = "SELECT reservationID FROM seating WHERE seatingID = ?";
     private static final String SELECT_SEATING_ID_BY_RESERVATION_ID ="SELECT seatingID " +"FROM seating " +"WHERE reservationID = ? " +"AND checkOutTime IS NULL " +
-"ORDER BY checkInTime DESC " +
-            "LIMIT 1";
+    																 "ORDER BY checkInTime DESC " +
+    																 "LIMIT 1";
 
     public boolean claimAutoBillSend(Connection conn, int seatingId) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(CLAIM_AUTO_BILL_SEND)) {
@@ -140,6 +154,35 @@ public class SeatingDAO {
         }
 
         return seatingIds;
+    }
+    
+    public List<CurrentSeatingResponse> fetchCurrentSeating(Connection conn) throws SQLException {
+    	List<CurrentSeatingResponse> list = new ArrayList<>();
+    	try( PreparedStatement ps = conn.prepareStatement(SELECT_CURRENT_SEATINGS);
+    		ResultSet rs = ps.executeQuery();){
+    		  		
+    		
+    		while(rs.next()) {
+    			LocalDateTime checkIn = rs.getTimestamp("checkInTime").toLocalDateTime();
+    			LocalDateTime estimated = rs.getTimestamp("estimatedCheckOutTime").toLocalDateTime();
+    			
+    			TableInfo ti = new TableInfo(rs.getInt("tableNumber"), rs.getInt("capacity"));
+    			
+    			CurrentSeatingResponse cs = new CurrentSeatingResponse(
+    					rs.getString("userID"),
+    					rs.getString("username"),
+    					ti,
+    					rs.getString("guestContact"),
+    					rs.getInt("partySize"),
+    					rs.getInt("seatingID"),
+    					estimated,
+    					rs.getInt("confirmationCode"),
+    					checkIn);
+    			list.add(cs);
+    		}
+    				
+    	}
+    	return list;
     }
 
 }

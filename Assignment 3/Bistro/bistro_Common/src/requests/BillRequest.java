@@ -5,10 +5,14 @@ public class BillRequest {
 	private BillRequestType type;
 	private int confirmationCode;
 	private boolean isCashPayment;
+	
 	public enum BillRequestType{
 		REQUEST_TO_SEE_BILL,
 		PAY_BILL
 	}
+	
+	public BillRequest() {}
+	
 	public BillRequest(int confirmationCode,BillRequestType type) {
 		this.confirmationCode = confirmationCode;
 		this.type=type;

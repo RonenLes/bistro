@@ -14,6 +14,11 @@ public class TableDAO {
 	//INSERT
 	private final String INSERT_newTable ="INSERT INTO `restaurant_table` " + "(tableNumber, capacity) " +"(?, ?)";
 	
+	//DELETE
+	private static final String DELETE_TABLE_BY_NUMBER ="DELETE t FROM restaurant_table t WHERE t.tableNumber = ? "						
+			+ " AND NOT EXISTS (SELECT 1 FROM seating s WHERE s.tableID = t.tableID "
+			+ "AND s.checkOutTime IS NULL)";			
+	
 	//SELECT
 	private final String SELECT_ALL_TABLES ="SELECT * FROM `restaurant_table`";
 	private final String SELECT_TABLE_BY_ID = "SELECT * FROM `restaurant_table` WHERE tableID = ?";
@@ -150,5 +155,12 @@ public class TableDAO {
 		}
 	}
 	
+	
+	public boolean deleteTableByNumberIfNotOccupied(Connection conn, int tableNumber) throws SQLException {
+	    try (PreparedStatement ps = conn.prepareStatement(DELETE_TABLE_BY_NUMBER)) {
+	        ps.setInt(1, tableNumber);
+	        return ps.executeUpdate() == 1;
+	    }
+	}
 	
 }

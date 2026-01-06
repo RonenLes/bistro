@@ -13,19 +13,24 @@ public class ManagerResponse {
 	
 	private TableInfo table;
 	
-	private List<TableInfo> tables;
-	
+	private List<?> infoList;
 	
 	
 	public enum ManagerResponseCommand{
 		NEW_USER_RESPONSE,
 		SHOW_ALL_TABLES_RESPONSE,
 		EDIT_TABLE_RESPONSE,
-		NEW_TABLE_RESPONSE
+		NEW_TABLE_RESPONSE,
+		VIEW_CURRENT_SEATING_RESPONSE,
+		DELETED_TABLE_RESPONSE
 	}
 
 	public ManagerResponse() {}
 	
+	public ManagerResponse(List<?> infoList, ManagerResponseCommand cmd) {
+		this.responseCommand = cmd;
+		this.infoList = infoList;
+	}
 	
 	//for adding new user
 	public ManagerResponse(String userID) {
@@ -33,14 +38,7 @@ public class ManagerResponse {
 		this.userID = userID;
 	}
 	
-	
-	//for showing all tables
-	public ManagerResponse(List<TableInfo> tables) {
-		this.responseCommand =ManagerResponseCommand.SHOW_ALL_TABLES_RESPONSE;
-		this.tables = tables;
-	}
-	
-	
+			
 	public ManagerResponse(ManagerResponseCommand cmd,TableInfo table) {
 		this.responseCommand = cmd;
 		this.table =table;
@@ -51,8 +49,8 @@ public class ManagerResponse {
 		return table;
 	}
 
-	public List<TableInfo> getTables() {
-		return tables;
+	public List<?> getTables() {
+		return infoList;
 	}
 
 	public ManagerResponseCommand getResponseCommand() {

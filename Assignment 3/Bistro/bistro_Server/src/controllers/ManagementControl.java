@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import database.*;
+import entities.Reservation;
+import entities.User;
 import requests.TableInfo;
 import requests.ManagerRequest;
 import responses.CurrentSeatingResponse;
@@ -51,7 +53,7 @@ public class ManagementControl {
 		case VIEW_ALL_TABLES -> getAllTables();
 		case ADD_NEW_TABLE -> addNewTable(req);
 		case EDIT_TABLES -> editTalbeCap(req);
-		case DELETE_TABLE -> deleteTableByNumber(req.getTableNumber());
+		case DELETE_TABLE -> deactivateTableByNumber(req.getTableNumber());
 		case VIEW_CURRENT_SEATING -> getCurrentSeating();
 		};
 	}
@@ -152,29 +154,178 @@ public class ManagementControl {
 		}
 	}
 	
+	public Response<ManagerResponse> deactivateTableByNumber(int tableNumber) {
+	    Connection conn = null;
+
+	    // collect victims in-memory
+	    List<Integer> cancelledCodes = new ArrayList<>();
+	    List<String> victimContacts = new ArrayList<>();
+
+	    try {
+	        conn = DBManager.getConnection();
+	        conn.setAutoCommit(false);
+
+	        Integer cap = validateTableCanBeDeactivated(conn, tableNumber);
+	        if (cap == null) {
+	            conn.rollback();
+	            return new Response<>(false, "Table not found (or already inactive)", null);
+	        }
+
+	        int newTotal = computeNewTotalAfterDeactivation(conn, cap, tableNumber);
+	        if (newTotal == -1) {
+	            conn.rollback();
+	            // message already decided inside helper via exception
+	            return new Response<>(false, "Cannot deactivate the last active table of capacity " + cap, null);
+	        }
+
+	        cancelVictimsForOverbookedSlots(conn, cap, newTotal, cancelledCodes, victimContacts);
+
+	        if (!deactivateTable(conn, tableNumber)) {
+	            conn.rollback();
+	            return new Response<>(false, "Failed to deactivate table", null);
+	        }
+
+	        conn.commit();
+
+	    } catch (Exception e) {
+	        safeRollback(conn);
+	        return new Response<>(false, "DB error: " + e.getMessage(), null);
+	    } finally {closeQuietly(conn);}
+	        
+	    
+	    // notify AFTER commit
+	    notifyVictims(victimContacts);
+
+	    ManagerResponse mr = new ManagerResponse(victimContacts, ManagerResponse.ManagerResponseCommand.DELETED_TABLE_RESPONSE);
+	    return new Response<>(true,
+	            "Table deactivated. Cancelled " + cancelledCodes.size() + " reservation(s).",mr);	            
+	}
+
+	
+	
+	
 	/**
-	 * method to delete an existing table with checking if occupied 
-	 * @param tableNumber that the manager wants to delete
-	 * @return
+	 * 
+	 * @param conn
+	 * @param tableNumber
+	 * @return table capacity if exists+active
+	 * @throws SQLException
 	 */
-	public Response<ManagerResponse> deleteTableByNumber(int tableNumber){
-		try(Connection conn = DBManager.getConnection()){
-			conn.setAutoCommit(false);
-			
-			boolean deleted = tableDAO.deleteTableByNumberIfNotOccupied(conn, tableNumber);
-			if(!deleted) {
-				 conn.rollback();
-				return new Response<>(false, "Table not deleted (not found or occupied)", null);
-			}
-			
-			TableInfo ti = new TableInfo(tableNumber,-1);
-			ManagerResponse resp = new ManagerResponse(ManagerResponseCommand.DELETED_TABLE_RESPONSE,ti);
-			return new Response<>(true,"Table #" + tableNumber + " deleted successfully",resp);
-			
-			
-		}catch(SQLException e) {
-			System.out.println("delete table DB ERROR: " + e.getMessage());
-			return new Response<>(false, "DB fail to delete table", null);
-		}
+	private Integer validateTableCanBeDeactivated(Connection conn, int tableNumber) throws SQLException {
+	    Integer cap = tableDAO.getCapacityByTableNumber(conn, tableNumber);
+	    if (cap == null) return null;
+
+	    if (tableDAO.isTableOccupiedNow(conn, tableNumber)) {
+	        throw new IllegalStateException("Table is occupied right now");
+	    }
+	    return cap;
+	}
+
+	
+	/**
+	 * 
+	 * @param conn
+	 * @param cap
+	 * @param tableNumber
+	 * @return Returns newTotal (after deactivation). If cannot deactivate -> return -1
+	 * @throws SQLException
+	 */
+	private int computeNewTotalAfterDeactivation(Connection conn, int cap, int tableNumber) throws SQLException {
+	    int totalActive = tableDAO.countActiveTablesByCapacity(conn, cap);
+	    if (totalActive <= 1) return -1; // last one -> cannot deactivate
+	    return totalActive - 1;
+	}
+
+	
+	/**
+	 * Cancels victims for all overbooked slots and collects cancelled codes + contacts (no notifications here)
+	 * @param conn
+	 * @param cap
+	 * @param newTotal
+	 * @param cancelledCodesOut
+	 * @param victimContactsOut
+	 * @throws SQLException
+	 */
+	private void cancelVictimsForOverbookedSlots(Connection conn,int cap,int newTotal,List<Integer> cancelledCodesOut,
+	        List<String> victimContactsOut) throws SQLException {
+	        	        	        	        	
+	    List<ReservationDAO.SlotOverbook> overbooked =reservationDAO.findOverbookedSlots(conn, cap, newTotal);
+	            
+	    for (ReservationDAO.SlotOverbook slot : overbooked) {
+	        int toCancel = slot.getBooked() - newTotal;
+	        if (toCancel <= 0) continue;
+
+	        List<Integer> victims = reservationDAO.pickConfirmationCodesToCancel(conn, slot.getDate(), slot.getSlotStart(), cap, toCancel);
+	                	        
+	        if (victims == null || victims.isEmpty()) continue;
+
+	        reservationDAO.cancelReservationsByConfirmationCodes(conn, victims);
+	        cancelledCodesOut.addAll(victims);
+
+	        collectVictimContacts(conn, victims, victimContactsOut);
+	    }
+	}
+
+	
+	/**
+	 * Pulls email/guest contact for each cancelled confirmation code using THE SAME conn
+	 * @param conn
+	 * @param confirmationCodes
+	 * @param contactsOut
+	 * @throws SQLException
+	 */
+	private void collectVictimContacts(Connection conn, List<Integer> confirmationCodes, List<String> contactsOut)
+	        throws SQLException {
+
+	    for (Integer code : confirmationCodes) {
+	        if (code == null) continue;
+
+	        Reservation r = reservationDAO.getReservationByConfirmationCode(conn, code);
+	        if (r == null) continue;
+
+	        String contact;
+
+	        if (r.getUserID() == null || r.getUserID().isBlank()) {
+	            contact = r.getGuestContact();
+	        } else {
+	            User u = userDAO.getUserByUserID(conn, r.getUserID());
+	            contact = (u != null ? u.getEmail() : null);
+	        }
+
+	        if (contact != null && !contact.isBlank()) {
+	            contactsOut.add(contact);
+	        }
+	    }
+	}
+
+	
+	private boolean deactivateTable(Connection conn, int tableNumber) throws SQLException {
+	    return tableDAO.deactivateTableByNumber(conn, tableNumber);
+	}
+
+	
+	private void notifyVictims(List<String> victimContacts) {
+	    for (String contact : victimContacts) {
+	        try {
+	            notificationControl.sendCancelledReservation(
+	                    contact,
+	                    "Your reservation was cancelled due to table maintenance."
+	            );
+	        } catch (Exception ignore) {}
+	    }
+	}
+
+	
+	
+	private void safeRollback(Connection conn) {
+	    try {
+	        if (conn != null) conn.rollback();
+	    } catch (Exception ignore) {}
+	}
+
+	private void closeQuietly(Connection conn) {
+	    try {
+	        if (conn != null) conn.close();
+	    } catch (Exception ignore) {}
 	}
 }

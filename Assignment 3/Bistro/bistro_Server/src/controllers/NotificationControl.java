@@ -97,4 +97,9 @@ public class NotificationControl {
 		System.out.println("SentBillConfirmationToUser");
 		return true;
 	}
+	
+	public boolean sendCancelledReservation(String contact,String msg) {
+		System.out.println(msg);
+		return true;
+	}
 }

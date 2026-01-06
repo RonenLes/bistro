@@ -69,7 +69,7 @@ public class ReservationControl {
         if (req.getPartySize() <= 0) return failResponse("Invalid party size");
 
         try (Connection conn = DBManager.getConnection()) {
-
+        	
             List<LocalTime> availableTimes =getAvailableTimes(conn, req.getReservationDate(), req.getPartySize());
 
             if (availableTimes != null && !availableTimes.isEmpty()) {

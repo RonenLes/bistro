@@ -24,7 +24,7 @@ public class UserDAO {
 
 	//SELECT statements		
 		private static final String SELECT_LOGIN ="SELECT userID, username, role, phone, email FROM `user` WHERE username= ? AND password= ?";
-		private static final String SELECT_USER_BY_ID ="SELECT userID, username, role, phoneNumber, email FROM `user` WHERE userID = ?";
+		private static final String SELECT_USER_BY_ID ="SELECT userID, username, role, phone, email FROM `user` WHERE userID = ?";
 		private static final String SELECT_HISTORY ="SELECT r.reservationDate, r.startTime, r.partySize, s.checkInTime, s.checkOutTime, t.tableNumber, b.totalPrice "+
 													"FROM reservation r " +
 													"JOIN seating s ON s.reservationID = r.reservationID "+
@@ -111,7 +111,7 @@ public class UserDAO {
 		            		    rs.getString("username"),
 		            		    null,                    // password is not exposed
 		            		    rs.getString("role"),
-		            		    rs.getString("phoneNumber"),
+		            		    rs.getString("phone"),
 		            		    rs.getString("email")
 		            		);
 		            }

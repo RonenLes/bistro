@@ -11,11 +11,14 @@ import java.util.Map;
 
 
 /**
- * method implemented:
- * 1.updateReservation - update an existing reservation in the database
- * 2.insertNewReservation - add a new reservation to database
- * 3.getUsedSeats - calculating number of used seats to deterimne free space 
- * 4.isConfirmationCodeUsed - checking if a given confirmation code already exist for generating unique later 
+ * This class encapsulates all SQL operations related to the @code reservation
+ * Inserting new reservations
+ * Updating reservation fields and status
+ * Fetching reservations by identifiers (confirmation code / reservation ID)
+ * Finding reservations due for reminder / no-show processing
+ * Computing booked tables per capacity for a time window
+ * Detecting overbooking and selecting reservations to cancel
+ * 
  */
 public class ReservationDAO {
 	
@@ -26,6 +29,26 @@ public class ReservationDAO {
 															"VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 	
 	//SELECT statements	
+	private static final String SELECT_OVERLAPPING_RESERVATIONS_TO_CANCEL =
+            "SELECT confirmationCode, status, reservationID " +
+            "FROM reservation " +
+            "WHERE reservationDate = ? " +
+            "  AND allocatedCapacity = ? " +
+            "  AND status IN ('NEW','CONFIRMED') " +
+            "  AND (? < ADDTIME(startTime, '02:00:00') AND ? > startTime) " +
+            "ORDER BY (status='NEW') DESC, reservationID DESC " +
+            "LIMIT ?";
+	private static final String SELECT_OVERBOOKED_SLOTS =
+            "SELECT slots.reservationDate, slots.startTime AS slotStart, COUNT(r2.reservationID) AS booked FROM (SELECT DISTINCT reservationDate, startTime "+            
+            "FROM reservation WHERE reservationDate >= CURDATE() "+
+            "AND allocatedCapacity = AND status IN ('NEW','CONFIRMED') ? ) slots " +
+            "JOIN reservation r2 ON r2.reservationDate = slots.reservationDate " +
+            "AND r2.allocatedCapacity = ? AND r2.status IN ('NEW','CONFIRMED')" +
+            "AND (slots.startTime < ADDTIME(r2.startTime, '02:00:00') " +
+            "AND ADDTIME(slots.startTime, '02:00:00') > r2.startTime) " +
+            "GROUP BY slots.reservationDate, slots.startTime " +
+            "HAVING booked > ? " +
+            "ORDER BY slots.reservationDate ASC, slots.startTime ASC";
 	private static final String SELECT_RESERVATIONS_DUE_FOR_NO_SHOW_PARAM ="SELECT reservationID FROM reservation WHERE reservationDate = ? AND status IN ('NEW','CONFIRMED') AND startTime <= ?";
 	private static final String SELECT_reservationByConfirmationCode = "SELECT * FROM `reservation` WHERE confirmationCode = ?";
 	private static final String SELECT_reservationByReservationId = "SELECT * FROM `reservation` WHERE reservationID = ?";
@@ -47,6 +70,7 @@ public class ReservationDAO {
 	private static final String SELECT_CONFIRMATION_CODE_EXISTS = "SELECT 1 FROM reservation WHERE confirmationCode = ? LIMIT 1";
 	
 	// UPDATE statement
+	private static final String UPDATE_CANCEL_BY_CONFIRMATION_CODE ="UPDATE reservation SET status = 'CANCELLED' WHERE confirmationCode = ? AND status IN ('NEW','CONFIRMED')";                     
 	private static final String UPDATE_STATUS_RESERVATION_SQL_BY_RESERVATION_ID ="UPDATE `reservation` SET status = ? WHERE reservationID = ?";
 	private static final String UPDATE_STATUS_RESERVATION_SQL ="UPDATE `reservation` " +"SET status = ? " +"WHERE confirmation_code = ?";
 	private static final String UPDATE_RESERVATION_BY_CONFIRMATION_CODE =
@@ -55,7 +79,71 @@ public class ReservationDAO {
 	        "WHERE confirmationCode = ?";
 
 	
+	/**
+	 * Represents an overbooked slot (a date + slot start time) and how many reservations overlap that slot.
+     * Used when capacity (number of active tables) is reduced and you need to identify problem slots.
+	 */
+	public static class SlotOverbook {
+        private final LocalDate date;
+        private final LocalTime slotStart;
+        private final int booked;
+
+        public SlotOverbook(LocalDate date, LocalTime slotStart, int booked) {
+            this.date = date;
+            this.slotStart = slotStart;
+            this.booked = booked;
+        }
+
+        public LocalDate getDate() { return date; }
+        public LocalTime getSlotStart() { return slotStart; }
+        public int getBooked() { return booked; }
+    }
+
 	
+	/**
+	 * Finds all overbooked slots for a given allocated capacity after reducing the number of active tables
+	 * flow:
+	 * Find distinct future slots (date + startTime) for the given capacity
+	 * Count how many reservations overlap each slot (2-hour window)
+	 * Return those where @code booked > newTotalTables
+	 * @param conn
+	 * @param allocatedCapacity
+	 * @param newTotalTables
+	 * @return
+	 * @throws SQLException
+	 */
+    public List<SlotOverbook> findOverbookedSlots(Connection conn, int allocatedCapacity, int newTotalTables) throws SQLException {
+        List<SlotOverbook> list = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(SELECT_OVERBOOKED_SLOTS)) {
+            ps.setInt(1, allocatedCapacity);
+            ps.setInt(2, allocatedCapacity);
+            ps.setInt(3, newTotalTables);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    LocalDate d = rs.getDate("reservationDate").toLocalDate();
+                    LocalTime s = rs.getTime("slotStart").toLocalTime();
+                    int booked = rs.getInt("booked");
+                    list.add(new SlotOverbook(d, s, booked));
+                }
+            }
+        }
+        return list;
+    }
+	
+    /**
+     * Updates an existing reservation (identified by confirmationCode).
+     * @param conn
+     * @param reservationDate
+     * @param status
+     * @param partySize
+     * @param confirmationCode
+     * @param guestContact
+     * @param userID
+     * @param startTime
+     * @return
+     * @throws SQLException
+     */
 	public boolean updateReservation(Connection conn,LocalDate reservationDate,String status,int partySize,int confirmationCode,
 	        String guestContact,
 	        String userID,
@@ -81,6 +169,14 @@ public class ReservationDAO {
 	        throw e;
 	    }
 	}
+	
+	/**
+	 * Fetches reservations that are due for a reminder notification based on the time window defined
+     * in {@link #SELECT_RESERVATIONS_DUE_FOR_REMINDER}.
+	 * @param conn
+	 * @return
+	 * @throws SQLException
+	 */
 	public List<Reservation> getReservationsDueForReminder(Connection conn) throws SQLException {
 
 	    List<Reservation> reservations = new ArrayList<>();
@@ -108,6 +204,17 @@ public class ReservationDAO {
 	}
 
 
+	/**
+	 * Returns reservation IDs that should be processed as "no-show candidates" for a specific date
+	 * @code reservationDate = date
+	 * @code status IN ('NEW','CONFIRMED')
+	 * @code startTime <= lateCutoffTime
+	 * @param conn
+	 * @param date
+	 * @param lateCutoffTime
+	 * @return
+	 * @throws SQLException
+	 */
 	public List<Integer> getReservationsDueForNoShow(Connection conn, LocalDate date, LocalTime lateCutoffTime)
 	        throws SQLException {
 
@@ -129,6 +236,14 @@ public class ReservationDAO {
 	}
 
 	
+	/**
+	 * Updates the status of a reservation identified by @code reservationID
+	 * @param conn
+	 * @param reservationID
+	 * @param status
+	 * @return
+	 * @throws SQLException
+	 */
 	public boolean updateStatusByReservationID(Connection conn, int reservationID,String status) throws SQLException {
 	    if (conn == null) throw new IllegalArgumentException("conn is null(updateStatus)");
 	    
@@ -228,6 +343,13 @@ public class ReservationDAO {
         }
     }
 	
+	/**
+	 * Fetches a reservation by confirmation code using an existing connection.
+	 * @param conn
+	 * @param confirmationCode
+	 * @return
+	 * @throws SQLException
+	 */
 	public Reservation getReservationByConfirmationCode(Connection conn,int confirmationCode) throws SQLException {
 
 	    try (PreparedStatement ps = conn.prepareStatement(SELECT_reservationByConfirmationCode)) {
@@ -262,6 +384,14 @@ public class ReservationDAO {
 	        throw e;
 	    }
 	}
+	
+	/**
+	 * Fetches a reservation by reservation ID (primary key).
+	 * @param conn
+	 * @param reservationID
+	 * @return
+	 * @throws SQLException
+	 */
 	public Reservation getReservationByReservationID(Connection conn,int reservationID) throws SQLException {
 
 	    try (PreparedStatement ps = conn.prepareStatement(SELECT_reservationByReservationId)) {
@@ -296,6 +426,17 @@ public class ReservationDAO {
 	        throw e;
 	    }
 	}
+	
+	/**
+	 * Returns a mapping of {@code allocatedCapacity -> bookedCount} for reservations overlapping the
+     * requested time window (start/end) on a given date.
+	 * @param conn
+	 * @param date
+	 * @param start
+	 * @param end
+	 * @return
+	 * @throws SQLException
+	 */
 	public Map<Integer, Integer> getBookedTablesByCapacity(Connection conn,LocalDate date, LocalTime start, LocalTime end)throws SQLException {
 		
 	    Map<Integer, Integer> booked = new HashMap<>();
@@ -322,6 +463,13 @@ public class ReservationDAO {
 	    }
 	}
 
+	
+	/**
+	 * Checks if a confirmation code already exists in the database
+	 * @param conn
+	 * @return
+	 * @throws SQLException
+	 */
 	public int generateConfirmationCode(Connection conn) throws SQLException {
 	    if (conn == null) {
 	        throw new IllegalArgumentException("Connection is null");
@@ -337,5 +485,60 @@ public class ReservationDAO {
 	}
 	
 	
+	/**
+	 * Cancels multiple reservations by confirmation code using a batch update
+	 * @param conn
+	 * @param confirmationCodes
+	 * @return
+	 * @throws SQLException
+	 */
+	public int cancelReservationsByConfirmationCodes(Connection conn, List<Integer> confirmationCodes) throws SQLException {
+        if (confirmationCodes == null || confirmationCodes.isEmpty()) return 0;
 
+        try (PreparedStatement ps = conn.prepareStatement(UPDATE_CANCEL_BY_CONFIRMATION_CODE)) {
+            for (Integer code : confirmationCodes) {
+                ps.setInt(1, code);
+                ps.addBatch();
+            }
+            int[] res = ps.executeBatch();
+
+            int updated = 0;
+            for (int x : res) {
+                if (x > 0) updated += x;
+            }
+            return updated;
+        }
+    }
+	
+	/**
+	 * Selects up to @code limit confirmation codes for reservations that overlap a 2-hour window
+     * starting at @code timeStart, for a given date and allocated capacity.
+     *
+     * Ordering prefers cancelling NEW reservations first, then the newest ones, based on:
+     *@code ORDER BY (status='NEW') DESC, reservationID DESC
+	 * @param conn
+	 * @param date
+	 * @param timeStart
+	 * @param allocatedCapacity
+	 * @param limit
+	 * @return
+	 * @throws SQLException
+	 */
+	public List<Integer> pickConfirmationCodesToCancel(Connection conn,LocalDate date,LocalTime timeStart,int allocatedCapacity,int limit)throws SQLException{
+		List<Integer> codes = new ArrayList<>();
+        LocalTime timeEnd = timeStart.plusHours(2);
+        
+        try (PreparedStatement ps = conn.prepareStatement(SELECT_OVERLAPPING_RESERVATIONS_TO_CANCEL)){
+        	ps.setDate(1, Date.valueOf(date));
+            ps.setInt(2, allocatedCapacity);
+            ps.setTime(3, Time.valueOf(timeStart));
+            ps.setTime(4, Time.valueOf(timeEnd));
+            ps.setInt(5, limit);
+            
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) codes.add(rs.getInt("confirmationCode"));                                       
+        }
+        return codes;
+	}
+			
 }

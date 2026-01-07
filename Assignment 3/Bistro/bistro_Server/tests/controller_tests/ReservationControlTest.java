@@ -302,7 +302,7 @@ public class ReservationControlTest {
 
         Reservation existing = new Reservation(
                 1, date, "NEW", 4, 4, 123456, "old@mail.com", null, t10
-        );
+        null);
         reservationStub.addReservation(existing);
 
         // New requested slot fully booked

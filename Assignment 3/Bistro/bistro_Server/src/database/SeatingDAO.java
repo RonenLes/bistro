@@ -48,6 +48,8 @@ public class SeatingDAO {
     private static final String SELECT_SEATING_ID_BY_RESERVATION_ID ="SELECT seatingID " +"FROM seating " +"WHERE reservationID = ? " +"AND checkOutTime IS NULL " +
     																 "ORDER BY checkInTime DESC " +
     																 "LIMIT 1";
+    
+
 
     public boolean claimAutoBillSend(Connection conn, int seatingId) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(CLAIM_AUTO_BILL_SEND)) {
@@ -97,7 +99,7 @@ public class SeatingDAO {
             return checkIn(conn, tableID, reservationID);
         }
     }
-
+    
     /**
      * Inserts a check-in row using an existing connection (for transactions).
      * @return seatingID (generated key) or -1 if failed.
@@ -116,7 +118,7 @@ public class SeatingDAO {
             }
         }
     }
-
+    
    
     public Integer fetchOpenSeatingID(Connection conn,int tableID)throws SQLException {
     	try(PreparedStatement ps = conn.prepareStatement(SELECT_OPEN_SEATING_TO_UPDATE)){
@@ -142,7 +144,6 @@ public class SeatingDAO {
             ps.setInt(1, seatingId);
             return ps.executeUpdate() == 1;
         }
-    
     }
     public List<Integer> getSeatingsDueForBill(Connection conn) throws SQLException {
         if (conn == null) {

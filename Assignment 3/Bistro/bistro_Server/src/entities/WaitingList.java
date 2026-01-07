@@ -1,17 +1,18 @@
 package entities;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 public class WaitingList {
-
+	
 	private int waitID;
 	private int reservationID;
 	private String status; //ENUM('WAITING', 'ASSIGNED', 'CANCELLED')
 	private int priority; //1-high priority (reserved place) , 0-low priority (walk in)
-	private LocalTime createdAt;
+	private LocalDateTime createdAt;
 	private LocalTime assignedAt; //or cancelled at
 	
-	public WaitingList(int waitID, int reservationID, String status, int priority, LocalTime createdAt,
+	public WaitingList(int waitID, int reservationID, String status, int priority, LocalDateTime createdAt,
 			LocalTime assignedAt) {
 		this.waitID = waitID;
 		this.reservationID = reservationID;
@@ -38,7 +39,7 @@ public class WaitingList {
 	public void setPriority(int priority) {
 		this.priority = priority;
 	}
-	public void setCreatedAt(LocalTime createdAt) {
+	public void setCreatedAt(LocalDateTime createdAt) {
 		this.createdAt = createdAt;
 	}
 	public void setAssignedAt(LocalTime assignedAt) {
@@ -50,7 +51,7 @@ public class WaitingList {
 	public int getPriority() {
 		return priority;
 	}
-	public LocalTime getCreatedAt() {
+	public LocalDateTime getCreatedAt() {
 		return createdAt;
 	}
 	public LocalTime getAssignedAt() {

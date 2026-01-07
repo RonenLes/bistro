@@ -30,6 +30,10 @@ public class ClientController {
     private ClientUIHandler ui;
     private boolean connected;
 
+    // Session identity state
+    private boolean guestSession;
+    private String guestContact;
+    private String currentUsername;
 
     public ClientController(BistroEchoClient client) {
         this.client = client;
@@ -41,7 +45,7 @@ public class ClientController {
     }
 
 
-    // UI --> Controller API
+    // UI - Controller API
 
 
     /**
@@ -98,6 +102,11 @@ public class ClientController {
                     case LOGIN_RESPONSE -> {
                         DesktopScreenController.Role uiRole =
                                 mapRoleFromServer(loginResponse.getRole());
+
+                        // update session state for member login
+                        this.guestSession = false;
+                        this.guestContact = null;
+                        this.currentUsername = loginResponse.getUsername();
 
                         // THIS is where we move to the next screen
                         if (ui != null) {
@@ -163,10 +172,16 @@ public class ClientController {
             safeUiError("Logout", "Error while closing connection:\n" + e.getMessage());
         } finally {
             connected = false;
+
+            // reset session identity
+            guestSession = false;
+            guestContact = null;
+            currentUsername = null;
+
             // Optionally notify UI to go back to login screen
             if (ui != null) {
                 ui.showInfo("Logout", "You have been logged out.");
-                //ui.routeToLogin(); // <-- add this to your ClientUIHandler if you don't have it yet
+                //ui.routeToLogin(); // <-- add this to your ClientUIHandler if you do not have it yet
             }
         }
     }
@@ -231,7 +246,7 @@ public class ClientController {
         try {
             return DesktopScreenController.Role.valueOf(normalized);
         } catch (IllegalArgumentException e) {
-            // fallback – dont crash UI if server sends unexpected role
+            // fallback - dont crash UI if server sends unexpected role
             System.err.println("[WARN] Unknown role from server: " + rawRole);
             return DesktopScreenController.Role.GUEST;
         }
@@ -268,5 +283,25 @@ public class ClientController {
     // Setters
     public void setConnected(boolean connected) {
         this.connected = connected;
+    }
+
+    // Session identity API
+
+    public void startGuestSession(String contact) {
+        this.guestSession = true;
+        this.guestContact = contact;
+        this.currentUsername = "guest";
+    }
+
+    public boolean isGuestSession() {
+        return guestSession;
+    }
+
+    public String getGuestContact() {
+        return guestContact;
+    }
+
+    public String getCurrentUsername() {
+        return currentUsername;
     }
 }

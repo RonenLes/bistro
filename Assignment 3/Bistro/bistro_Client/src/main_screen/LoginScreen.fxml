@@ -10,28 +10,78 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="483.0" prefWidth="642.0" stylesheets="@../../resources/stylesheet.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="main_screen.LoginScreenController">
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity"
+      prefHeight="483.0" prefWidth="642.0"
+      stylesheets="@../../resources/stylesheet.css"
+      xmlns="http://javafx.com/javafx/25"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="main_screen.LoginScreenController">
+
    <children>
-      <Label alignment="CENTER" contentDisplay="CENTER" layoutX="140.0" layoutY="114.0" prefHeight="35.0" prefWidth="362.0" text="Member Login">
+      <Label alignment="CENTER" contentDisplay="CENTER"
+             layoutX="140.0" layoutY="114.0"
+             prefHeight="35.0" prefWidth="362.0"
+             text="Member Login">
          <font>
             <Font size="24.0" />
          </font>
       </Label>
-      <ImageView fitHeight="91.0" fitWidth="179.0" layoutX="223.0" layoutY="14.0" pickOnBounds="true" preserveRatio="true">
+
+      <ImageView fitHeight="91.0" fitWidth="179.0"
+                 layoutX="223.0" layoutY="14.0"
+                 pickOnBounds="true" preserveRatio="true">
          <image>
             <Image url="@../../resources/title_logo.png" />
          </image>
       </ImageView>
-      <VBox alignment="TOP_CENTER" layoutX="118.0" layoutY="162.0" prefHeight="248.0" prefWidth="406.0" spacing="20.0">
+
+      <VBox alignment="TOP_CENTER"
+            layoutX="118.0" layoutY="162.0"
+            prefHeight="248.0" prefWidth="406.0"
+            spacing="20.0">
          <children>
-            <TextField fx:id="usernameField" prefHeight="35.0" prefWidth="388.0" promptText="Username" />
-            <PasswordField fx:id="passwordField" promptText="Password" />
-            <Button fx:id="loginButton" mnemonicParsing="false" onAction="#onLoginClicked" prefHeight="40.0" prefWidth="145.0" text="Login" />
-            <Button fx:id="guestButton" mnemonicParsing="false" onAction="#onContinueAsGuestClicked" prefHeight="40.0" prefWidth="145.0" text="Continue as guest" />
+
+            <!-- Member mode fields -->
+            <TextField fx:id="usernameField"
+                       prefHeight="35.0" prefWidth="388.0"
+                       promptText="Username" />
+            <PasswordField fx:id="passwordField"
+                           promptText="Password" />
+
+            <!-- Guest mode field (hidden by default, shown when Continue as guest is clicked) -->
+            <TextField fx:id="guestContactField"
+                       prefHeight="35.0" prefWidth="388.0"
+                       promptText="Email or phone"
+                       visible="false" managed="false" />
+
+            <!-- Primary action button (login or confirm guest, text changes in controller) -->
+            <Button fx:id="loginButton"
+                    mnemonicParsing="false"
+                    onAction="#onLoginClicked"
+                    prefHeight="40.0" prefWidth="145.0"
+                    text="Login" />
+
+            <!-- Mode toggle button: member <-> guest (text changes in controller) -->
+            <Button fx:id="guestButton"
+                    mnemonicParsing="false"
+                    onAction="#onContinueAsGuestClicked"
+                    prefHeight="40.0" prefWidth="145.0"
+                    text="Continue as guest" />
+
          </children>
       </VBox>
-      <Button layoutX="14.0" layoutY="430.0" mnemonicParsing="false" onAction="#onBackClicked" prefHeight="26.0" prefWidth="130.0" text="Back to main" />
-      <Label fx:id="statusLabel" alignment="CENTER" contentDisplay="CENTER" layoutX="172.0" layoutY="408.0" prefHeight="35.0" prefWidth="303.0" text="Label" textAlignment="CENTER">
+
+      <Button layoutX="14.0" layoutY="430.0"
+              mnemonicParsing="false"
+              onAction="#onBackClicked"
+              prefHeight="26.0" prefWidth="130.0"
+              text="Back to main" />
+
+      <Label fx:id="statusLabel"
+             alignment="CENTER" contentDisplay="CENTER"
+             layoutX="172.0" layoutY="408.0"
+             prefHeight="35.0" prefWidth="303.0"
+             text="Label" textAlignment="CENTER">
          <font>
             <Font size="18.0" />
          </font>

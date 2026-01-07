@@ -132,9 +132,14 @@ public class DesktopScreenController {
 
     public void setWelcomeName(String name) {
         if (welcomeNameLabel != null) {
-            welcomeNameLabel.setText(
-                    "Welcome," + (name == null || name.isBlank() ? "" : " " + name)
-            );
+            String trimmed = name == null ? "" : name.trim();
+            if (role == Role.GUEST || trimmed.equalsIgnoreCase("guest")) {
+                welcomeNameLabel.setText("Hello, guest.");
+            } else if (trimmed.isEmpty()) {
+                welcomeNameLabel.setText("Hello.");
+            } else {
+                welcomeNameLabel.setText("Hello, " + trimmed + ".");
+            }
         }
     }
 

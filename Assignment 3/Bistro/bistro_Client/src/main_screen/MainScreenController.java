@@ -110,8 +110,16 @@ public class MainScreenController extends Application implements ClientUIHandler
                 updateConnectionLabel();
             });
 
-            // Temp “role select” login => open Desktop with role
-            // loginCtrl.setOnLoginAsRole(role -> showDesktopScreen(role, loginCtrl.getUsernameForWelcome()));
+            // Route from login screen directly to desktop (for guest or role based stubs)
+            loginCtrl.setOnLoginAsRole(role -> {
+                String welcome;
+                if (role == DesktopScreenController.Role.GUEST) {
+                    welcome = "guest";
+                } else {
+                    welcome = loginCtrl.getUsernameForWelcome();
+                }
+                showDesktopScreen(role, welcome);
+            });
 
             stage.getScene().setRoot(loginRoot);
             stage.setTitle("Login");
@@ -232,22 +240,22 @@ public class MainScreenController extends Application implements ClientUIHandler
         });
     }
 
-	@Override
-	public void routeToDesktop(DesktopScreenController.Role role, String username) {
-	    Platform.runLater(() -> showDesktopScreen(role, username));
-	}
-	
-	@Override
-	public void onReservationResponse(ReservationResponse response) {
-	    /* * Since OCSF calls this from "Thread-0", we MUST wrap the logic 
-	     * in Platform.runLater to avoid UI threading exceptions.
-	     */
-	    javafx.application.Platform.runLater(() -> {
-	        // 1. Find the current active controller (your DesktopScreenController)
-	        // 2. Pass the response to it
-	        if (desktopController != null) {
-	            desktopController.onReservationResponse(response);
-	        }
-	    });
-	}
+    @Override
+    public void routeToDesktop(DesktopScreenController.Role role, String username) {
+        Platform.runLater(() -> showDesktopScreen(role, username));
+    }
+    
+    @Override
+    public void onReservationResponse(ReservationResponse response) {
+        /* * Since OCSF calls this from "Thread-0", we MUST wrap the logic 
+         * in Platform.runLater to avoid UI threading exceptions.
+         */
+        javafx.application.Platform.runLater(() -> {
+            // 1. Find the current active controller (your DesktopScreenController)
+            // 2. Pass the response to it
+            if (desktopController != null) {
+                desktopController.onReservationResponse(response);
+            }
+        });
+    }
 }

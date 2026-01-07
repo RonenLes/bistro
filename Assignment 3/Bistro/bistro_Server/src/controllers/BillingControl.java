@@ -26,14 +26,15 @@ public class BillingControl {
 	private final NotificationControl notificationControl;
 	private final UserDAO userDAO;
 	private final BillDAO billDAO;
-	
-	public BillingControl(ReservationDAO reservationDAO, SeatingDAO seatingDAO,NotificationControl notificationControl,UserDAO userDAO,BillDAO billDAO) {
+	private final SeatingControl seatingControl;
+	public BillingControl(ReservationDAO reservationDAO, SeatingDAO seatingDAO,NotificationControl notificationControl,UserDAO userDAO,BillDAO billDAO,SeatingControl seatingControl) {
 		
 		this.reservationDAO = reservationDAO;
 		this.seatingDAO = seatingDAO;
 		this.notificationControl=notificationControl;
 		this.userDAO=userDAO;
 		this.billDAO=billDAO;
+		this.seatingControl=seatingControl;
 	}
 	
 	public Response<BillResponse> handleBillRequest(BillRequest req) throws SQLException{
@@ -97,8 +98,9 @@ public class BillingControl {
             return new Response<>(false, "DB connection failed: " + e.getMessage(), null);
         }
 	}
+	
 	private Response<BillResponse> handleRequestToPayBill(BillRequest req) {
-
+		
 	    try (Connection conn = DBManager.getConnection()) {
 	        if (conn == null)
 	            return failResponse("DB connection failed");
@@ -114,12 +116,18 @@ public class BillingControl {
 	                conn.rollback();
 	                return failResponse("failed to find the Bill in the DB");
 	            }
+	            Integer tableID= SeatingDAO.getTableIDBySeatingID(conn,steaingId);
+	            if(tableID==null) {
+	            	conn.rollback();
+	                return failResponse("failed to access table");
+	            }
 	            Bill bill = billDAO.getOpenBillBySeatingId(conn, seatingId);
 	            if (bill == null) {
 	                conn.rollback();
 	                return failResponse("failed to access bill");
 	            }
-	            if (!billDAO.markBillAsPaidBySeatingId(conn, seatingId)) {
+	            boolean markBillPaid=billDAO.markBillAsPaidBySeatingId(conn, seatingId);
+	            if (!markBillPaid) {
 	                conn.rollback();
 	                return failResponse("failed to update Bill status in the DB");
 	            }
@@ -131,10 +139,10 @@ public class BillingControl {
 	            boolean billSent=seatingDAO.updateBillSent(conn, seatingId, 1);
 	            if(!billSent) {
 	            	conn.rollback();
-	            	return failResponse("Failed to change billSent status");
+	            	return failResponse("Failed to change bill status");
 	            }
-	            boolean clearTable=seatingDAO.checkOutBySeatingId(conn,seatingId);
-	            if(!clearTable) {
+	            Response <?> checkOutResponse=seatingControl.checkOutAndAssignNew(tableID);
+	            if(!checkOutResponse.isSuccess()) {
 	            	conn.rollback();
 	            	return failResponse("Failed to check out seating");
 	            }

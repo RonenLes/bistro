@@ -213,10 +213,8 @@ public class SeatingControl {
     		}
     		
     		conn.commit();
-    		
     		SeatingResponse seatingResponse = new SeatingResponse(table.getTableNumber(),table.getCapacity(),LocalTime.now());
     		return new Response<>(true,"Checked out. Next customer assigned to table + "+table.getTableNumber(),seatingResponse);
-    		
     		
     	}catch(Exception e) {
     		System.out.println(e.getMessage());

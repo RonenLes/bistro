@@ -37,8 +37,4 @@ public class Bill {
 		return paidAt;
 	}
 	
-	
-	
-	
-	
 }

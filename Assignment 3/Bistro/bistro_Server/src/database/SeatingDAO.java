@@ -94,7 +94,7 @@ public class SeatingDAO {
             return checkIn(conn, tableID, reservationID);
         }
     }
-
+    
     /**
      * Inserts a check-in row using an existing connection (for transactions).
      * @return seatingID (generated key) or -1 if failed.
@@ -139,7 +139,6 @@ public class SeatingDAO {
             ps.setInt(1, seatingId);
             return ps.executeUpdate() == 1;
         }
-    
     }
     public List<Integer> getSeatingsDueForBill(Connection conn) throws SQLException {
         if (conn == null) {

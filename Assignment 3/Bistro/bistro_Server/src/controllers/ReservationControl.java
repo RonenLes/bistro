@@ -36,7 +36,7 @@ public class ReservationControl {
     private final OpeningHoursDAO openingHoursDAO;
     private final UserDAO userDAO; 
     private final NotificationControl notificationControl;
-    
+
     public ReservationControl() {
         this(new ReservationDAO(), new TableDAO(), new OpeningHoursDAO(),
                 new UserDAO(), new NotificationControl());
@@ -69,41 +69,29 @@ public class ReservationControl {
         if (req.getPartySize() <= 0) return failResponse("Invalid party size");
 
         try (Connection conn = DBManager.getConnection()) {
+        	
             List<LocalTime> availableTimes =getAvailableTimes(conn, req.getReservationDate(), req.getPartySize());
 
             if (availableTimes != null && !availableTimes.isEmpty()) {
-                ReservationResponse rr = new ReservationResponse(
-                        ReservationResponseType.FIRST_PHASE_SHOW_AVAILABILITY,
-                        availableTimes,
-                        null,
-                        null
-                );
+                ReservationResponse rr = new ReservationResponse(ReservationResponseType.FIRST_PHASE_SHOW_AVAILABILITY,availableTimes,
+                        null,null);                                                                                     
                 return successResponse("Available times found", rr);
             }
 
             Map<LocalDate, List<LocalTime>> suggestions =
                     getSuggestionsForNextDays(conn, req.getReservationDate(), req.getPartySize());
 
-            boolean hasAnySuggestion = suggestions != null &&
-                    suggestions.values().stream().anyMatch(list -> list != null && !list.isEmpty());
-
+            boolean hasAnySuggestion = suggestions != null && suggestions.values().stream().anyMatch(list -> list != null && !list.isEmpty());
+                    
             if (hasAnySuggestion) {
-                ReservationResponse rr = new ReservationResponse(
-                        ReservationResponseType.FIRST_PHASE_SHOW_SUGGESTIONS,
-                        null,
-                        suggestions,
-                        null
-                );
+                ReservationResponse rr = new ReservationResponse(ReservationResponseType.FIRST_PHASE_SHOW_SUGGESTIONS,null,suggestions,null);  
+                                        
                 return successResponse("No availability on requested date, showing suggestions", rr);
             }
 
-            
-            ReservationResponse rr = new ReservationResponse(
-                    ReservationResponseType.FIRST_PHASE_NO_AVAILABILITY_OR_SUGGESTIONS,
-                    null,
-                    null,
-                    null
-            );
+            // IMPORTANT: your failResponse returns rr=null. If UI expects a type, return rr as SUCCESS.
+            ReservationResponse rr = new ReservationResponse(ReservationResponseType.FIRST_PHASE_NO_AVAILABILITY_OR_SUGGESTIONS,null,null, null);
+                                                                                           
             return successResponse("No availability or suggestions found", rr);
 
         } catch (IllegalArgumentException e) {
@@ -433,6 +421,7 @@ public class ReservationControl {
 
             if (booked < total) available.add(start);
         }
+
         return available;
     }
 

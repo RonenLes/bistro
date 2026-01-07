@@ -19,8 +19,8 @@ public class Reservation {
 	
 	
 	
-		public Reservation(int reservationID, LocalDate reservationDate, String status, int partySize,int allocatedCapacity,
-				int confirmationCode, String guestContact, String userID, LocalTime startTime,LocalDateTime timeOfCreation) {
+	public Reservation(int reservationID, LocalDate reservationDate, String status, int partySize,int allocatedCapacity,
+			int confirmationCode, String guestContact, String userID, LocalTime startTime,LocalDateTime timeOfCreation) {
 		this.reservationID = reservationID;
 		this.reservationDate = reservationDate;
 		this.status = status;
@@ -30,12 +30,25 @@ public class Reservation {
 		this.guestContact = guestContact;
 		this.userID = userID;
 		this.startTime = startTime;
-		this.timeOfCreation=timeOfCreation;
+		this.timeOfCreation = timeOfCreation;
+		
 	}
 
+	public Reservation(int reservationID,String guestContact,String userID,String status) {
+		this.reservationID = reservationID;
+		this.guestContact = guestContact;
+		this.userID = userID;
+		this.status = status;
+	}
 	
 	
-	
+	public LocalDateTime getTimeOfCreation() {
+		return timeOfCreation;
+	}
+
+
+
+
 	public int getReservationID() {
 		return reservationID;
 	}
@@ -74,14 +87,15 @@ public class Reservation {
 	public LocalTime getStartTime() {
 		return startTime;
 	}
-	
+
+
+
+
 	public int getAllocatedCapacity() {
 		return allocatedCapacity;
 	}
 
-	public LocalDateTime getTimeOfCreation() {
-		return this.timeOfCreation;
-	}
+
 	
 	
 }

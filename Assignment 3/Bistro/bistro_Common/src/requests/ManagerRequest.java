@@ -19,7 +19,7 @@ public class ManagerRequest {
 		EDIT_TABLES,
 		ADD_NEW_TABLE,
 		VIEW_CURRENT_SEATING,
-		DELETE_TABLE
+		DELETE_TABLE,
 	}
 
 	public ManagerRequest() {}

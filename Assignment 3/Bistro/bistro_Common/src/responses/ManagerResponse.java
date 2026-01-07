@@ -22,9 +22,9 @@ public class ManagerResponse {
 		EDIT_TABLE_RESPONSE,
 		NEW_TABLE_RESPONSE,
 		VIEW_CURRENT_SEATING_RESPONSE,
-		DELETED_TABLE_RESPONSE
+		DELETED_TABLE_RESPONSE,
 	}
-
+	
 	public ManagerResponse() {}
 	
 	public ManagerResponse(List<?> infoList, ManagerResponseCommand cmd) {

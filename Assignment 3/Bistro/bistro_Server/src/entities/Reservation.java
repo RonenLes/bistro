@@ -1,6 +1,7 @@
 package entities;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 public class Reservation {
@@ -14,11 +15,12 @@ public class Reservation {
 	private String guestContact;
 	private String userID;
 	private LocalTime startTime;
+	private LocalDateTime timeOfCreation;
 	
 	
 	
-	public Reservation(int reservationID, LocalDate reservationDate, String status, int partySize,int allocatedCapacity,
-			int confirmationCode, String guestContact, String userID, LocalTime startTime) {
+		public Reservation(int reservationID, LocalDate reservationDate, String status, int partySize,int allocatedCapacity,
+				int confirmationCode, String guestContact, String userID, LocalTime startTime,LocalDateTime timeOfCreation) {
 		this.reservationID = reservationID;
 		this.reservationDate = reservationDate;
 		this.status = status;
@@ -28,7 +30,7 @@ public class Reservation {
 		this.guestContact = guestContact;
 		this.userID = userID;
 		this.startTime = startTime;
-		
+		this.timeOfCreation=timeOfCreation;
 	}
 
 	
@@ -72,15 +74,14 @@ public class Reservation {
 	public LocalTime getStartTime() {
 		return startTime;
 	}
-
-
-
-
+	
 	public int getAllocatedCapacity() {
 		return allocatedCapacity;
 	}
 
-
+	public LocalDateTime getTimeOfCreation() {
+		return this.timeOfCreation;
+	}
 	
 	
 }

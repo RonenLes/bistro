@@ -107,7 +107,7 @@ public class ReservationDAO {
 	    return reservations;
 	}
 
-
+	
 	public List<Integer> getReservationsDueForNoShow(Connection conn, LocalDate date, LocalTime lateCutoffTime)
 	        throws SQLException {
 
@@ -208,7 +208,7 @@ public class ReservationDAO {
 	        pstmt.setString(6, guest);
 	        pstmt.setString(7, userID);
 	        pstmt.setTime(8, java.sql.Time.valueOf(startTime));
-
+	        
 	        int isInserted = pstmt.executeUpdate();
 	        if( isInserted != 1) return -1;
 	        
@@ -249,10 +249,7 @@ public class ReservationDAO {
 	                rs.getInt("confirmationCode"),
 	                rs.getString("guestContact"),  // may be null
 	                rs.getString("userID"),        // may be null
-	                rs.getTime("startTime") != null
-	                        ? rs.getTime("startTime").toLocalTime()
-	                        : null
-	            );
+	                rs.getTime("startTime") != null? rs.getTime("startTime").toLocalTime(): null);
 	        }
 
 	    } catch (SQLException e) {

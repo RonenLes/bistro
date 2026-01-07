@@ -52,21 +52,10 @@ public class LoginScreenController {
     private void initialize() {
         if (statusLabel != null) statusLabel.setText("");
 
-        // Fill test roles
-        if (roleChoiceBox != null) {
-            roleChoiceBox.getItems().setAll(
-                    DesktopScreenController.Role.SUBSCRIBER,
-                    DesktopScreenController.Role.REP,
-                    DesktopScreenController.Role.MANAGER,
-                    DesktopScreenController.Role.CUSTOMER,
-                    DesktopScreenController.Role.GUEST
-            );
-            roleChoiceBox.setValue(DesktopScreenController.Role.SUBSCRIBER);
-        }
-
         if (passwordField != null) {
             passwordField.setOnAction(e -> onLoginClicked());
         }
+        
     }
     /**
      * Login button click

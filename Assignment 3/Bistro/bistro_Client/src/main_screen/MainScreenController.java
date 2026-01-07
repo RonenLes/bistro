@@ -3,7 +3,6 @@ package main_screen;
 import controllers.ClientController;
 import controllers.ClientUIHandler;
 import desktop_screen.DesktopScreenController;
-import desktop_screen.DesktopScreenController.Role;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -13,15 +12,15 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
+import responses.ReservationResponse;
 import terminal_screen.TerminalScreenController;
 
 public class MainScreenController extends Application implements ClientUIHandler {
 
-    // =========================
     // Static boot injection
-    // =========================
     private static ClientController controller;
     private static boolean connected;
+    private DesktopScreenController desktopController;
 
     public static void launchUI(ClientController c, boolean isConnected) {
         controller = c;
@@ -29,22 +28,16 @@ public class MainScreenController extends Application implements ClientUIHandler
         launch();
     }
 
-    // =========================
     // JavaFX state
-    // =========================
     private Stage stage;
 
     // Keep the already-loaded main root so we can go back without reloading
     private Parent mainRoot;
 
-    // =========================
     // FXML fields
-    // =========================
     @FXML private Label connectionStatusLabel;
 
-    // =========================
     // Application entry point
-    // =========================
     @Override
     public void start(Stage stage) {
         this.stage = stage;
@@ -136,18 +129,14 @@ public class MainScreenController extends Application implements ClientUIHandler
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/desktop_screen/DesktopScreen.fxml"));
             Parent desktopRoot = loader.load();
 
-            DesktopScreenController desktopCtrl = loader.getController();
-            desktopCtrl.setClientController(controller);     // your Desktop controller already has this
-            desktopCtrl.setRole(role);
-            desktopCtrl.setWelcomeName(welcomeName);
+            this.desktopController = loader.getController();
+            this.desktopController.setClientController(controller);
+            this.desktopController.setRole(role);
+            this.desktopController.setWelcomeName(welcomeName);
 
-            // Logout goes back to main (you can change to showLoginScreen() if you prefer)
-            desktopCtrl.setOnLogout(() -> {
-                stage.getScene().setRoot(mainRoot);
-                stage.setTitle("Bistro Client");
-                stage.sizeToScene();
-                stage.centerOnScreen();
-                updateConnectionLabel();
+            this.desktopController.setOnLogout(() -> {
+                this.desktopController = null; // clean up
+                showLoginScreen(); 
             });
 
             stage.getScene().setRoot(desktopRoot);
@@ -246,5 +235,19 @@ public class MainScreenController extends Application implements ClientUIHandler
 	@Override
 	public void routeToDesktop(DesktopScreenController.Role role, String username) {
 	    Platform.runLater(() -> showDesktopScreen(role, username));
+	}
+	
+	@Override
+	public void onReservationResponse(ReservationResponse response) {
+	    /* * Since OCSF calls this from "Thread-0", we MUST wrap the logic 
+	     * in Platform.runLater to avoid UI threading exceptions.
+	     */
+	    javafx.application.Platform.runLater(() -> {
+	        // 1. Find the current active controller (your DesktopScreenController)
+	        // 2. Pass the response to it
+	        if (desktopController != null) {
+	            desktopController.onReservationResponse(response);
+	        }
+	    });
 	}
 }

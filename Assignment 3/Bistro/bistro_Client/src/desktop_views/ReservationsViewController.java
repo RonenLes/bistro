@@ -2,7 +2,12 @@ package desktop_views;
 
 import controllers.ClientController;
 import controllers.ClientControllerAware;
+import requests.ReservationRequest;
+import requests.ReservationRequest.ReservationRequestType;
+import responses.ReservationResponse;
+import javafx.geometry.Pos;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
@@ -16,6 +21,8 @@ import javafx.scene.control.DateCell;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 
 public class ReservationsViewController implements ClientControllerAware {
 
@@ -30,17 +37,22 @@ public class ReservationsViewController implements ClientControllerAware {
     @FXML private TilePane slotsTile;
     @FXML private Label slotHeaderLabel;
     @FXML private Label slotInfoLabel;
+    @FXML private VBox slotsContainer;
 
     private ClientController clientController;
     private boolean connected;
 
     private LocalDate currentDate;
     private int currentPartySize;
+    private String userID;
     
 
     private static final int MIN_PARTY = 1;
     private static final int MAX_PARTY = 20;
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
+    
+    private static final double SLOT_WIDTH = 130.0;
+    private static final double SLOT_HEIGHT = 55.0;
 
     @FXML
     private void initialize() {
@@ -142,39 +154,23 @@ public class ReservationsViewController implements ClientControllerAware {
         currentPartySize = partySize;
         currentDate = date;
 
-        buildTimeSlots(date, partySize);
-        switchToStep2();
-    }
+        if (clientController == null) { setInfo("ClientController not set."); return; }
 
-    private void buildTimeSlots(LocalDate date, int partySize) {
-        if (slotHeaderLabel != null) {
-            slotHeaderLabel.setText("Date: " + date + " • Party size: " + partySize);
-        }
-        if (slotInfoLabel != null) slotInfoLabel.setText("Pick one time block.");
+        setInfo("Fetching available times from server...");
 
-        if (slotsTile != null) slotsTile.getChildren().clear();
+        String userId = null;
+        String guestContact = null;
 
-        // demo: 18:00..22:00, 30 min steps. for big parties -> 60 min
-        int stepMinutes = (partySize >= 8) ? 60 : 30;
-        LocalTime start = LocalTime.of(18, 0);
-        LocalTime end = LocalTime.of(22, 0);
-
-        for (LocalTime t = start; t.isBefore(end.plusMinutes(1)); t = t.plusMinutes(stepMinutes)) {
-            String timeText = t.format(TIME_FMT);
-            slotsTile.getChildren().add(makeTimeBlockButton(timeText));
-        }
-    }
-    
-
-    private Button makeTimeBlockButton(String timeText) {
-        Button b = new Button(timeText);
-        b.getStyleClass().addAll("ghost", "slot-btn");
-        b.setPrefWidth(200);
-        b.setPrefHeight(70);
-        b.setMaxWidth(Double.MAX_VALUE);
-
-        b.setOnAction(e -> onTimeChosen(currentDate, timeText, currentPartySize));
-        return b;
+        // FIRST PHASE: ask server for available times for date + partySize
+        clientController.requestNewReservation(
+                ReservationRequestType.FIRST_PHASE,
+                date,
+                null, // IMPORTANT: server should ignore or allow null here for phase 1
+                partySize,
+                userId,
+                guestContact,
+                0
+        );
     }
 
     @FXML
@@ -183,6 +179,7 @@ public class ReservationsViewController implements ClientControllerAware {
         setInfo("Pick party size + date, then choose a time block.");
     }
 
+    // on chosen time, fetch the open slots
     private void onTimeChosen(LocalDate date, String time, int partySize) {
         setInfo("Selected: " + date + " at " + time + " for " + partySize + " people.");
 
@@ -191,13 +188,152 @@ public class ReservationsViewController implements ClientControllerAware {
             return;
         }
 
-        // Send to server
-        // TODO
+        // parse the HH:mm string back to LocalTime
+        LocalTime chosenTime = LocalTime.parse(time, TIME_FMT);
 
-        // Optionally disable UI / show "Sending..."
-        setInfo("Sending reservation request...");
+        // For now, assume:
+        // - logged-in subscribers: server can identify them from session / userID
+        // - guests: we send null userID, and maybe guestContact later from a text field
+        String userId = null;        // TODO: inject real user id from login
+        String guestContact = null;  // TODO: bind to a text field for non-subscribers
+
+        // FIRST PHASE
+        clientController.requestNewReservation(
+                ReservationRequest.ReservationRequestType.FIRST_PHASE,
+                date,
+                chosenTime,
+                partySize,
+                userId,
+                guestContact,
+                0 // confirmationCode is 0 or ignored for FIRST_PHASE
+        );
+
+    }
+    /**
+     * Called by DesktopScreenController
+     * when the server replies to FIRST_PHASE
+     */
+    public void handleServerResponse(ReservationResponse resp) {
+        if (resp == null) return;
+
+        // clear the container first
+        slotsContainer.getChildren().clear();
+        
+        // TODO REMOVE DEBUG
+        //System.out.println(resp.getUserID()+ " " + resp.getTableNumber() + " " + resp.getNewDate());
+        
+        switch (resp.getType()) {
+            case FIRST_PHASE_SHOW_AVAILABILITY -> {
+                setInfo("Select a time for " + currentDate);
+                
+                // main times
+                addSectionHeader("Available times for " + currentDate.format(DateTimeFormatter.ofPattern("dd/MM")));
+                buildTimeSlots(currentDate, resp.getAvailableTimes());
+
+                // 
+                if (resp.getSuggestedDates() != null && !resp.getSuggestedDates().isEmpty()) {
+                    addSectionHeader("Or choose a different date:");
+                    buildSuggestions(resp.getSuggestedDates());
+                }
+                switchToStep2();
+            }
+
+            case FIRST_PHASE_SHOW_SUGGESTIONS -> {
+                setInfo("No exact matches found.");
+                addSectionHeader("Available dates in the coming week:");
+                buildSuggestions(resp.getSuggestedDates());
+                switchToStep2();
+            }
+
+            case SECOND_PHASE_CONFIRMED -> {
+                // Show local info in the reservations screen
+                setInfo("Reservation confirmed. Code: " + resp.getConfirmationCode());
+
+                // clear fields
+                if (slotsContainer != null) {
+                    slotsContainer.getChildren().clear();
+                }
+                
+                //back to step 1 pane
+                switchToStep1();
+            }
+            
+            case FIRST_PHASE_NO_AVAILABILITY_OR_SUGGESTIONS -> {
+                setInfo("Fully booked for the next 7 days");
+                switchToStep1();
+            }
+        }
     }
 
+
+    // ----- helper functions to build the time slots -----
+    private void addSectionHeader(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("h3");
+        label.setStyle("-fx-font-weight: bold; -fx-text-fill: #34495e;");
+        label.setMaxWidth(Double.MAX_VALUE); // Ensures it doesn't get squashed
+        slotsContainer.getChildren().add(label);
+    }
+
+    private void buildTimeSlots(LocalDate date, List<LocalTime> times) {
+        TilePane grid = createNewGrid();
+        for (LocalTime t : times) {
+            grid.getChildren().add(createSmallSlotButton(date, t, "ghost"));
+        }
+        slotsContainer.getChildren().add(grid);
+    }
+
+    private void buildSuggestions(Map<LocalDate, List<LocalTime>> suggestions) {
+        TilePane grid = createNewGrid();
+        suggestions.keySet().stream().sorted().forEach(date -> {
+            for (LocalTime t : suggestions.get(date)) {
+                grid.getChildren().add(createSmallSlotButton(date, t, "primary"));
+            }
+        });
+        slotsContainer.getChildren().add(grid);
+    }
+
+    private TilePane createNewGrid() {
+        TilePane tp = new TilePane();
+        tp.setHgap(10);
+        tp.setVgap(10);
+        tp.setPrefColumns(6); 
+        tp.setTileAlignment(Pos.CENTER_LEFT);
+        return tp;
+    }
+
+    private Button createSmallSlotButton(LocalDate date, LocalTime time, String style) {
+        String text = time.format(TIME_FMT) + "\n" + date.format(DateTimeFormatter.ofPattern("dd/MM"));
+        Button btn = new Button(text);
+        
+        btn.getStyleClass().addAll(style, "slot-btn");
+        btn.setPrefSize(SLOT_WIDTH, SLOT_HEIGHT);
+        btn.setStyle("-fx-text-alignment: center; -fx-font-size: 11px;");
+        
+        btn.setOnAction(e -> sendSecondPhaseRequest(date, time));
+        return btn;
+    }
+    
+    /**
+     * SECOND PHASE: User selected a specific Slot
+     */
+    private void sendSecondPhaseRequest(LocalDate date, LocalTime time) {
+        setInfo("Confirming reservation for " + date + " at " + time + "...");
+        
+        //reuse the requestNewReservation method in ClientController
+        // but change Type to SECOND_PHASE
+        clientController.requestNewReservation(
+                ReservationRequestType.SECOND_PHASE,
+                date,
+                time,
+                currentPartySize,
+                null, // userID (get from session if needed)
+                null, // guestContact (get from a text field)
+                0     // confirmation code not generated yet
+        );
+    }
+
+    // step switch for panes
     private void switchToStep1() {
         if (step1Pane != null) { step1Pane.setVisible(true); step1Pane.setManaged(true); }
         if (step2Pane != null) { step2Pane.setVisible(false); step2Pane.setManaged(false); }

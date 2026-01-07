@@ -11,6 +11,9 @@ public class OpeningHoursDAO {
 	//SELECT
 	private final String SELECT_openingHoursByDate = "SELECT * FROM `opening_hours` WHERE date = ?";
 	
+	//UPDATE
+	private final String UPDATE_OPENINGHOURS ="UPDATE `opening_hours` SET openTime = ?, closeTime = ?, occasion = ? WHERE date = ?";
+	
 	/**
 	 * 
 	 * @param date of the desired date to check
@@ -35,9 +38,21 @@ public class OpeningHoursDAO {
 			
 		}catch(SQLException e) {
 			System.err.println("Database error: could not fetch opening for this date: "+date.toString());
+			throw e;
 		}
-		return openHour;
+		
 	}
 	
-	
+	public boolean updateOpeningHours(Connection conn,LocalTime open,LocalTime close,LocalDate date,String occasion)throws SQLException{
+		java.sql.Date theDate = java.sql.Date.valueOf(date);
+		java.sql.Time newOpenTime = java.sql.Time.valueOf(open);
+		java.sql.Time newCloseTime = java.sql.Time.valueOf(close);
+		try(PreparedStatement ps = conn.prepareStatement(UPDATE_OPENINGHOURS)){
+			ps.setDate(1, theDate);
+			ps.setTime(2, newOpenTime);
+			ps.setTime(3, newCloseTime);
+			ps.setString(4, occasion);
+			return ps.executeUpdate()==1;
+		}
+	}
 }

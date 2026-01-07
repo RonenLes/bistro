@@ -24,13 +24,18 @@ public class ReservationDAO {
 	
 	
 	//INSERT statement
-	private static final String INSERT_newReservation = "INSERT INTO `reservation` " + 
-															"(reservationDate, status, partySize, allocatedCapacity, confirmationCode, guestContact, userID, startTime) "+
+	private static final String INSERT_newReservation = "INSERT INTO `reservation` reservationDate, status, partySize, allocatedCapacity, confirmationCode, guestContact, userID, startTime) "+
 															"VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+															
 	
 	//SELECT statements	
+	
+	private final String SELECT_RESERVATIONS_OVERLAPING_WITH_CLOSE_HOURS="SELECT r.reservationID FROM reservation r "+
+																		 "WHERE r.reservationDate = ? "+
+																		 "AND (r.startTime < ? OR ADDTIME(r.startTime, '02:00:00') > ?) "+
+																		 "ORDER BY r.startTime";
 	private static final String SELECT_OVERLAPPING_RESERVATIONS_TO_CANCEL =
-            "SELECT confirmationCode, status, reservationID " +
+            "SELECT guestContact, userID, status, reservationID " +
             "FROM reservation " +
             "WHERE reservationDate = ? " +
             "  AND allocatedCapacity = ? " +
@@ -70,7 +75,7 @@ public class ReservationDAO {
 	private static final String SELECT_CONFIRMATION_CODE_EXISTS = "SELECT 1 FROM reservation WHERE confirmationCode = ? LIMIT 1";
 	
 	// UPDATE statement
-	private static final String UPDATE_CANCEL_BY_CONFIRMATION_CODE ="UPDATE reservation SET status = 'CANCELLED' WHERE confirmationCode = ? AND status IN ('NEW','CONFIRMED')";                     
+	private static final String UPDATE_CANCEL_BY_RESERVAIO_ID ="UPDATE reservation SET status = 'CANCELLED' WHERE reservationID = ? AND status IN ('NEW','CONFIRMED')";                     
 	private static final String UPDATE_STATUS_RESERVATION_SQL_BY_RESERVATION_ID ="UPDATE `reservation` SET status = ? WHERE reservationID = ?";
 	private static final String UPDATE_STATUS_RESERVATION_SQL ="UPDATE `reservation` " +"SET status = ? " +"WHERE confirmation_code = ?";
 	private static final String UPDATE_RESERVATION_BY_CONFIRMATION_CODE =
@@ -194,7 +199,8 @@ public class ReservationDAO {
 	                    rs.getInt("confirmationCode"),
 	                    rs.getString("guestContact"),
 	                    rs.getString("userID"),
-	                    rs.getTime("startTime").toLocalTime()
+	                    rs.getTime("startTime").toLocalTime(),
+	                    rs.getTimestamp("timeOfCreation").toLocalDateTime()
 	            );
 	            reservations.add(r);
 	        }
@@ -371,16 +377,12 @@ public class ReservationDAO {
 	                rs.getInt("confirmationCode"),
 	                rs.getString("guestContact"),  // may be null
 	                rs.getString("userID"),        // may be null
-	                rs.getTime("startTime") != null
-	                        ? rs.getTime("startTime").toLocalTime()
-	                        : null
-	            );
+	                rs.getTime("startTime") != null? rs.getTime("startTime").toLocalTime(): null,	                        	                        
+	                rs.getTimestamp("timeOfCreation").toLocalDateTime());	            
 	        }
 
 	    } catch (SQLException e) {
-	        System.err.println(
-	            "DB error fetching reservation by confirmationCode=" + confirmationCode
-	        );
+	        System.err.println("DB error fetching reservation by confirmationCode=" + confirmationCode);	            	        
 	        throw e;
 	    }
 	}
@@ -413,16 +415,12 @@ public class ReservationDAO {
 	                rs.getInt("confirmationCode"),
 	                rs.getString("guestContact"),  // may be null
 	                rs.getString("userID"),        // may be null
-	                rs.getTime("startTime") != null
-	                        ? rs.getTime("startTime").toLocalTime()
-	                        : null
-	            );
+	                rs.getTime("startTime") != null ? rs.getTime("startTime").toLocalTime(): null,
+	                rs.getTimestamp("timeOfCreation").toLocalDateTime());      	                        	            
 	        }
 
 	    } catch (SQLException e) {
-	        System.err.println(
-	            "DB error fetching reservation by reservationID=" + reservationID
-	        );
+	        System.err.println("DB error fetching reservation by reservationID=" + reservationID);	            	        
 	        throw e;
 	    }
 	}
@@ -492,12 +490,13 @@ public class ReservationDAO {
 	 * @return
 	 * @throws SQLException
 	 */
-	public int cancelReservationsByConfirmationCodes(Connection conn, List<Integer> confirmationCodes) throws SQLException {
-        if (confirmationCodes == null || confirmationCodes.isEmpty()) return 0;
+	public int cancelReservationsByReservationID(Connection conn, List<Reservation> reservations) throws SQLException {
+		if (conn == null) throw new IllegalArgumentException("conn is null");
+	    if (reservations == null || reservations.isEmpty()) return 0;
 
-        try (PreparedStatement ps = conn.prepareStatement(UPDATE_CANCEL_BY_CONFIRMATION_CODE)) {
-            for (Integer code : confirmationCodes) {
-                ps.setInt(1, code);
+        try (PreparedStatement ps = conn.prepareStatement(UPDATE_CANCEL_BY_RESERVAIO_ID)) {
+            for (Reservation r : reservations) {
+                ps.setInt(1, r.getReservationID());
                 ps.addBatch();
             }
             int[] res = ps.executeBatch();
@@ -524,8 +523,8 @@ public class ReservationDAO {
 	 * @return
 	 * @throws SQLException
 	 */
-	public List<Integer> pickConfirmationCodesToCancel(Connection conn,LocalDate date,LocalTime timeStart,int allocatedCapacity,int limit)throws SQLException{
-		List<Integer> codes = new ArrayList<>();
+	public List<Reservation> pickReservationToCancelDueToTable(Connection conn,LocalDate date,LocalTime timeStart,int allocatedCapacity,int limit)throws SQLException{
+		List<Reservation> idList = new ArrayList<>();
         LocalTime timeEnd = timeStart.plusHours(2);
         
         try (PreparedStatement ps = conn.prepareStatement(SELECT_OVERLAPPING_RESERVATIONS_TO_CANCEL)){
@@ -536,9 +535,33 @@ public class ReservationDAO {
             ps.setInt(5, limit);
             
             ResultSet rs = ps.executeQuery();
-            while (rs.next()) codes.add(rs.getInt("confirmationCode"));                                       
+            while (rs.next()) {
+            	Reservation r = new Reservation(rs.getInt("reservationID"),rs.getString("guestContact"),rs.getString("userID"),rs.getString("status"));				
+				idList.add(r);
+            }
         }
-        return codes;
+        return idList;
 	}
+	
+	
+	public List<Reservation> pickReservationToCancelDueToOpenHours(Connection conn,LocalDate date,LocalTime openTime,LocalTime closeTime)throws SQLException{
+		List<Reservation> idList = new ArrayList<>();
+		try(PreparedStatement ps = conn.prepareStatement(SELECT_RESERVATIONS_OVERLAPING_WITH_CLOSE_HOURS)){
 			
+			ps.setDate(1,Date.valueOf(date));
+			ps.setTime(2,Time.valueOf(openTime));
+			ps.setTime(3, Time.valueOf(closeTime));
+			ResultSet rs = ps.executeQuery();
+			
+			while(rs.next()) {
+				Reservation r = new Reservation(rs.getInt("reservationID"),rs.getString("guestContact"),rs.getString("userID"),rs.getString("status"));				
+				idList.add(r);
+			}
+		}
+		return idList;
+	}
+	
+	
+		
+	
 }

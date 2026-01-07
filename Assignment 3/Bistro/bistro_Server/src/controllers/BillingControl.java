@@ -27,6 +27,10 @@ public class BillingControl {
 	private final UserDAO userDAO;
 	private final BillDAO billDAO;
 	
+	public BillingControl() {
+		this(new ReservationDAO(),new SeatingDAO(),new NotificationControl(),new UserDAO(),new BillDAO());
+	}
+	
 	public BillingControl(ReservationDAO reservationDAO, SeatingDAO seatingDAO,NotificationControl notificationControl,UserDAO userDAO,BillDAO billDAO) {
 		
 		this.reservationDAO = reservationDAO;

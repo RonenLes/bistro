@@ -49,12 +49,7 @@ public class ReportControl {
                 break;
 
             default:
-                return new ReportResponse(
-                        false,
-                        "Unsupported report type",
-                        null,
-                        null
-                );
+                return new ReportResponse(false,"Unsupported report type", null,null);
         }
 
         try (Connection conn = DBManager.getConnection()) {
@@ -137,7 +132,6 @@ public class ReportControl {
                 Integer [] monthlyWaitingListCount=waitingListDAO.getCountOfWaitingListBetween(conn,start,end);
                 Integer [][]payloadBeforeByte=new Integer[31][2];
                 for(int i=0;i<daysInMonth;i++) {
-                	
                 	payloadBeforeByte[i][0]=monthlyReservationsCount[i];
                 	payloadBeforeByte[i][1]=monthlyWaitingListCount[i];
                 }
@@ -153,7 +147,6 @@ public class ReportControl {
                 try { conn.rollback(); } catch (Exception ignore) {}
                 return false;
             }
-            
         } catch (Exception e) {
             return false;
         }

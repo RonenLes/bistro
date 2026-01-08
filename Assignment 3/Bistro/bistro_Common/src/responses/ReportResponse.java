@@ -13,7 +13,7 @@ public class ReportResponse implements Serializable {
     private boolean success;
     private String message;
     private ReportCommand type;
-    private byte[] payload;   
+    private byte[] payload;
     public ReportResponse(boolean success,String message,ReportCommand type,byte[] payload) {
         this.success = success;
         this.message = message;

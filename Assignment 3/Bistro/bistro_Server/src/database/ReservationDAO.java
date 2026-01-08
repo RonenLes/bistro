@@ -3,6 +3,7 @@ package database;
 import entities.Reservation;
 import java.sql.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,7 +25,7 @@ public class ReservationDAO {
 	
 	
 	//INSERT statement
-	private static final String INSERT_newReservation = "INSERT INTO `reservation` reservationDate, status, partySize, allocatedCapacity, confirmationCode, guestContact, userID, startTime) "+
+	private static final String INSERT_newReservation = "INSERT INTO `reservation` (reservationDate, status, partySize, allocatedCapacity, confirmationCode, guestContact, userID, startTime) "+
 															"VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 															
 	
@@ -44,16 +45,23 @@ public class ReservationDAO {
             "ORDER BY (status='NEW') DESC, reservationID DESC " +
             "LIMIT ?";
 	private static final String SELECT_OVERBOOKED_SLOTS =
-            "SELECT slots.reservationDate, slots.startTime AS slotStart, COUNT(r2.reservationID) AS booked FROM (SELECT DISTINCT reservationDate, startTime "+            
-            "FROM reservation WHERE reservationDate >= CURDATE() "+
-            "AND allocatedCapacity = AND status IN ('NEW','CONFIRMED') ? ) slots " +
-            "JOIN reservation r2 ON r2.reservationDate = slots.reservationDate " +
-            "AND r2.allocatedCapacity = ? AND r2.status IN ('NEW','CONFIRMED')" +
-            "AND (slots.startTime < ADDTIME(r2.startTime, '02:00:00') " +
-            "AND ADDTIME(slots.startTime, '02:00:00') > r2.startTime) " +
-            "GROUP BY slots.reservationDate, slots.startTime " +
-            "HAVING booked > ? " +
-            "ORDER BY slots.reservationDate ASC, slots.startTime ASC";
+	        "SELECT slots.reservationDate, slots.startTime AS slotStart, COUNT(r2.reservationID) AS booked " +
+	        "FROM ( " +
+	        "   SELECT DISTINCT reservationDate, startTime " +
+	        "   FROM reservation " +
+	        "   WHERE reservationDate >= CURDATE() " +
+	        "     AND allocatedCapacity = ? " +
+	        "     AND status IN ('NEW','CONFIRMED') " +
+	        ") slots " +
+	        "JOIN reservation r2 ON r2.reservationDate = slots.reservationDate " +
+	        "   AND r2.allocatedCapacity = ? " +
+	        "   AND r2.status IN ('NEW','CONFIRMED') " +
+	        "   AND (slots.startTime < ADDTIME(r2.startTime, '02:00:00') " +
+	        "        AND ADDTIME(slots.startTime, '02:00:00') > r2.startTime) " +
+	        "GROUP BY slots.reservationDate, slots.startTime " +
+	        "HAVING booked > ? " +
+	        "ORDER BY slots.reservationDate ASC, slots.startTime ASC";
+
 	private static final String SELECT_RESERVATIONS_DUE_FOR_NO_SHOW_PARAM ="SELECT reservationID FROM reservation WHERE reservationDate = ? AND status IN ('NEW','CONFIRMED') AND startTime <= ?";
 	private static final String SELECT_reservationByConfirmationCode = "SELECT * FROM `reservation` WHERE confirmationCode = ?";
 	private static final String SELECT_reservationByReservationId = "SELECT * FROM `reservation` WHERE reservationID = ?";
@@ -68,16 +76,22 @@ public class ReservationDAO {
 	private static final String SELECT_RESERVATIONS_DUE_FOR_REMINDER =
 	        "SELECT reservationID, reservationDate, status, partySize, allocatedCapacity, " +
 	        "       confirmationCode, guestContact, userID, startTime " +
-	        "FROM reservations " +
+	        "FROM reservation " +
 	        "WHERE TIMESTAMP(reservationDate, startTime) >= (NOW() + INTERVAL 2 HOUR) " +
 	        "  AND TIMESTAMP(reservationDate, startTime) <  (NOW() + INTERVAL 150 MINUTE) " +
 	        "  AND status = 'APPROVED'";
 	private static final String SELECT_CONFIRMATION_CODE_EXISTS = "SELECT 1 FROM reservation WHERE confirmationCode = ? LIMIT 1";
-	
+	// Put this SQL near the top of ReservationDAO
+	private static final String SELECT_RESERVATION_COUNTS_BY_DAY_BETWEEN ="SELECT DAY(timeOfCreation) AS dayOfMonth, COUNT(*) AS cnt " +"FROM reservation " +
+	        "WHERE timeOfCreation >= ? AND timeOfCreation < ? " +
+	        "GROUP BY DAY(timeOfCreation)";
+
+	private static final String SELECT_RESERVATIONS_BY_DATE =
+	        "SELECT * FROM reservation WHERE reservationDate = ?";
 	// UPDATE statement
 	private static final String UPDATE_CANCEL_BY_RESERVAIO_ID ="UPDATE reservation SET status = 'CANCELLED' WHERE reservationID = ? AND status IN ('NEW','CONFIRMED')";                     
 	private static final String UPDATE_STATUS_RESERVATION_SQL_BY_RESERVATION_ID ="UPDATE `reservation` SET status = ? WHERE reservationID = ?";
-	private static final String UPDATE_STATUS_RESERVATION_SQL ="UPDATE `reservation` " +"SET status = ? " +"WHERE confirmation_code = ?";
+	private static final String UPDATE_STATUS_RESERVATION_SQL ="UPDATE `reservation` " +"SET status = ? " +"WHERE confirmationCode = ?";
 	private static final String UPDATE_RESERVATION_BY_CONFIRMATION_CODE =
 	        "UPDATE `reservation` " +
 	        "SET reservationDate = ?, status = ?, partySize = ?, guestContact = ?, userID = ?, startTime = ? " +
@@ -542,8 +556,6 @@ public class ReservationDAO {
         }
         return idList;
 	}
-	
-	
 	public List<Reservation> pickReservationToCancelDueToOpenHours(Connection conn,LocalDate date,LocalTime openTime,LocalTime closeTime)throws SQLException{
 		List<Reservation> idList = new ArrayList<>();
 		try(PreparedStatement ps = conn.prepareStatement(SELECT_RESERVATIONS_OVERLAPING_WITH_CLOSE_HOURS)){
@@ -561,7 +573,54 @@ public class ReservationDAO {
 		return idList;
 	}
 	
+	public Integer[] getCountOfReservationsBetween(Connection conn, LocalDateTime start, LocalDateTime end) throws SQLException {
+		Integer[] counts = new Integer[31];
+	    for (int i = 0; i < counts.length; i++) counts[i] = 0;
+	    if (start == null || end == null) {
+	        return counts; 
+	    }
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_RESERVATION_COUNTS_BY_DAY_BETWEEN)) {
+	        ps.setTimestamp(1, Timestamp.valueOf(start));
+	        ps.setTimestamp(2, Timestamp.valueOf(end));
+
+	        try (ResultSet rs = ps.executeQuery()) {
+	            while (rs.next()) {
+	                int day = rs.getInt("dayOfMonth"); // 1..31
+	                int cnt = rs.getInt("cnt");
+
+	                if (day >= 1 && day <= 31) {
+	                    counts[day - 1] = cnt;
+	                }
+	            }
+	        }
+	    }
+	    return counts;
+	}
+	public List<Reservation> fetchReservationsByDate(Connection conn, LocalDate date) throws SQLException {
+
+	    List<Reservation> reservations = new ArrayList<>();
+
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_RESERVATIONS_BY_DATE)) {
+	        ps.setDate(1, java.sql.Date.valueOf(date));
+	        try (ResultSet rs = ps.executeQuery()) {
+	            while (rs.next()) {
+	                Reservation r = new Reservation(
+	                        rs.getInt("reservationID"),
+	                        rs.getString("guestContact"),
+	                        rs.getString("userID"),
+	                        rs.getString("status")
+	                );
+	                reservations.add(r);
+	            }
+	        }
+	    }
+
+	    return reservations;
+	}
+
+
+	}
+	
 	
 		
 	
-}

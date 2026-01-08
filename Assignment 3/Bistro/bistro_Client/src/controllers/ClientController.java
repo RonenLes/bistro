@@ -186,6 +186,23 @@ public class ClientController {
         }
     }
 
+    public void requestBillAction(
+            BillRequestType type,
+            int confirmationCode,
+            boolean isCashPayment
+    ) {
+        if (!connected) {
+            safeUiWarning("Billing", "Not connected to server.");
+            return;
+        }
+
+        BillRequest payload = new BillRequest(type, confirmationCode, isCashPayment);
+
+        Request<BillRequest> req =
+                new Request<>(Request.Command.BILL_REQUEST, payload);
+
+        sendRequest(req);
+    }
     
     // helper function for requestLogin
     private String validateUsername(String u) {
@@ -234,7 +251,7 @@ public class ClientController {
         Request<ReservationRequest> req = new Request<>(Request.Command.RESERVATION_REQUEST, payload);
         sendRequest(req);
     }
-    
+    //role mapper
     private DesktopScreenController.Role mapRoleFromServer(String rawRole) {
         if (rawRole == null) {
             return DesktopScreenController.Role.GUEST;

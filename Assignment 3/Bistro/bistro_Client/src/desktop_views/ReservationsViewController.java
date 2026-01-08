@@ -47,7 +47,7 @@ public class ReservationsViewController implements ClientControllerAware {
 
     private boolean guestMode;
     private String guestContact;
-
+    private boolean connected;
     private static final int MIN_PARTY = 1;
     private static final int MAX_PARTY = 20;
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");

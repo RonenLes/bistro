@@ -8,6 +8,8 @@ public class ReportRequest {
 	
 	private ReportCommand type;
 	
+	public ReportRequest() {}
+	
 	public ReportRequest(ReportCommand type) {
 		this.type = type;
 	}

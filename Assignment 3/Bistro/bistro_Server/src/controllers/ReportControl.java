@@ -8,6 +8,7 @@ import database.WaitingListDAO;
 import kryo.KryoUtil;
 import requests.ReportRequest;
 import responses.ReportResponse;
+import responses.Response;
 
 import java.sql.Connection;
 import java.time.LocalDateTime;
@@ -24,15 +25,19 @@ public class ReportControl {
     private static final String SUBSCRIBER_REPORT_TYPE = "SUBSCRIBER_REPORT";
     
 
+    public ReportControl() {
+    	this(new SeatingDAO(),new ReportDAO(),new ReservationDAO(),new WaitingListDAO());
+    }
+    
     public ReportControl(SeatingDAO seatingDAO, ReportDAO reportDAO,ReservationDAO reservationDAO,WaitingListDAO waitingListDAO) {
         this.seatingDAO = seatingDAO;
         this.reportDAO = reportDAO;
         this.reservationDAO=reservationDAO;
         this.waitingListDAO=waitingListDAO;
     }
-    public ReportResponse handleReportRequest(ReportRequest req) {
+    public Response<ReportResponse> handleReportRequest(ReportRequest req) {
 
-        if (req == null || req.getType() == null) {return new ReportResponse(false,"Invalid report request",null,null);
+        if (req == null || req.getType() == null) {return new Response<>(false,"Invalid report request",null);
         }
         String reportMonth = java.time.YearMonth.now().minusMonths(1).toString();
         String reportType;
@@ -49,30 +54,23 @@ public class ReportControl {
                 break;
 
             default:
-                return new ReportResponse(
-                        false,
-                        "Unsupported report type",
-                        null,
-                        null
-                );
+                return new Response<>(false,"Unsupported report type",null);
+                                                                       
+                
         }
 
         try (Connection conn = DBManager.getConnection()) {
-            if (conn == null) {return new ReportResponse(false,"DB connection failed",responseType,null);
+            if (conn == null) {return new Response<>(false,"DB connection failed",null);
             }
             byte[] payload = reportDAO.getReportBytes(conn, reportType, reportMonth);
 
-            if (payload == null) {return new ReportResponse(false,"Report not found for " + reportMonth,responseType,null);
-            }
-            return new ReportResponse( true,"Report loaded successfully",responseType,payload);
+            if (payload == null) return new Response<>(false,"Report not found for " + reportMonth,null);
+            
+            ReportResponse resp =new  ReportResponse(responseType,payload);
+            return new Response<>(true,"Report loaded successfully",resp);
 
         } catch (Exception e) {
-            return new ReportResponse(
-                    false,
-                    "Failed to load report: " + e.getMessage(),
-                    responseType,
-                    null
-            );
+            return new Response<>(false,"Failed to load report: " + e.getMessage(),null);                                                         
         }
     }
 

@@ -8,7 +8,9 @@ public class Request<T> {
 		USER_REQUEST,
 		RESERVATION_REQUEST,	
 		SEATING_REQUEST,
-		MANAGER_REQUEST;
+		MANAGER_REQUEST,
+		BILLING_REQUEST,
+		REPORT_REQUEST;
 	}
 	
 	public Request() {}

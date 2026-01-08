@@ -3,6 +3,7 @@ package server;
 import controllers.BillingControl;
 import controllers.NotificationControl;
 import controllers.ReportControl;
+import controllers.WaitingListControl;
 import database.DBManager;
 import database.ReservationDAO;
 import database.SeatingDAO;
@@ -39,13 +40,18 @@ public class BillingScheduler {
         t3.setDaemon(true);
         return t3;
     });
+    private final ScheduledExecutorService callForNextCustomer= Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t4 = new Thread(r, "MonthlyReportScheduler");
+        t4.setDaemon(true);
+        return t4;
+    });
 
     private final SeatingDAO seatingDAO;
     private final BillingControl billingControl;
     private final ReservationDAO reservationDAO;
     private final UserDAO userDAO;
     private final NotificationControl notificationControl;
-
+    private final WaitingListControl waitingListControl;
     
     private final ReportControl reportControl;
 
@@ -53,14 +59,14 @@ public class BillingScheduler {
 
     public BillingScheduler(SeatingDAO seatingDAO,BillingControl billingControl,ReservationDAO reservationDAO,UserDAO userDAO,
     						NotificationControl notificationControl,
-                            ReportControl reportControl) {
+                            ReportControl reportControl,WaitingListControl waitingListControl) {
 
         this.seatingDAO = seatingDAO;
         this.billingControl = billingControl;
         this.reservationDAO = reservationDAO;
         this.userDAO = userDAO;
         this.notificationControl = notificationControl;
-
+        this.waitingListControl=waitingListControl;
         this.reportControl = reportControl;
     }
 
@@ -118,7 +124,6 @@ public class BillingScheduler {
             }
         }, 0, 30, TimeUnit.MINUTES);
 
-        
         monthlyReportScheduler.scheduleAtFixedRate(() -> {
             try {
                 if (reportControl == null) {
@@ -126,6 +131,28 @@ public class BillingScheduler {
                     return;
                 }
 
+                LocalDate today = LocalDate.now();
+                if (today.getDayOfMonth() != 1) {
+                    return; 
+                }
+
+                boolean ok = reportControl.createMonthlyVisitorReportIfMissing();
+                if (!ok) {
+                    System.err.println("Monthly visitor report creation failed");
+                } else {
+                    System.out.println("Monthly visitor report created/exists (for previous month)");
+                }
+
+            } catch (Exception e) {
+                System.err.println("Monthly report tick failed: " + e.getMessage());
+            }
+        }, 0, 24, TimeUnit.HOURS);
+        callForNextCustomer.scheduleAtFixedRate(() -> {
+            try {
+                if (waitingListControl == null) {
+                    System.err.println("cant call for next customer");
+                    return;
+                }
                 LocalDate today = LocalDate.now();
                 if (today.getDayOfMonth() != 1) {
                     return; 

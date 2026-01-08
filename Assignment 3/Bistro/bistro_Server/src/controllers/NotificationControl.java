@@ -14,6 +14,7 @@ public class NotificationControl {
 		System.out.println("Sending SMS reminder to "+phoneNumber);
 		return true;
 }
+	
     /**
      * Sends the confirmation code to a user via both email and SMS (if present).
      */
@@ -33,7 +34,6 @@ public class NotificationControl {
         }
         return false;
     }
-
     /**
      * Sends the confirmation code to a guest via the contact method they provided.
      * guestContact may be an email or a phone number.
@@ -69,7 +69,6 @@ public class NotificationControl {
         System.out.println("Body: " + body);
         return true;
     }
-
     /**
      * SMS sending implementation.
      * Replace this with an SMS provider API when needed.

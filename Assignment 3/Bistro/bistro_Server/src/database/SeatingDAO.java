@@ -207,7 +207,6 @@ public class SeatingDAO {
                 }
             }
         }
-
         return visits;
     }
     

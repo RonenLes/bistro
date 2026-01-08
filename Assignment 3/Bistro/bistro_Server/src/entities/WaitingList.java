@@ -10,10 +10,10 @@ public class WaitingList {
 	private String status; //ENUM('WAITING', 'ASSIGNED', 'CANCELLED')
 	private int priority; //1-high priority (reserved place) , 0-low priority (walk in)
 	private LocalDateTime createdAt;
-	private LocalTime assignedAt; //or cancelled at
+	private LocalDateTime assignedAt; //or cancelled at
 	
 	public WaitingList(int waitID, int reservationID, String status, int priority, LocalDateTime createdAt,
-			LocalTime assignedAt) {
+			LocalDateTime assignedAt) {
 		this.waitID = waitID;
 		this.reservationID = reservationID;
 		this.status = status;
@@ -42,7 +42,7 @@ public class WaitingList {
 	public void setCreatedAt(LocalDateTime createdAt) {
 		this.createdAt = createdAt;
 	}
-	public void setAssignedAt(LocalTime assignedAt) {
+	public void setAssignedAt(LocalDateTime assignedAt) {
 		this.assignedAt = assignedAt;
 	}
 	public String getStatus() {
@@ -54,7 +54,7 @@ public class WaitingList {
 	public LocalDateTime getCreatedAt() {
 		return createdAt;
 	}
-	public LocalTime getAssignedAt() {
+	public LocalDateTime getAssignedAt() {
 		return assignedAt;
 	}
 	

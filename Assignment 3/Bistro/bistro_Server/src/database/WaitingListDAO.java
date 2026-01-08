@@ -9,6 +9,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import entities.Reservation;
 import entities.Table;
@@ -40,6 +42,12 @@ public class WaitingListDAO {
 	        "FROM waiting_list " +
 	        "WHERE createdAt >= ? AND createdAt < ? " +
 	        "GROUP BY DAY(createdAt)";
+	private static final String SELECT_WAITINGLIST_TODAY =
+	        "SELECT * FROM waiting_list " +
+	        "WHERE status = 'WAITING' " +
+	        "AND assignedAt IS NULL " +
+	        "AND DATE(createdAt) = CURRENT_DATE";
+
 
 	
 	public WaitingList getNextWaitingThatFits(Connection conn, int tableCapacity) throws SQLException {
@@ -92,11 +100,10 @@ public class WaitingListDAO {
 									
 			if(rs.next()) {
 				WaitingList waitingList = new WaitingList(rs.getInt("waitID"), reservationID, status, rs.getInt("priority"),
-						rs.getTimestamp("createdAt").toLocalDateTime(), LocalTime.now());
+						rs.getTimestamp("createdAt").toLocalDateTime(), rs.getTimestamp("assignedAt").toLocalDateTime());
 				return waitingList;
 			}
 			return null;
-			
 		}
 	}
 	
@@ -107,21 +114,13 @@ public class WaitingListDAO {
 	    }
 	}
 	
-	// Method (put near the bottom of WaitingListDAO)
-	public Integer[] getCountOfWaitingListBetween(Connection conn,
-	                                              LocalDateTime start,
-	                                              LocalDateTime end) throws SQLException {
+	public Integer[] getCountOfWaitingListBetween(Connection conn,LocalDateTime start,LocalDateTime end) throws SQLException {
 
 	    Integer[] counts = new Integer[31];
 	    for (int i = 0; i < counts.length; i++) counts[i] = 0;
-
-	    if (conn == null) {
-	        throw new IllegalArgumentException("conn is null (getCountOfWaitingListBetween)");
-	    }
 	    if (start == null || end == null) {
-	        return counts; // keep zeros
+	        return counts; 
 	    }
-
 	    try (PreparedStatement ps = conn.prepareStatement(SELECT_WAITING_COUNTS_BY_DAY_BETWEEN)) {
 	        ps.setTimestamp(1, Timestamp.valueOf(start));
 	        ps.setTimestamp(2, Timestamp.valueOf(end));
@@ -137,10 +136,34 @@ public class WaitingListDAO {
 	            }
 	        }
 	    }
-
 	    return counts;
 	}
+	
+	/**
+	 * @param conn
+	 * @return
+	 * @throws SQLException
+	 */
+	public List<WaitingList> fetchWaitingListByCurrentDate(Connection conn) throws SQLException {
+	    List<WaitingList> waitingList = new ArrayList<>();
 
-	
-	
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_WAITINGLIST_TODAY);
+	         ResultSet rs = ps.executeQuery()) {
+
+	        while (rs.next()) {
+	            WaitingList w = new WaitingList(
+	                rs.getInt("waitID"),
+	                rs.getInt("reservationID"),
+	                rs.getString("status"),
+	                rs.getInt("priority"),
+	                rs.getTimestamp("createdAt").toLocalDateTime(),
+	                null
+	            );
+
+	            waitingList.add(w);
+	        }
+	    }
+
+	    return waitingList;
+	}
 }

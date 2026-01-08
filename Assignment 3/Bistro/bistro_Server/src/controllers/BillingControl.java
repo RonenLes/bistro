@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 import database.BillDAO;
 import database.DBManager;
 import database.ReservationDAO;
-import database.TableDAO;
 import database.UserDAO;
 import entities.Bill;
 import entities.Reservation;
@@ -16,7 +15,6 @@ import entities.User;
 import requests.BillRequest;
 import responses.BillResponse;
 import responses.BillResponse.BillResponseType;
-import responses.ReservationResponse;
 import responses.Response;
 import database.SeatingDAO;
 
@@ -26,6 +24,10 @@ public class BillingControl {
 	private final NotificationControl notificationControl;
 	private final UserDAO userDAO;
 	private final BillDAO billDAO;
+	
+	public BillingControl() {
+		this(new ReservationDAO(),new SeatingDAO(),new NotificationControl(),new UserDAO(),new BillDAO());
+	}
 	
 	public BillingControl(ReservationDAO reservationDAO, SeatingDAO seatingDAO,NotificationControl notificationControl,UserDAO userDAO,BillDAO billDAO) {
 		

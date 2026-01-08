@@ -23,6 +23,11 @@ public class SeatingDAO {
         
     
     //SELECT
+    private static final String SELECT_TABLE_ID_BY_SEATING_ID ="SELECT tableID FROM seating WHERE seatingID = ?";        
+    private static final String SELECT_VISIT_TIMES_BETWEEN ="SELECT checkInTime, checkOutTime " +"FROM seating " +"WHERE checkInTime >= ? " +
+    														"AND checkInTime < ? " +
+    														"AND checkOutTime IS NOT NULL " +
+    														"ORDER BY checkInTime";
     private final String SELECT_CURRENT_SEATINGS ="SELECT s.seatingID,t.tableNumber, t.capacity, s.checkInTime, s.checkOutTime, "+
     											  "DATE_ADD(s.checkInTime, INTERVAL 2 HOUR) AS estimatedCheckOutTime, r.reservationID, r.confirmationCode, r.partySize, "+
     											  "r.userID, r.guestContact, u.username "+
@@ -43,6 +48,8 @@ public class SeatingDAO {
     private static final String SELECT_SEATING_ID_BY_RESERVATION_ID ="SELECT seatingID " +"FROM seating " +"WHERE reservationID = ? " +"AND checkOutTime IS NULL " +
     																 "ORDER BY checkInTime DESC " +
     																 "LIMIT 1";
+    
+
 
     public boolean claimAutoBillSend(Connection conn, int seatingId) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(CLAIM_AUTO_BILL_SEND)) {
@@ -92,7 +99,7 @@ public class SeatingDAO {
             return checkIn(conn, tableID, reservationID);
         }
     }
-
+    
     /**
      * Inserts a check-in row using an existing connection (for transactions).
      * @return seatingID (generated key) or -1 if failed.
@@ -111,7 +118,7 @@ public class SeatingDAO {
             }
         }
     }
-
+    
    
     public Integer fetchOpenSeatingID(Connection conn,int tableID)throws SQLException {
     	try(PreparedStatement ps = conn.prepareStatement(SELECT_OPEN_SEATING_TO_UPDATE)){
@@ -137,7 +144,6 @@ public class SeatingDAO {
             ps.setInt(1, seatingId);
             return ps.executeUpdate() == 1;
         }
-    
     }
     public List<Integer> getSeatingsDueForBill(Connection conn) throws SQLException {
         if (conn == null) {
@@ -182,6 +188,40 @@ public class SeatingDAO {
     				
     	}
     	return list;
+    }
+    
+    public List<LocalDateTime[]> getVisitTimesBetween(Connection conn,LocalDateTime startInclusive,LocalDateTime endExclusive) throws SQLException {
+        List<LocalDateTime[]> visits = new ArrayList<>();
+
+        try (PreparedStatement ps = conn.prepareStatement(SELECT_VISIT_TIMES_BETWEEN)) {
+            ps.setTimestamp(1, Timestamp.valueOf(startInclusive));
+            ps.setTimestamp(2, Timestamp.valueOf(endExclusive));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    LocalDateTime checkIn =rs.getTimestamp("checkInTime").toLocalDateTime();
+                    LocalDateTime checkOut =rs.getTimestamp("checkOutTime").toLocalDateTime();
+
+                    // index 0 = check-in, index 1 = check-out
+                    visits.add(new LocalDateTime[] { checkIn, checkOut });
+                }
+            }
+        }
+        return visits;
+    }
+    
+    public Integer getTableIDBySeatingID(Connection conn, int seatingID) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(SELECT_TABLE_ID_BY_SEATING_ID)) {
+
+            ps.setInt(1, seatingID);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return null; // no such seatingID
+                }
+                return rs.getInt("tableID");
+            }
+        }
     }
 
 }

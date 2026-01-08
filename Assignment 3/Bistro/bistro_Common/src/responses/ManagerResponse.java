@@ -22,19 +22,29 @@ public class ManagerResponse {
 		EDIT_TABLE_RESPONSE,
 		NEW_TABLE_RESPONSE,
 		VIEW_CURRENT_SEATING_RESPONSE,
-		DELETED_TABLE_RESPONSE
+		DELETED_TABLE_RESPONSE,
+		EDIT_HOURS_RESPONSE,
+		ALL_OPENING_HOURS_RESPONSE,
+		CURRENT_WAITING_LIST_RESPONSE,
+		ALL_SUBSCRIBERS_RESPONSE
 	}
 
 	public ManagerResponse() {}
 	
-	public ManagerResponse(List<?> infoList, ManagerResponseCommand cmd) {
-		this.responseCommand = cmd;
+	public ManagerResponse(ManagerResponseCommand crd, TableInfo table, List<?> infoList) {
+		this.responseCommand = crd;
+		this.table = table;
+		this.infoList = infoList;
+	}
+	
+	public ManagerResponse(ManagerResponseCommand crd,List<?> infoList) {
+		this.responseCommand = crd;
 		this.infoList = infoList;
 	}
 	
 	//for adding new user
-	public ManagerResponse(String userID) {
-		this.responseCommand = ManagerResponseCommand.NEW_USER_RESPONSE;
+	public ManagerResponse(ManagerResponseCommand crd, String userID) {
+		this.responseCommand = crd;
 		this.userID = userID;
 	}
 	

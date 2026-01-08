@@ -31,6 +31,10 @@ public class BistroEchoServer extends AbstractServer {
 	//controllers
 	private final UserControl userControl;
 	private final ReservationControl reservationControl;
+	private final SeatingControl seatingControl;
+	private final ManagementControl managerControl;
+	private final BillingControl billingControl;
+	private final ReportControl reportControl;
 	 
 	/**
 	 * 
@@ -47,6 +51,10 @@ public class BistroEchoServer extends AbstractServer {
 		//controllers init
 		userControl = new UserControl();
 		reservationControl = new ReservationControl();
+		seatingControl = new SeatingControl();
+		managerControl = new ManagementControl();
+		billingControl = new BillingControl();
+		reportControl = new ReportControl();
 	}
 	
 	/**
@@ -136,8 +144,35 @@ public class BistroEchoServer extends AbstractServer {
 	                	Response<ReservationResponse> reservationResp = reservationControl.handleReservationRequest(reservationReq);
 	                	response = reservationResp;	                	
 	                }
-	                
-
+	                case SEATING_REQUEST ->{
+	                	SeatingRequest seatingReq = (SeatingRequest) request.getData();
+	                	Response<SeatingResponse> seatingResp = seatingControl.handleSeatingRequest(seatingReq);
+	                	response = seatingResp;
+	                }
+	                case MANAGER_REQUEST ->{
+	                	if(!loggedUsers.get(client).getRole().equals("REPRESENTATIVE") && !loggedUsers.get(client).getRole().equals("MANAGER") ) {
+	                		response = new Response<>(false,"No premissions",null);
+	                		break;
+	                	}
+	                	ManagerRequest managerReq = (ManagerRequest)request.getData();
+	                	Response<ManagerResponse> managerResp = managerControl.handleManagerRequest(managerReq);
+	                	response = managerResp;	                	
+	                }
+	                case BILLING_REQUEST ->{
+	                	BillRequest billReq = (BillRequest)request.getData();
+	                	Response<BillResponse> billResp = billingControl.handleBillRequest(billReq);
+	                	response = billResp;
+	                }
+	                case REPORT_REQUEST->{
+	                	if(!loggedUsers.get(client).getRole().equals("MANAGER") ) {
+	                		response = new Response<>(false,"No premissions",null);
+	                		break;
+	                	}
+	                	ReportRequest repReq = (ReportRequest)request.getData();	                	
+	                	Response<ReportResponse> repResp = reportControl.handleReportRequest(repReq);
+	                	response= repResp;
+	                }
+	                	                
 	                default -> response = new Response<>(false, "Unknown command", null);
 	            }
 	        }

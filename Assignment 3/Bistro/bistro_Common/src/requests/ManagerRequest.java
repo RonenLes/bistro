@@ -1,5 +1,8 @@
 package requests;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+
 public class ManagerRequest {
 	private ManagerCommand managerCommand;
 	
@@ -9,9 +12,15 @@ public class ManagerRequest {
 	private String phone;
 	private String email;
 	
-	//for new talbe/edit table
+	//for new table/edit table/delete
 	private int tableNumber;
 	private int newCap;
+	
+	//for opening hours edit
+	private LocalDate newDate;//also to be used for fetching opening hours by date
+	private LocalTime newOpenTime;
+	private LocalTime newCloseTime;
+	private String occasion;
 
 	public enum ManagerCommand{
 		ADD_NEW_USER,
@@ -19,11 +28,29 @@ public class ManagerRequest {
 		EDIT_TABLES,
 		ADD_NEW_TABLE,
 		VIEW_CURRENT_SEATING,
-		DELETE_TABLE
+		DELETE_TABLE,
+		EDIT_OPENING_HOURS,
+		VIEW_ALL_OPENING_HOURS,
+		VIEW_WAITING_LIST,
+		VIEW_SUBSCRIBERS
 	}
 
 	public ManagerRequest() {}
-
+	
+	public ManagerRequest(ManagerCommand managerCommand,LocalDate date) {
+		this.managerCommand = managerCommand;
+		this.newDate = date;
+	}
+	
+	//for updating opening hours
+	public ManagerRequest(ManagerCommand managerCommand,LocalDate date,LocalTime time,String occasion) {
+		this.managerCommand = managerCommand;
+		this.newDate = date;
+		this.newOpenTime = time;
+		this.occasion = occasion;
+	}
+	
+	//for adding new user
 	public ManagerRequest(ManagerCommand managerCommand, String newUsername, String password, String phone,
 			String email) {
 		this.managerCommand = managerCommand;
@@ -33,12 +60,14 @@ public class ManagerRequest {
 		this.email = email;
 	}
 	
+	////for deleting table by number
 	public ManagerRequest(ManagerCommand managerCommand,int tableNumber) {
 		this.managerCommand = managerCommand;
 		this.tableNumber=tableNumber;
 	}
-
-	public ManagerRequest(int tableNumber,int newCap,ManagerCommand managerCommand) {
+	
+	//for editing table details
+	public ManagerRequest(ManagerCommand managerCommand,int tableNumber,int newCap) {
 		this.managerCommand = managerCommand;
 		this.tableNumber = tableNumber;
 		this.newCap = newCap;
@@ -70,6 +99,22 @@ public class ManagerRequest {
 	
 	public int getNewCap() {
 		return newCap;
+	}
+
+	public LocalDate getNewDate() {
+		return newDate;
+	}
+
+	public LocalTime getNewOpenTime() {
+		return newOpenTime;
+	}
+
+	public LocalTime getNewCloseTime() {
+		return newCloseTime;
+	}
+
+	public String getOccasion() {
+		return occasion;
 	}
 	
 	

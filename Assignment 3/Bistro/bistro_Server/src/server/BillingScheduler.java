@@ -2,6 +2,8 @@ package server;
 
 import controllers.BillingControl;
 import controllers.NotificationControl;
+import controllers.ReportControl;
+import controllers.WaitingListControl;
 import database.DBManager;
 import database.ReservationDAO;
 import database.SeatingDAO;
@@ -20,36 +22,59 @@ import java.util.concurrent.TimeUnit;
 
 public class BillingScheduler {
 
-	private final ScheduledExecutorService reminderScheduler =Executors.newSingleThreadScheduledExecutor(r -> {
-	            Thread t1 = new Thread(r, "ReminderScheduler");
-	            t1.setDaemon(true);
-	            return t1;
-	        });
-    private final ScheduledExecutorService scheduler= Executors.newSingleThreadScheduledExecutor(r -> {
+    private final ScheduledExecutorService reminderScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t1 = new Thread(r, "ReminderScheduler");
+        t1.setDaemon(true);
+        return t1;
+    });
+
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t2 = new Thread(r, "BillingScheduler");
         t2.setDaemon(true);
         return t2;
     });
+
+    
+    private final ScheduledExecutorService monthlyReportScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t3 = new Thread(r, "MonthlyReportScheduler");
+        t3.setDaemon(true);
+        return t3;
+    });
+    private final ScheduledExecutorService callForNextCustomer= Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t4 = new Thread(r, "MonthlyReportScheduler");
+        t4.setDaemon(true);
+        return t4;
+    });
+
     private final SeatingDAO seatingDAO;
     private final BillingControl billingControl;
     private final ReservationDAO reservationDAO;
     private final UserDAO userDAO;
     private final NotificationControl notificationControl;
-    private volatile boolean started = false;
+    private final WaitingListControl waitingListControl;
     
-    public BillingScheduler(SeatingDAO seatingDAO,BillingControl billingControl,ReservationDAO reservationDAO,UserDAO userDAO,NotificationControl notificationControl) {
+    private final ReportControl reportControl;
+
+    private volatile boolean started = false;
+
+    public BillingScheduler(SeatingDAO seatingDAO,BillingControl billingControl,ReservationDAO reservationDAO,UserDAO userDAO,
+    						NotificationControl notificationControl,
+                            ReportControl reportControl,WaitingListControl waitingListControl) {
 
         this.seatingDAO = seatingDAO;
         this.billingControl = billingControl;
         this.reservationDAO = reservationDAO;
-        this.userDAO=userDAO;
-        this.notificationControl=notificationControl;
-        
+        this.userDAO = userDAO;
+        this.notificationControl = notificationControl;
+        this.waitingListControl=waitingListControl;
+        this.reportControl = reportControl;
     }
-    
+
     public synchronized void start() {
         if (started) return;
         started = true;
+
+        
         scheduler.scheduleAtFixedRate(() -> {
             try (Connection conn = DBManager.getConnection()) {
                 if (conn == null) {
@@ -75,6 +100,8 @@ public class BillingScheduler {
                 System.err.println("tick failed: " + e.getMessage());
             }
         }, 0, 60, TimeUnit.SECONDS);
+
+        
         reminderScheduler.scheduleAtFixedRate(() -> {
             try (Connection conn = DBManager.getConnection()) {
                 if (conn == null) {
@@ -96,37 +123,83 @@ public class BillingScheduler {
                 System.err.println("reminder tick failed: " + e.getMessage());
             }
         }, 0, 30, TimeUnit.MINUTES);
+
+        monthlyReportScheduler.scheduleAtFixedRate(() -> {
+            try {
+                if (reportControl == null) {
+                    System.err.println("Monthly report skipped: reportControl is null");
+                    return;
+                }
+
+                LocalDate today = LocalDate.now();
+                if (today.getDayOfMonth() != 1) {
+                    return; 
+                }
+
+                boolean ok = reportControl.createMonthlyVisitorReportIfMissing();
+                if (!ok) {
+                    System.err.println("Monthly visitor report creation failed");
+                } else {
+                    System.out.println("Monthly visitor report created/exists (for previous month)");
+                }
+
+            } catch (Exception e) {
+                System.err.println("Monthly report tick failed: " + e.getMessage());
+            }
+        }, 0, 24, TimeUnit.HOURS);
+        callForNextCustomer.scheduleAtFixedRate(() -> {
+            try {
+                if (waitingListControl == null) {
+                    System.err.println("cant call for next customer");
+                    return;
+                }
+                LocalDate today = LocalDate.now();
+                if (today.getDayOfMonth() != 1) {
+                    return; 
+                }
+
+                boolean ok = reportControl.createMonthlyVisitorReportIfMissing();
+                if (!ok) {
+                    System.err.println("Monthly visitor report creation failed");
+                } else {
+                    System.out.println("Monthly visitor report created/exists (for previous month)");
+                }
+
+            } catch (Exception e) {
+                System.err.println("Monthly report tick failed: " + e.getMessage());
+            }
+        }, 0, 24, TimeUnit.HOURS);
     }
+
     private void findPrior2HourReservation(Connection conn) throws SQLException {
-    	List<Reservation> reservations=reservationDAO.getReservationsDueForReminder(conn);
-    	for(Reservation r : reservations) {
-    		String guestContact=r.getGuestContact();
-    		if(guestContact==null ||guestContact.isBlank()) {
-    			String userID=r.getUserID();
-    			if (userID == null || userID.isBlank()) {
+        List<Reservation> reservations = reservationDAO.getReservationsDueForReminder(conn);
+        for (Reservation r : reservations) {
+            String guestContact = r.getGuestContact();
+            if (guestContact == null || guestContact.isBlank()) {
+                String userID = r.getUserID();
+                if (userID == null || userID.isBlank()) {
                     System.out.println("Reminder skipped: missing userID (reservationID=" + r.getReservationID() + ")");
                     continue;
                 }
-    			User user=userDAO.getUserByUserID(conn, userID);
-    			if (user == null) {
+                User user = userDAO.getUserByUserID(conn, userID);
+                if (user == null) {
                     System.out.println("Reminder skipped: user not found for userID=" + userID);
                     continue;
                 }
-    			String email=user.getEmail();
-    			String phoneNumber=user.getPhone();
-    			if (email != null && !email.isBlank()) {
-    				if(!notificationControl.sendAutomaticEmailTwoHourPrior(email)) {
-        				System.out.println("failed to send email to " +userID);
-        			}
-    			}
-    			if (phoneNumber != null && !phoneNumber.isBlank()) {
+                String email = user.getEmail();
+                String phoneNumber = user.getPhone();
+
+                if (email != null && !email.isBlank()) {
+                    if (!notificationControl.sendAutomaticEmailTwoHourPrior(email)) {
+                        System.out.println("failed to send email to " + userID);
+                    }
+                }
+                if (phoneNumber != null && !phoneNumber.isBlank()) {
                     if (!notificationControl.sendAutomaticSMSTwoHourPrior(phoneNumber)) {
                         System.out.println("Failed to send SMS to " + userID + " (" + phoneNumber + ")");
                     }
                 }
-    		}
-    		else {
-
+            } else {
                 String c = guestContact.trim();
                 boolean isEmail = c.contains("@") && c.contains(".");
                 if (isEmail) {
@@ -139,12 +212,10 @@ public class BillingScheduler {
                     }
                 }
             }
-    	}
+        }
     }
 
-    /**
-     * Tables seated for 2+ hours → send bill
-     */
+   
     private void mark2HoursSeating(Connection conn) throws SQLException {
         List<Integer> dueSeatingIds = seatingDAO.getSeatingsDueForBill(conn);
         for (int seatingId : dueSeatingIds) {
@@ -163,23 +234,22 @@ public class BillingScheduler {
         }
     }
 
-    /**
-     * Reservations late by 15 minutes and not SEATED → NO SHOW
-     */
+  
     private void markNoShows(Connection conn) throws SQLException {
         LocalDate today = LocalDate.now();
         LocalTime cutoff = LocalTime.now().minusMinutes(15);
 
-        List<Integer> reservationIds =reservationDAO.getReservationsDueForNoShow(conn, today, cutoff);
+        List<Integer> reservationIds = reservationDAO.getReservationsDueForNoShow(conn, today, cutoff);
 
         for (int reservationId : reservationIds) {
             reservationDAO.updateStatusByReservationID(conn, reservationId, "NO SHOW");
         }
     }
-    
+
     public synchronized void stop() {
         scheduler.shutdownNow();
         reminderScheduler.shutdownNow();
+        monthlyReportScheduler.shutdownNow(); 
         started = false;
     }
 }

@@ -33,13 +33,16 @@ public class Reservation {
 		this.timeOfCreation = timeOfCreation;
 		
 	}
-
+	
+	
 	public Reservation(int reservationID,String guestContact,String userID,String status) {
 		this.reservationID = reservationID;
 		this.guestContact = guestContact;
 		this.userID = userID;
 		this.status = status;
 	}
+	
+	
 	
 	
 	public LocalDateTime getTimeOfCreation() {

@@ -24,7 +24,7 @@ public class ReservationDAO {
 	
 	
 	//INSERT statement
-	private static final String INSERT_newReservation = "INSERT INTO `reservation` reservationDate, status, partySize, allocatedCapacity, confirmationCode, guestContact, userID, startTime) "+
+	private static final String INSERT_newReservation = "INSERT INTO `reservation` (reservationDate, status, partySize, allocatedCapacity, confirmationCode, guestContact, userID, startTime) "+
 															"VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 															
 	

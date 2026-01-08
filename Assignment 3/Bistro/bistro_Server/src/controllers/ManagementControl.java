@@ -2,19 +2,25 @@ package controllers;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 import database.*;
+import entities.OpeningHours;
 import entities.Reservation;
 import entities.User;
 import entities.WaitingList;
 import requests.TableInfo;
 import requests.ManagerRequest;
+import responses.CurrentOpeningHoursResponse;
 import responses.CurrentSeatingResponse;
+import responses.LoginResponse;
 import responses.ManagerResponse;
 import responses.ManagerResponse.ManagerResponseCommand;
+import responses.ReservationResponse;
 import responses.Response;
+import responses.WaitingListResponse;
 
 public class ManagementControl {
 
@@ -27,16 +33,17 @@ public class ManagementControl {
 	private NotificationControl notificationControl;
 	private WaitingListDAO waitingListDAO;
 	private BillingControl billingControl;
+	private OpeningHoursDAO openingHoursDAO;
 	
 	
 	
 	public ManagementControl() {
 		this(new TableDAO(),new SeatingDAO(),new ReservationDAO(),new BillDAO(),
-				new UserDAO(),new UserControl(),new NotificationControl(),new WaitingListDAO(),new BillingControl());
+				new UserDAO(),new UserControl(),new NotificationControl(),new WaitingListDAO(),new BillingControl(),new OpeningHoursDAO());
 	}
 	
 	public ManagementControl(TableDAO tableDAO, SeatingDAO seatingDAO, ReservationDAO reservationDAO, BillDAO billDAO,
-			UserDAO userDAO, UserControl userControl, NotificationControl notificationControl,WaitingListDAO waitingListDAO,BillingControl billingControl) {
+			UserDAO userDAO, UserControl userControl, NotificationControl notificationControl,WaitingListDAO waitingListDAO,BillingControl billingControl,OpeningHoursDAO openingHoursDAO) {
 		this.tableDAO = tableDAO;
 		this.seatingDAO = seatingDAO;
 		this.reservationDAO = reservationDAO;
@@ -46,6 +53,7 @@ public class ManagementControl {
 		this.notificationControl = notificationControl;
 		this.waitingListDAO = waitingListDAO;
 		this.billingControl = billingControl;
+		this.openingHoursDAO=openingHoursDAO;
 	}
 
 
@@ -61,6 +69,8 @@ public class ManagementControl {
 		case DELETE_TABLE -> deactivateTableByNumber(req.getTableNumber());
 		case VIEW_CURRENT_SEATING -> getCurrentSeating();
 		case EDIT_OPENING_HOURS -> editOpenHours(req);
+		case VIEW_ALL_OPENING_HOURS -> viewOpeningHoursNext30Days(req.getNewDate());
+		case VIEW_WAITING_LIST -> viewCurrentWaitingList();
 		};
 	}
 	
@@ -393,6 +403,107 @@ public class ManagementControl {
 		
 	}
 	
+	
+	public Response<ManagerResponse> viewOpeningHoursNext30Days(LocalDate date){
+		List<CurrentOpeningHoursResponse> openings = new ArrayList<>();
+
+	    try (Connection conn = DBManager.getConnection()) {
+
+	        List<OpeningHours> list = openingHoursDAO.fetchOpeningHoursNext30Days(conn, date);
+	        if (list == null) return new Response<>(false, "Can't find opening hours", null);
+	            	        
+	        for (OpeningHours oh : list) {
+	            if (oh == null) continue;
+	            openings.add(new CurrentOpeningHoursResponse(oh.getDate(), oh.getDay(), oh.getOpenTime(), oh.getCloseTime(), oh.getOccasion() ));	                    	           
+	        }
+
+	        ManagerResponse resp = new ManagerResponse(ManagerResponseCommand.ALL_OPENING_HOURS_RESPONSE,openings);
+	        return new Response<>(true, "Here are the opening hours for the next 30 days", resp);
+
+	    } catch (Exception e) {
+	    	System.err.println("failed to view opening hours in manager control");
+	        return new Response<>(false, "DB error: " + e.getMessage(), null);
+	    }
+	}
+	
+	
+	public Response<ManagerResponse> viewCurrentWaitingList(){
+		List<WaitingListResponse> currWaiting = new ArrayList<>();
+		try(Connection conn = DBManager.getConnection()){
+			for(WaitingList w :  fetchWaitingListByCurrentDate(conn)) {
+				
+				if(w==null) return new Response<>(false, "Can't find waiting list", null);
+				String contact;
+				
+				Reservation r = reservationDAO.getReservationByReservationID(conn, w.getReservationID());
+				
+				if(r.getUserID()==null) contact = r.getGuestContact();
+				else contact = userDAO.getUserByUserID(conn, r.getUserID()).getEmail();	
+				
+				WaitingListResponse currW = new WaitingListResponse(convertPriority(w.getPriority()), w.getCreatedAt(), contact);
+				currWaiting.add(currW);
+			}
+			
+			ManagerResponse resp = new ManagerResponse(ManagerResponseCommand.CURRENT_WAITING_LIST_RESPONSE,currWaiting);
+			return new Response<>(true,"Current customer in the waiting list",resp);
+			
+		}catch(Exception e) {
+			System.err.println("failed to view waiting list hours in manager control");
+	        return new Response<>(false, "DB error: " + e.getMessage(), null);
+		}
+		
+	}
+	
+	public Response<ManagerResponse> viewReservationByDate(LocalDate date){
+		List<ReservationResponse> currRes = new ArrayList<>();
+		try(Connection conn = DBManager.getConnection()){
+			
+			for(Reservation r : fetchReservationsByDate(conn,date)) {
+				if(r==null) return new Response<>(false, "Can't find reservation", null);
+				
+				String contact; 
+				Reservation currR = reservationDAO.getReservationByReservationID(conn, r.getReservationID());
+				
+				if(r.getUserID()==null) contact = r.getGuestContact();
+				else contact = userDAO.getUserByUserID(conn, r.getUserID()).getEmail();	
+				
+				ReservationResponse resResp = new ReservationResponse(contact, r.getStartTime(), r.getPartySize());
+				currRes.add(resResp);
+			}
+			ManagerResponse resp = new ManagerResponse(ManagerResponseCommand.CURRENT_WAITING_LIST_RESPONSE,currRes);
+			return new Response<>(true,"Current customer in the waiting list",resp);
+		}catch(Exception e) {
+			System.err.println("failed to view reservations hours in manager control");
+	        return new Response<>(false, "DB error: " + e.getMessage(), null);
+		}
+		
+	}
+	
+	public Response<ManagerResponse> viewAllSubscriber(){
+		List<LoginResponse> subs = new ArrayList<>();
+		try(Connection conn = DBManager.getConnection()){
+			for(User u : userDAO.fetchAllUsers(conn)) {
+				if(u==null) return new Response<>(false, "Can't find reservation", null);
+				LoginResponse log = new LoginResponse(u.getUserID(),u.getUsername(),u.getEmail(),u.getPhone());
+				subs.add(log);
+			}
+			ManagerResponse resp = new ManagerResponse(ManagerResponseCommand.CURRENT_WAITING_LIST_RESPONSE,subs);
+			return new Response<>(true,"Current customer in the waiting list",resp);
+			
+		}catch(Exception e) {
+			System.err.println("failed to view subscribers in manager control");
+	        return new Response<>(false, "DB error: " + e.getMessage(), null);
+		}
+	}
+	
+	
+	//---------------------------------------------SMALL HELPER METHODS_------------------------------------------------------------------
+	
+	private String convertPriority(int priority) {
+		if(priority ==1 ) return "KING";
+		return "PEASANT";
+	}
+	
 	private boolean isSeated(String status) {
 		return status.equals("SEATED");
 	}
@@ -410,8 +521,9 @@ public class ManagementControl {
 	        } catch (Exception ignore) {}
 	    }
 	}
-
 	
+	
+		
 	
 	private Response<ManagerResponse> safeRollback(Connection conn,String msg) {
 		try {

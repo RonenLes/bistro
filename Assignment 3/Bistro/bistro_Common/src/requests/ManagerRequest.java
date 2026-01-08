@@ -17,7 +17,7 @@ public class ManagerRequest {
 	private int newCap;
 	
 	//for opening hours edit
-	private LocalDate newDate;
+	private LocalDate newDate;//also to be used for fetching opening hours by date
 	private LocalTime newOpenTime;
 	private LocalTime newCloseTime;
 	private String occasion;
@@ -29,10 +29,18 @@ public class ManagerRequest {
 		ADD_NEW_TABLE,
 		VIEW_CURRENT_SEATING,
 		DELETE_TABLE,
-		EDIT_OPENING_HOURS
+		EDIT_OPENING_HOURS,
+		VIEW_ALL_OPENING_HOURS,
+		VIEW_WAITING_LIST,
+		VIEW_SUBSCRIBERS
 	}
 
 	public ManagerRequest() {}
+	
+	public ManagerRequest(ManagerCommand managerCommand,LocalDate date) {
+		this.managerCommand = managerCommand;
+		this.newDate = date;
+	}
 	
 	//for updating opening hours
 	public ManagerRequest(ManagerCommand managerCommand,LocalDate date,LocalTime time,String occasion) {

@@ -18,6 +18,7 @@ public class ReservationResponse  {
 		 WALKIN_WAITING
 	}
 	
+	
 	private LocalDate date;
 	private int partySize;
 	private LocalTime time;
@@ -30,6 +31,7 @@ public class ReservationResponse  {
 		this.userID = userID;
 	}
 	private String guestContact;
+	
 	
 	private int tableNumber;
 	
@@ -46,6 +48,13 @@ public class ReservationResponse  {
     
     public ReservationResponse(int tableNumber) {
     	this.tableNumber = tableNumber;
+    }
+    
+    //constructor for manager to use
+    public ReservationResponse(String guestContact,LocalTime startTime,int partySize) {
+    	this.guestContact=guestContact;
+    	this.time = startTime;
+    	this.partySize = partySize;
     }
     
     public ReservationResponse(LocalDate date,int partySize,LocalTime time,int confirmationCode,String userID,String guestContact,ReservationResponseType type) {

@@ -5,6 +5,11 @@ public class LoginResponse {
 	private String userID;
 	private String role;
 	private String username;
+	
+	//also for manager
+	private String email;
+	private String phone;
+	
 	private UserReponseCommand responseCommand;
 	
 	public enum UserReponseCommand{
@@ -13,6 +18,13 @@ public class LoginResponse {
 	}
 	
 	public LoginResponse() {}
+	
+	public LoginResponse(String userID,String username,String email,String phone) {
+		this.userID=userID;
+		this.username=username;
+		this.email=email;
+		this.phone=phone;
+	}
 	
 	public LoginResponse(String userID, String role,String username,UserReponseCommand responseCommand) {		
 		this.userID = userID;
@@ -35,6 +47,14 @@ public class LoginResponse {
 
 	public UserReponseCommand getResponseCommand() {
 		return responseCommand;
+	}
+
+	public String getEmail() {
+		return email;
+	}
+
+	public String getPhone() {
+		return phone;
 	}
 
 	

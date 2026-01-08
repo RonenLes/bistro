@@ -22,7 +22,8 @@ public class UserDAO {
 	//INSERT 
 		private final String INSERT_NEW_USER = "INSERT INTO user (userID, username, password, role, phone, email) (?, ?, ?, ?, ?, ?)";
 
-	//SELECT statements		
+	//SELECT statements
+		private final String SELECT_ALL_SUBSCRIBER = "SELECT * FROM `user` WHERE role = 'SUBSCRIBER'";
 		private static final String SELECT_LOGIN ="SELECT userID, username, role, phone, email FROM `user` WHERE username= ? AND password= ?";
 		private static final String SELECT_USER_BY_ID ="SELECT userID, username, role, phone, email FROM `user` WHERE userID = ?";
 		private static final String SELECT_HISTORY ="SELECT r.reservationDate, r.startTime, r.partySize, s.checkInTime, s.checkOutTime, t.tableNumber, b.totalPrice "+
@@ -37,7 +38,23 @@ public class UserDAO {
 		private final String UPDATE_USER_DETAILS_BY_ID = "UPDATE `user` SET phone = ?, email = ? WHERE userID = ?";
 		
 		
-		
+		public List<User> fetchAllUsers(Connection conn)throws SQLException{
+			List<User> users = new ArrayList<>();
+			try(PreparedStatement ps = conn.prepareStatement(SELECT_ALL_SUBSCRIBER)){
+				ResultSet rs = ps.executeQuery();
+				while(rs.next()) {
+					User user = new User(
+							rs.getString("userID"),
+							rs.getString("username"),
+							rs.getString("password"),
+							rs.getString("role"),
+							rs.getString("phone"),
+							rs.getString("email"));
+					users.add(user);
+				}
+				return users;
+			}
+		}
 		
 		public boolean insertNewUser(String userID,String username,String password,String role,String phone, String email)throws SQLException{
 			try(Connection conn  = DBManager.getConnection();

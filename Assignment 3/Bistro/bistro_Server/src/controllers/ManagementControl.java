@@ -71,6 +71,7 @@ public class ManagementControl {
 		case EDIT_OPENING_HOURS -> editOpenHours(req);
 		case VIEW_ALL_OPENING_HOURS -> viewOpeningHoursNext30Days(req.getNewDate());
 		case VIEW_WAITING_LIST -> viewCurrentWaitingList();
+		case VIEW_SUBSCRIBERS -> viewAllSubscriber();
 		};
 	}
 	
@@ -430,7 +431,7 @@ public class ManagementControl {
 	public Response<ManagerResponse> viewCurrentWaitingList(){
 		List<WaitingListResponse> currWaiting = new ArrayList<>();
 		try(Connection conn = DBManager.getConnection()){
-			for(WaitingList w :  fetchWaitingListByCurrentDate(conn)) {
+			for(WaitingList w :  waitingListDAO.fetchWaitingListByCurrentDate(conn)) {
 				
 				if(w==null) return new Response<>(false, "Can't find waiting list", null);
 				String contact;
@@ -458,16 +459,16 @@ public class ManagementControl {
 		List<ReservationResponse> currRes = new ArrayList<>();
 		try(Connection conn = DBManager.getConnection()){
 			
-			for(Reservation r : fetchReservationsByDate(conn,date)) {
+			for(Reservation r : reservationDAO.fetchReservationsByDate(conn,date)) {
 				if(r==null) return new Response<>(false, "Can't find reservation", null);
 				
 				String contact; 
 				Reservation currR = reservationDAO.getReservationByReservationID(conn, r.getReservationID());
 				
-				if(r.getUserID()==null) contact = r.getGuestContact();
-				else contact = userDAO.getUserByUserID(conn, r.getUserID()).getEmail();	
+				if(r.getUserID()==null) contact = currR.getGuestContact();
+				else contact = userDAO.getUserByUserID(conn, currR.getUserID()).getEmail();	
 				
-				ReservationResponse resResp = new ReservationResponse(contact, r.getStartTime(), r.getPartySize());
+				ReservationResponse resResp = new ReservationResponse(contact, currR.getStartTime(), currR.getPartySize());
 				currRes.add(resResp);
 			}
 			ManagerResponse resp = new ManagerResponse(ManagerResponseCommand.CURRENT_WAITING_LIST_RESPONSE,currRes);

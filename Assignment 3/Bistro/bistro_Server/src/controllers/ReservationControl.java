@@ -386,11 +386,12 @@ public class ReservationControl {
         LocalTime end = startTime.plusMinutes(RESERVATION_DURATION_MIN);
 
         Map<Integer, Integer> totals = tableDAO.getTotalTablesByCapacity(conn);
-        int totalForCap = totals.getOrDefault(allocatedCapacity, 0);
+        int totalForCap = getTotalTablesForParty(totals, allocatedCapacity);
         if (totalForCap <= 0) return false;
 
         Map<Integer, Integer> booked = reservationDAO.getBookedTablesByCapacity(conn, date, startTime, end);
-        int bookedForCap = booked.getOrDefault(allocatedCapacity, 0);
+        int bookedForCap = getBookedTablesForParty(booked, allocatedCapacity);
+
 
         return bookedForCap < totalForCap;
     }
@@ -410,6 +411,11 @@ public class ReservationControl {
         List<LocalTime> available = new ArrayList<>();
 
         Map<Integer, Integer> totalTablesByCapacity = tableDAO.getTotalTablesByCapacity(conn);
+        int total = getTotalTablesForParty(totalTablesByCapacity, cap);
+        if (total <= 0) {
+            return available;
+        }
+
 
         for (LocalTime start = open;
              !start.plusMinutes(RESERVATION_DURATION_MIN).isAfter(close);
@@ -420,14 +426,34 @@ public class ReservationControl {
             Map<Integer, Integer> alreadyBooked =
                     reservationDAO.getBookedTablesByCapacity(conn, date, start, end);
 
-            int total = totalTablesByCapacity.getOrDefault(cap, 0);
-            int booked = alreadyBooked.getOrDefault(cap, 0);
+            int booked = getBookedTablesForParty(alreadyBooked, cap);
 
             if (booked < total) available.add(start);
         }
 
         return available;
     }
+    
+    private int getTotalTablesForParty(Map<Integer, Integer> totals, int minCapacity) {
+        int total = 0;
+        for (Map.Entry<Integer, Integer> entry : totals.entrySet()) {
+            if (entry.getKey() >= minCapacity) {
+                total += entry.getValue();
+            }
+        }
+        return total;
+    }
+
+    private int getBookedTablesForParty(Map<Integer, Integer> booked, int minCapacity) {
+        int total = 0;
+        for (Map.Entry<Integer, Integer> entry : booked.entrySet()) {
+            if (entry.getKey() >= minCapacity) {
+                total += entry.getValue();
+            }
+        }
+        return total;
+    }
+
 
     public Map<LocalDate, List<LocalTime>> getSuggestionsForNextDays(Connection conn,
                                                                      LocalDate requestedDate,

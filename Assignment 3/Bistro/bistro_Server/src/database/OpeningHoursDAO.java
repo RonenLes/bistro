@@ -53,10 +53,10 @@ public class OpeningHoursDAO {
 		java.sql.Time newOpenTime = java.sql.Time.valueOf(open);
 		java.sql.Time newCloseTime = java.sql.Time.valueOf(close);
 		try(PreparedStatement ps = conn.prepareStatement(UPDATE_OPENINGHOURS)){
-			ps.setDate(1, theDate);
-			ps.setTime(2, newOpenTime);
-			ps.setTime(3, newCloseTime);
-			ps.setString(4, occasion);
+			ps.setTime(1, newOpenTime);
+			ps.setTime(2, newCloseTime);
+			ps.setString(3, occasion);
+			ps.setDate(4, theDate);
 			return ps.executeUpdate()==1;
 		}
 	}
@@ -67,9 +67,10 @@ public class OpeningHoursDAO {
 		java.sql.Time theCloseTime = java.sql.Time.valueOf(closeTime);
 		try(PreparedStatement ps = conn.prepareStatement(INSERT_NEW_OPENING_HOUR)){
 			ps.setDate(1, theDate);
-			ps.setTime(2, theOpenTime);
-			ps.setTime(3, theCloseTime);
-			ps.setString(4, "REGULAR");
+			ps.setString(2, day);
+			ps.setTime(3, theOpenTime);
+			ps.setTime(4, theCloseTime);
+			ps.setString(5, "REGULAR");
 			return ps.executeUpdate()==1;
 		}
 	}

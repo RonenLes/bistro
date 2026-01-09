@@ -47,17 +47,17 @@ public class ReservationDAO {
 	private static final String SELECT_OVERBOOKED_SLOTS =
 	        "SELECT slots.reservationDate, slots.startTime AS slotStart, COUNT(r2.reservationID) AS booked " +
 	        "FROM ( " +
-	        "   SELECT DISTINCT reservationDate, startTime " +
-	        "   FROM reservation " +
-	        "   WHERE reservationDate >= CURDATE() " +
-	        "     AND allocatedCapacity = ? " +
-	        "     AND status IN ('NEW','CONFIRMED') " +
+	        "SELECT DISTINCT reservationDate, startTime " +
+	        "FROM reservation " +
+	        "WHERE reservationDate >= CURDATE() " +
+	        "AND allocatedCapacity = ? " +
+	        "AND status IN ('NEW','CONFIRMED') " +
 	        ") slots " +
 	        "JOIN reservation r2 ON r2.reservationDate = slots.reservationDate " +
-	        "   AND r2.allocatedCapacity = ? " +
-	        "   AND r2.status IN ('NEW','CONFIRMED') " +
-	        "   AND (slots.startTime < ADDTIME(r2.startTime, '02:00:00') " +
-	        "        AND ADDTIME(slots.startTime, '02:00:00') > r2.startTime) " +
+	        "AND r2.allocatedCapacity = ? " +
+	        "AND r2.status IN ('NEW','CONFIRMED') " +
+	        "AND (slots.startTime < ADDTIME(r2.startTime, '02:00:00') " +
+	        "AND ADDTIME(slots.startTime, '02:00:00') > r2.startTime) " +
 	        "GROUP BY slots.reservationDate, slots.startTime " +
 	        "HAVING booked > ? " +
 	        "ORDER BY slots.reservationDate ASC, slots.startTime ASC";
@@ -75,11 +75,11 @@ public class ReservationDAO {
 			""";
 	private static final String SELECT_RESERVATIONS_DUE_FOR_REMINDER =
 	        "SELECT reservationID, reservationDate, status, partySize, allocatedCapacity, " +
-	        "       confirmationCode, guestContact, userID, startTime " +
+	        "confirmationCode, guestContact, userID, startTime, timeOfCreation " +
 	        "FROM reservation " +
 	        "WHERE TIMESTAMP(reservationDate, startTime) >= (NOW() + INTERVAL 2 HOUR) " +
-	        "  AND TIMESTAMP(reservationDate, startTime) <  (NOW() + INTERVAL 150 MINUTE) " +
-	        "  AND status = 'APPROVED'";
+	        "AND TIMESTAMP(reservationDate, startTime) <  (NOW() + INTERVAL 150 MINUTE) " +
+	        "AND status = 'APPROVED'";
 	private static final String SELECT_CONFIRMATION_CODE_EXISTS = "SELECT 1 FROM reservation WHERE confirmationCode = ? LIMIT 1";
 	// Put this SQL near the top of ReservationDAO
 	private static final String SELECT_RESERVATION_COUNTS_BY_DAY_BETWEEN ="SELECT DAY(timeOfCreation) AS dayOfMonth, COUNT(*) AS cnt " +"FROM reservation " +
@@ -214,8 +214,9 @@ public class ReservationDAO {
 	                    rs.getString("guestContact"),
 	                    rs.getString("userID"),
 	                    rs.getTime("startTime").toLocalTime(),
-	                    rs.getTimestamp("timeOfCreation").toLocalDateTime()
-	            );
+	                    readTimeOfCreation(rs));
+	                   
+	            
 	            reservations.add(r);
 	        }
 	    }
@@ -343,6 +344,7 @@ public class ReservationDAO {
 	        pstmt.setString(6, guest);
 	        pstmt.setString(7, userID);
 	        pstmt.setTime(8, java.sql.Time.valueOf(startTime));
+	        pstmt.setTime(8, startTime != null ? java.sql.Time.valueOf(startTime) : null);
 
 	        int isInserted = pstmt.executeUpdate();
 	        if( isInserted != 1) return -1;
@@ -392,7 +394,7 @@ public class ReservationDAO {
 	                rs.getString("guestContact"),  // may be null
 	                rs.getString("userID"),        // may be null
 	                rs.getTime("startTime") != null? rs.getTime("startTime").toLocalTime(): null,	                        	                        
-	                rs.getTimestamp("timeOfCreation").toLocalDateTime());	            
+	                readTimeOfCreation(rs));
 	        }
 
 	    } catch (SQLException e) {
@@ -430,7 +432,8 @@ public class ReservationDAO {
 	                rs.getString("guestContact"),  // may be null
 	                rs.getString("userID"),        // may be null
 	                rs.getTime("startTime") != null ? rs.getTime("startTime").toLocalTime(): null,
-	                rs.getTimestamp("timeOfCreation").toLocalDateTime());      	                        	            
+	                readTimeOfCreation(rs));      
+	            	
 	        }
 
 	    } catch (SQLException e) {
@@ -616,6 +619,25 @@ public class ReservationDAO {
 	    }
 
 	    return reservations;
+	}
+	
+	private LocalDateTime readTimeOfCreation(ResultSet rs) throws SQLException {
+	    if (!hasColumn(rs, "timeOfCreation")) {
+	        return null;
+	    }
+	    Timestamp timestamp = rs.getTimestamp("timeOfCreation");
+	    return timestamp != null ? timestamp.toLocalDateTime() : null;
+	}
+
+	private boolean hasColumn(ResultSet rs, String columnName) throws SQLException {
+	    ResultSetMetaData metaData = rs.getMetaData();
+	    int count = metaData.getColumnCount();
+	    for (int i = 1; i <= count; i++) {
+	        if (columnName.equalsIgnoreCase(metaData.getColumnLabel(i))) {
+	            return true;
+	        }
+	    }
+	    return false;
 	}
 
 

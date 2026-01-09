@@ -94,7 +94,7 @@ public class ReservationDAO {
 	private static final String UPDATE_STATUS_RESERVATION_SQL ="UPDATE `reservation` " +"SET status = ? " +"WHERE confirmationCode = ?";
 	private static final String UPDATE_RESERVATION_BY_CONFIRMATION_CODE =
 	        "UPDATE `reservation` " +
-	        "SET reservationDate = ?, status = ?, partySize = ?, guestContact = ?, userID = ?, startTime = ?,allocatedCapacity = ? " +
+	        "SET reservationDate = ?, status = ?, partySize = ?, allocatedCapacity = ?, guestContact = ?, userID = ?, startTime = ? " +
 	        "WHERE confirmationCode = ?";
 
 	
@@ -164,7 +164,7 @@ public class ReservationDAO {
      * @throws SQLException
      */
 	public boolean updateReservation(Connection conn,LocalDate reservationDate,String status,int partySize,int confirmationCode,
-	        String guestContact,String userID, LocalTime startTime,int allocatedSize) throws SQLException {
+	        String guestContact,String userID, LocalTime startTime,int allocatedCapacity) throws SQLException {
 	        	       
 	    try (
 	         PreparedStatement ps = conn.prepareStatement(UPDATE_RESERVATION_BY_CONFIRMATION_CODE)) {
@@ -172,11 +172,11 @@ public class ReservationDAO {
 	        ps.setDate(1, java.sql.Date.valueOf(reservationDate));
 	        ps.setString(2, status);
 	        ps.setInt(3, partySize);
-	        ps.setString(4, guestContact); // can be null
-	        ps.setString(5, userID);       // can be null
-	        ps.setTime(6, startTime != null ? java.sql.Time.valueOf(startTime) : null);
-	        ps.setInt(7, confirmationCode);
-	        ps.setInt(8, allocatedSize);
+	        ps.setInt(4, allocatedCapacity);
+	        ps.setString(5, guestContact); // can be null
+	        ps.setString(6, userID);       // can be null
+	        ps.setTime(7, startTime != null ? java.sql.Time.valueOf(startTime) : null);
+	        ps.setInt(8, confirmationCode);
 
 	        int affected = ps.executeUpdate();
 	        return affected == 1;

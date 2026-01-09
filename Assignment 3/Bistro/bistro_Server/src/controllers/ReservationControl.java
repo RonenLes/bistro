@@ -216,10 +216,13 @@ public class ReservationControl {
             conn.setAutoCommit(false);
             try {
                 Reservation existing = reservationDAO.getReservationByConfirmationCode(conn, confirmationCode);
+                
                 if (existing == null) {
                     conn.rollback();
                     return new Response<>(false, "Reservation not found", null);
                 }
+                if(existing.getReservationDate().isBefore(reservationDate)) return new Response<>(false, "Requested date already passed", null);
+                if(existing.getStatus().equals("CANCELLED")) return new Response<>(false, "Reservation status is cancelled", null);
 
                 String userID = existing.getUserID();     // preserved
                 String status = existing.getStatus();     // preserved

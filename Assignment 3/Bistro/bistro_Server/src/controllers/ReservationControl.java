@@ -72,6 +72,9 @@ public class ReservationControl {
         try (Connection conn = DBManager.getConnection()) {
         	
             List<LocalTime> availableTimes =getAvailableTimes(conn, req.getReservationDate(), req.getPartySize());
+            for(LocalTime t : availableTimes) {
+            	System.out.println(t.toString());
+            }
 
             if (availableTimes != null && !availableTimes.isEmpty()) {
                 ReservationResponse rr = new ReservationResponse(ReservationResponseType.FIRST_PHASE_SHOW_AVAILABILITY,availableTimes,
@@ -173,8 +176,7 @@ public class ReservationControl {
         // notify AFTER commit (don’t hold DB transaction while sending)
         sendConfirmationNotification(userID, guestContact, confirmationCode);
 
-        ReservationResponse rr = new ReservationResponse(req.getReservationDate(),partySize,req.getStartTime(),confirmationCode,userID,guestContact,type
-        );
+        ReservationResponse rr = new ReservationResponse(req.getReservationDate(),partySize,req.getStartTime(),confirmationCode,userID,guestContact,type);       
         return successResponse("Reservation created", rr);
     }
 

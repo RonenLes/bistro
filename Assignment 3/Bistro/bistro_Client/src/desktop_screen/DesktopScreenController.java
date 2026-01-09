@@ -1,5 +1,6 @@
 package desktop_screen;
 
+
 import controllers.ClientController;
 import controllers.ClientControllerAware;
 import desktop_views.ReservationsViewController;
@@ -13,7 +14,10 @@ import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-
+import desktop_views.TablesViewController;
+import manager_screen.EditTableScreenController;
+import manager_screen.UpdateOpeningHoursScreenController;
+import responses.ManagerResponse;
 import java.io.IOException;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -65,6 +69,10 @@ public class DesktopScreenController {
     private ClientController clientController;
     private ReservationsViewController reservationsVC;
     private EditReservationViewController editReservationVC;
+   
+    private TablesViewController tablesVC;
+    private EditTableScreenController editTableVC;
+    private UpdateOpeningHoursScreenController openingHoursVC;
 
 
     private Role role = Role.GUEST;
@@ -313,6 +321,16 @@ public class DesktopScreenController {
             Object ctrl = loader.getController();
             if (ctrl instanceof ReservationsViewController rvc) {
                 reservationsVC = rvc;
+            }
+            
+            if (ctrl instanceof TablesViewController tvc) {
+                tablesVC = tvc;
+            }
+            if (ctrl instanceof EditTableScreenController etc) {
+                editTableVC = etc;
+            }
+            if (ctrl instanceof UpdateOpeningHoursScreenController uohc) {
+                openingHoursVC = uohc;
             }
             
             if (ctrl instanceof EditReservationViewController edvc) {

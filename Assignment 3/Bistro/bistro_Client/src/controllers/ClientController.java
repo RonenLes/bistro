@@ -176,6 +176,13 @@ public class ClientController {
                     uiPayload(seatingResponse);
                 }
             }
+            else if (responseData instanceof ManagerResponse managerResponse) {
+                if (ui != null) {
+                    ui.onManagerResponse(managerResponse);
+                } else {
+                    uiPayload(managerResponse);
+                }
+            }
             
 
             // handle other response types here (Reservations, etc)
@@ -198,6 +205,21 @@ public class ClientController {
         if (err != null) { safeUiWarning("Login", err); return; }
         LoginRequest loginRequest = new LoginRequest(username,password,UserCommand.LOGIN_REQUEST);       
         Request<LoginRequest> req = new Request<LoginRequest>(Request.Command.USER_REQUEST,loginRequest);
+        sendRequest(req);
+    }
+    
+    public void requestManagerAction(ManagerRequest request) {
+        if (!connected) {
+            safeUiWarning("Manager", "Not connected to server.");
+            return;
+        }
+        if (request == null) {
+            safeUiWarning("Manager", "Missing manager request.");
+            return;
+        }
+
+        Request<ManagerRequest> req =
+                new Request<>(Request.Command.MANAGER_REQUEST, request);
         sendRequest(req);
     }
     

@@ -27,6 +27,7 @@ public class TablesViewController implements ClientControllerAware {
 
     private ClientController clientController;
     private boolean connected;
+    private final ObservableList<TableInfo> tableItems = FXCollections.observableArrayList();
 
     @FXML
     private void initialize() {
@@ -42,13 +43,12 @@ public class TablesViewController implements ClientControllerAware {
             tablesTable.setItems(tableItems);
         }
     }
-    
+
     @Override
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
     }
-
 
     @FXML
     private void onRefreshTables() {
@@ -57,7 +57,7 @@ public class TablesViewController implements ClientControllerAware {
         clientController.requestManagerAction(new ManagerRequest(ManagerCommand.VIEW_ALL_TABLES, 0));
         setInfo("Fetching tables...");
     }
-    
+
     @FXML
     private void onAddTable() {
         Integer tableNumber = parseInt(tableNumberField, "Table number is required.");
@@ -71,7 +71,6 @@ public class TablesViewController implements ClientControllerAware {
         setInfo("Adding table " + tableNumber + "...");
     }
 
-    
     @FXML
     private void onEditTable() {
         Integer tableNumber = parseInt(tableNumberField, "Table number is required.");
@@ -84,7 +83,7 @@ public class TablesViewController implements ClientControllerAware {
         );
         setInfo("Updating table " + tableNumber + "...");
     }
-    
+
     @FXML
     private void onRemoveTable() {
         Integer tableNumber = parseInt(tableNumberField, "Table number is required.");
@@ -144,9 +143,6 @@ public class TablesViewController implements ClientControllerAware {
         }
         return true;
     }
-    
-    
-    
 
     private void setInfo(String msg) {
         if (infoLabel != null) infoLabel.setText(msg);

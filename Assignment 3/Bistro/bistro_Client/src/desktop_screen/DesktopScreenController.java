@@ -4,7 +4,7 @@ import controllers.ClientController;
 import controllers.ClientControllerAware;
 import desktop_views.ReservationsViewController;
 import responses.ReservationResponse;
-import desktop_views.EditDetailsViewController;
+import desktop_views.EditReservationViewController;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -53,7 +53,7 @@ public class DesktopScreenController {
     @FXML private ToggleButton tablesBtn;
 
     @FXML private ToggleButton historyBtn;
-    @FXML private ToggleButton editDetailsBtn;
+    @FXML private ToggleButton editReservationBtn;
 
     @FXML private ToggleButton reportsBtn;
     @FXML private ToggleButton analyticsBtn;
@@ -64,7 +64,7 @@ public class DesktopScreenController {
 
     private ClientController clientController;
     private ReservationsViewController reservationsVC;
-    private EditDetailsViewController editDetailsVC;
+    private EditReservationViewController editReservationVC;
 
 
     private Role role = Role.GUEST;
@@ -159,7 +159,7 @@ public class DesktopScreenController {
         registerNavButton(tablesBtn,       ScreenKey.TABLES);
 
         registerNavButton(historyBtn,      ScreenKey.HISTORY);
-        registerNavButton(editDetailsBtn,  ScreenKey.EDIT_DETAILS);
+        registerNavButton(editReservationBtn,  ScreenKey.EDIT_DETAILS);
 
         registerNavButton(reportsBtn,      ScreenKey.REPORTS);
         registerNavButton(analyticsBtn,    ScreenKey.ANALYTICS);
@@ -291,7 +291,7 @@ public class DesktopScreenController {
                     loadIntoContentHost("/desktop_views/HistoryView.fxml");
 
             case EDIT_DETAILS ->
-                    loadIntoContentHost("/desktop_views/EditDetailsView.fxml");
+                    loadIntoContentHost("/desktop_views/EditReservationView.fxml");
 
             case REPORTS ->
                     loadIntoContentHost("/desktop_views/ReportsView.fxml");
@@ -315,8 +315,8 @@ public class DesktopScreenController {
                 reservationsVC = rvc;
             }
             
-            if (ctrl instanceof EditDetailsViewController edvc) {
-                editDetailsVC = edvc;
+            if (ctrl instanceof EditReservationViewController edvc) {
+                editReservationVC = edvc;
             }
             
             if (ctrl instanceof ClientControllerAware aware) {
@@ -341,8 +341,8 @@ public class DesktopScreenController {
             if (reservationsVC != null) {
                 reservationsVC.handleServerResponse(response);
             }
-            if (editDetailsVC != null) {
-                editDetailsVC.onReservationResponse(response);
+            if (editReservationVC != null) {
+                editReservationVC.onReservationResponse(response);
             }
         });
     }

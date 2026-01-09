@@ -392,3 +392,5 @@
     -fx-padding: 4 10;
     -fx-font-weight: 700;
 }
+
+.slot-selected { -fx-border-width: 2; -fx-border-color: -fx-accent; }

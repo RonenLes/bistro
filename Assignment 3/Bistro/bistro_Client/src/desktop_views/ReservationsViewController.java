@@ -2,13 +2,10 @@ package desktop_views;
 
 import controllers.ClientController;
 import controllers.ClientControllerAware;
-import requests.ReservationRequest;
 import requests.ReservationRequest.ReservationRequestType;
 import responses.ReservationResponse;
 import javafx.geometry.Pos;
 import javafx.fxml.FXML;
-import javafx.geometry.Insets;
-import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.Spinner;
@@ -148,7 +145,7 @@ public class ReservationsViewController implements ClientControllerAware {
 
         partySizeSpinner.getValueFactory().setValue(v);
     }
-    
+
     /*
      * click "Show times" button initializes the first phase
      */
@@ -186,7 +183,7 @@ public class ReservationsViewController implements ClientControllerAware {
         System.out.println("Sent FIRST_PHASE request to server");
         System.out.println("Date: " + date.toString() + ", Party size: " + partySize);
         System.out.println("Guest mode: " + guestMode + ", UserID: " + userId + ", Guest contact: " + guestContactLocal);
-       
+
     }
 
     @FXML
@@ -202,7 +199,7 @@ public class ReservationsViewController implements ClientControllerAware {
     public void handleServerResponse(ReservationResponse resp) {
         if (resp == null) return;
 
-        slotsContainer.getChildren().clear();
+        if (slotsContainer != null) slotsContainer.getChildren().clear();
 
         switch (resp.getType()) {
             case FIRST_PHASE_SHOW_AVAILABILITY -> {
@@ -246,25 +243,34 @@ public class ReservationsViewController implements ClientControllerAware {
         label.getStyleClass().add("h3");
         label.setStyle("-fx-font-weight: bold; -fx-text-fill: #34495e;");
         label.setMaxWidth(Double.MAX_VALUE);
-        slotsContainer.getChildren().add(label);
+        if (slotsContainer != null) slotsContainer.getChildren().add(label);
     }
 
     private void buildTimeSlots(LocalDate date, List<LocalTime> times) {
         TilePane grid = createNewGrid();
-        for (LocalTime t : times) {
-            grid.getChildren().add(createSmallSlotButton(date, t, "ghost"));
-        }
-        slotsContainer.getChildren().add(grid);
+
+        ReservationSlotsUI ui = new ReservationSlotsUI(grid, slotInfoLabel, SLOT_WIDTH, SLOT_HEIGHT);
+        ui.renderAvailability(
+                date,
+                times,
+                null,
+                (d, t) -> sendSecondPhaseRequest(d, t)
+        );
+
+        if (slotsContainer != null) slotsContainer.getChildren().add(grid);
     }
 
     private void buildSuggestions(Map<LocalDate, List<LocalTime>> suggestions) {
         TilePane grid = createNewGrid();
-        suggestions.keySet().stream().sorted().forEach(date -> {
-            for (LocalTime t : suggestions.get(date)) {
-                grid.getChildren().add(createSmallSlotButton(date, t, "primary"));
-            }
-        });
-        slotsContainer.getChildren().add(grid);
+
+        ReservationSlotsUI ui = new ReservationSlotsUI(grid, slotInfoLabel, SLOT_WIDTH, SLOT_HEIGHT);
+        ui.renderSuggestions(
+                suggestions,
+                null,
+                (d, t) -> sendSecondPhaseRequest(d, t)
+        );
+
+        if (slotsContainer != null) slotsContainer.getChildren().add(grid);
     }
 
     private TilePane createNewGrid() {
@@ -274,18 +280,6 @@ public class ReservationsViewController implements ClientControllerAware {
         tp.setPrefColumns(6);
         tp.setTileAlignment(Pos.CENTER_LEFT);
         return tp;
-    }
-
-    private Button createSmallSlotButton(LocalDate date, LocalTime time, String style) {
-        String text = time.format(TIME_FMT) + "\n" + date.format(DateTimeFormatter.ofPattern("dd/MM"));
-        Button btn = new Button(text);
-
-        btn.getStyleClass().addAll(style, "slot-btn");
-        btn.setPrefSize(SLOT_WIDTH, SLOT_HEIGHT);
-        btn.setStyle("-fx-text-alignment: center; -fx-font-size: 11px;");
-
-        btn.setOnAction(e -> sendSecondPhaseRequest(date, time));
-        return btn;
     }
 
     /**

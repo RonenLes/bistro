@@ -57,7 +57,7 @@
             <ToggleButton fx:id="reportsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Reports" />
             <ToggleButton fx:id="historyBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="My History" />
             <ToggleButton fx:id="analyticsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Analytics" />
-            <ToggleButton fx:id="editReservationBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Edit Reservation" />
+            <ToggleButton fx:id="editReservationBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Edit" />
             <ToggleButton fx:id="reservationsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Reservations" />
          </children>
          <BorderPane.margin>

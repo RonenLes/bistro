@@ -7,6 +7,7 @@ import client.BistroEchoClient;
 import desktop_screen.DesktopScreenController;
 import kryo.KryoUtil;
 //requests
+import requests.ManagerRequest;
 import requests.BillRequest;
 import requests.BillRequest.BillRequestType;
 import requests.LoginRequest;
@@ -17,6 +18,7 @@ import requests.ReservationRequest.ReservationRequestType;
 import requests.SeatingRequest;
 import requests.SeatingRequest.SeatingRequestType;
 //responses
+import responses.ManagerResponse;
 import responses.SeatingResponse;
 import responses.LoginResponse;
 import responses.ReservationResponse;
@@ -174,6 +176,7 @@ public class ClientController {
                     uiPayload(seatingResponse);
                 }
             }
+            
 
             // handle other response types here (Reservations, etc)
 

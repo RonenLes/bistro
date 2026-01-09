@@ -8,6 +8,7 @@ public class ReservationRequest   {
 		FIRST_PHASE,
 		SECOND_PHASE,
 		EDIT_RESERVATION,
+		SHOW_RESERVATION,
 		CANCEL_RESERVATION,
 	}
 	private ReservationRequestType type;

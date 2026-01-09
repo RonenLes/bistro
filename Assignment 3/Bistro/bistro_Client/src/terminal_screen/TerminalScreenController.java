@@ -5,6 +5,8 @@ import controllers.ClientControllerAware;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
 
 import java.util.EnumMap;
@@ -13,6 +15,12 @@ import java.util.Map;
 public class TerminalScreenController {
 
     @FXML private StackPane contentHolder;
+
+    // Toolbar buttons
+    @FXML private Button checkInBtn;
+    @FXML private Button joinWaitlistBtn;
+    @FXML private Button lostCodeBtn;
+    @FXML private Button payBillBtn;
 
     private ClientController clientController;
     private boolean connected;
@@ -29,6 +37,9 @@ public class TerminalScreenController {
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
+
+        // FXML fields might already be injected at this point
+        applyConnectionState();
     }
 
     public void setOnBackToMain(Runnable onBackToMain) {
@@ -37,7 +48,8 @@ public class TerminalScreenController {
 
     @FXML
     private void initialize() {
-        show(View.CHECK_IN);
+        // At initialize time, connected is whatever default we have (false until setClientController)
+        applyConnectionState();
     }
 
     // Toolbar actions
@@ -47,7 +59,45 @@ public class TerminalScreenController {
     @FXML private void onPayBill()         { show(View.PAY_BILL); }
     @FXML private void onLostCode()        { show(View.LOST_CODE); }
 
+    private void applyConnectionState() {
+        boolean online = connected && clientController != null;
+
+        // Guard against early calls before FXML injection
+        if (checkInBtn != null) {
+            checkInBtn.setDisable(!online);
+        }
+        if (joinWaitlistBtn != null) {
+            joinWaitlistBtn.setDisable(!online);
+        }
+        if (lostCodeBtn != null) {
+            lostCodeBtn.setDisable(!online);
+        }
+        if (payBillBtn != null) {
+            payBillBtn.setDisable(!online);
+        }
+
+        if (!online) {
+            // Show offline message in the content area
+            Label offlineLabel = new Label("""
+                    Terminal is offline.
+
+                    The server / database is currently not available.
+                    Please contact staff or try again in a few moments.
+                    """);
+            offlineLabel.getStyleClass().add("muted"); // optional: you already have this in your CSS
+            contentHolder.getChildren().setAll(offlineLabel);
+        } else {
+            // When we become online, show default view
+            show(View.CHECK_IN);
+        }
+    }
+
     private void show(View view) {
+        if (!connected || clientController == null) {
+            // Safety: ignore navigation if offline (buttons should already be disabled)
+            return;
+        }
+
         Parent root = cache.computeIfAbsent(view, this::loadView);
         contentHolder.getChildren().setAll(root);
     }

@@ -2,7 +2,12 @@ package desktop_views;
 
 import controllers.ClientController;
 import controllers.ClientControllerAware;
+import requests.ReservationRequest;
+import requests.ReservationRequest.ReservationRequestType;
+import responses.ReservationResponse;
+import javafx.geometry.Pos;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
@@ -16,6 +21,8 @@ import javafx.scene.control.DateCell;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 
 public class ReservationsViewController implements ClientControllerAware {
 
@@ -30,17 +37,23 @@ public class ReservationsViewController implements ClientControllerAware {
     @FXML private TilePane slotsTile;
     @FXML private Label slotHeaderLabel;
     @FXML private Label slotInfoLabel;
+    @FXML private VBox slotsContainer;
 
     private ClientController clientController;
-    private boolean connected;
 
     private LocalDate currentDate;
     private int currentPartySize;
-    
+    private String userID;
 
+    private boolean guestMode;
+    private String guestContact;
+    private boolean connected;
     private static final int MIN_PARTY = 1;
     private static final int MAX_PARTY = 20;
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
+
+    private static final double SLOT_WIDTH = 130.0;
+    private static final double SLOT_HEIGHT = 55.0;
 
     @FXML
     private void initialize() {
@@ -54,15 +67,26 @@ public class ReservationsViewController implements ClientControllerAware {
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
+        if (controller != null) {
+            boolean isGuest = controller.isGuestSession();
+            this.guestMode = isGuest;
+            if (isGuest) {
+                this.userID = null;
+                this.guestContact = controller.getGuestContact();
+            } else {
+                this.userID = controller.getCurrentUsername();
+                this.guestContact = null;
+            }
+        }
     }
-    
+
     private void initDatePickerLimit() {
         if (datePicker == null) return;
 
         LocalDate today = LocalDate.now();
         LocalDate max = today.plusDays(30);
 
-        datePicker.setValue(today); // optional: default to today
+        datePicker.setValue(today);
 
         datePicker.setDayCellFactory(dp -> new DateCell() {
             @Override
@@ -73,32 +97,29 @@ public class ReservationsViewController implements ClientControllerAware {
                 boolean disabled = item.isBefore(today) || item.isAfter(max);
                 setDisable(disabled);
 
-                // optional: visually "gray out" disabled dates (nice UX)
                 if (disabled) {
-                    setStyle("-fx-opacity: 0.45;");}
-                else setStyle("");
-                
+                    setStyle("-fx-opacity: 0.45;");
+                } else {
+                    setStyle("");
+                }
             }
         });
 
-        //guard manual typing / programmatic set:
         datePicker.valueProperty().addListener((obs, oldV, newV) -> {
             if (newV == null) return;
             if (newV.isBefore(today)) datePicker.setValue(today);
             else if (newV.isAfter(max)) datePicker.setValue(max);
         });
     }
-    
+
     private void initPartySizeSpinner() {
         if (partySizeSpinner == null) return;
 
-        // value factory IS required for a Spinner to behave correctly
         partySizeSpinner.setValueFactory(
                 new SpinnerValueFactory.IntegerSpinnerValueFactory(MIN_PARTY, MAX_PARTY, 2)
         );
         partySizeSpinner.setEditable(true);
 
-        // allow only digits in the editor
         TextFormatter<String> formatter = new TextFormatter<>(change -> {
             String newText = change.getControlNewText();
             if (newText.isEmpty()) return change;
@@ -111,8 +132,9 @@ public class ReservationsViewController implements ClientControllerAware {
             if (!isNow) clampPartySize();
         });
     }
-    
-
+    /*
+     * helper function to limit the party size using constants
+     */
     private void clampPartySize() {
         if (partySizeSpinner == null || partySizeSpinner.getValueFactory() == null) return;
 
@@ -126,7 +148,10 @@ public class ReservationsViewController implements ClientControllerAware {
 
         partySizeSpinner.getValueFactory().setValue(v);
     }
-
+    
+    /*
+     * click "Show times" button initializes the first phase
+     */
     @FXML
     private void onFindTimes() {
         clampPartySize();
@@ -142,39 +167,22 @@ public class ReservationsViewController implements ClientControllerAware {
         currentPartySize = partySize;
         currentDate = date;
 
-        buildTimeSlots(date, partySize);
-        switchToStep2();
-    }
+        if (clientController == null) { setInfo("ClientController not set."); return; }
 
-    private void buildTimeSlots(LocalDate date, int partySize) {
-        if (slotHeaderLabel != null) {
-            slotHeaderLabel.setText("Date: " + date + " • Party size: " + partySize);
-        }
-        if (slotInfoLabel != null) slotInfoLabel.setText("Pick one time block.");
+        setInfo("Fetching available times from server...");
 
-        if (slotsTile != null) slotsTile.getChildren().clear();
+        String userId = guestMode ? null : this.userID;
+        String guestContactLocal = guestMode ? this.guestContact : null;
 
-        // demo: 18:00..22:00, 30 min steps. for big parties -> 60 min
-        int stepMinutes = (partySize >= 8) ? 60 : 30;
-        LocalTime start = LocalTime.of(18, 0);
-        LocalTime end = LocalTime.of(22, 0);
-
-        for (LocalTime t = start; t.isBefore(end.plusMinutes(1)); t = t.plusMinutes(stepMinutes)) {
-            String timeText = t.format(TIME_FMT);
-            slotsTile.getChildren().add(makeTimeBlockButton(timeText));
-        }
-    }
-    
-
-    private Button makeTimeBlockButton(String timeText) {
-        Button b = new Button(timeText);
-        b.getStyleClass().addAll("ghost", "slot-btn");
-        b.setPrefWidth(200);
-        b.setPrefHeight(70);
-        b.setMaxWidth(Double.MAX_VALUE);
-
-        b.setOnAction(e -> onTimeChosen(currentDate, timeText, currentPartySize));
-        return b;
+        clientController.requestNewReservation(
+                ReservationRequestType.FIRST_PHASE,
+                date,
+                null,
+                partySize,
+                userId,
+                guestContactLocal,
+                0
+        );
     }
 
     @FXML
@@ -191,11 +199,133 @@ public class ReservationsViewController implements ClientControllerAware {
             return;
         }
 
-        // Send to server
-        // TODO
+        LocalTime chosenTime = LocalTime.parse(time, TIME_FMT);
 
-        // Optionally disable UI / show "Sending..."
-        setInfo("Sending reservation request...");
+        String userId = guestMode ? null : this.userID;
+        String guestContactLocal = guestMode ? this.guestContact : null;
+
+        clientController.requestNewReservation(
+                ReservationRequest.ReservationRequestType.FIRST_PHASE,
+                date,
+                chosenTime,
+                partySize,
+                userId,
+                guestContactLocal,
+                0
+        );
+    }
+
+    /**
+     * Called by DesktopScreenController
+     * when the server replies to FIRST_PHASE
+     */
+    public void handleServerResponse(ReservationResponse resp) {
+        if (resp == null) return;
+
+        slotsContainer.getChildren().clear();
+
+        switch (resp.getType()) {
+            case FIRST_PHASE_SHOW_AVAILABILITY -> {
+                setInfo("Select a time for " + currentDate);
+
+                addSectionHeader("Available times for " + currentDate.format(DateTimeFormatter.ofPattern("dd/MM")));
+                buildTimeSlots(currentDate, resp.getAvailableTimes());
+
+                if (resp.getSuggestedDates() != null && !resp.getSuggestedDates().isEmpty()) {
+                    addSectionHeader("Or choose a different date:");
+                    buildSuggestions(resp.getSuggestedDates());
+                }
+                switchToStep2();
+            }
+
+            case FIRST_PHASE_SHOW_SUGGESTIONS -> {
+                setInfo("No exact matches found.");
+                addSectionHeader("Available dates in the coming week:");
+                buildSuggestions(resp.getSuggestedDates());
+                switchToStep2();
+            }
+
+            case SECOND_PHASE_CONFIRMED -> {
+                setInfo("Reservation confirmed. Code: " + resp.getConfirmationCode());
+
+                if (slotsContainer != null) {
+                    slotsContainer.getChildren().clear();
+                }
+                switchToStep1();
+            }
+
+            case FIRST_PHASE_NO_AVAILABILITY_OR_SUGGESTIONS -> {
+                setInfo("Fully booked for the next 7 days");
+                switchToStep1();
+            }
+        }
+    }
+
+    private void addSectionHeader(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("h3");
+        label.setStyle("-fx-font-weight: bold; -fx-text-fill: #34495e;");
+        label.setMaxWidth(Double.MAX_VALUE);
+        slotsContainer.getChildren().add(label);
+    }
+
+    private void buildTimeSlots(LocalDate date, List<LocalTime> times) {
+        TilePane grid = createNewGrid();
+        for (LocalTime t : times) {
+            grid.getChildren().add(createSmallSlotButton(date, t, "ghost"));
+        }
+        slotsContainer.getChildren().add(grid);
+    }
+
+    private void buildSuggestions(Map<LocalDate, List<LocalTime>> suggestions) {
+        TilePane grid = createNewGrid();
+        suggestions.keySet().stream().sorted().forEach(date -> {
+            for (LocalTime t : suggestions.get(date)) {
+                grid.getChildren().add(createSmallSlotButton(date, t, "primary"));
+            }
+        });
+        slotsContainer.getChildren().add(grid);
+    }
+
+    private TilePane createNewGrid() {
+        TilePane tp = new TilePane();
+        tp.setHgap(10);
+        tp.setVgap(10);
+        tp.setPrefColumns(6);
+        tp.setTileAlignment(Pos.CENTER_LEFT);
+        return tp;
+    }
+
+    private Button createSmallSlotButton(LocalDate date, LocalTime time, String style) {
+        String text = time.format(TIME_FMT) + "\n" + date.format(DateTimeFormatter.ofPattern("dd/MM"));
+        Button btn = new Button(text);
+
+        btn.getStyleClass().addAll(style, "slot-btn");
+        btn.setPrefSize(SLOT_WIDTH, SLOT_HEIGHT);
+        btn.setStyle("-fx-text-alignment: center; -fx-font-size: 11px;");
+
+        btn.setOnAction(e -> sendSecondPhaseRequest(date, time));
+        return btn;
+    }
+
+    /**
+     * SECOND PHASE: User selected a specific Slot
+     */
+    private void sendSecondPhaseRequest(LocalDate date, LocalTime time) {
+        setInfo("Confirming reservation for " + date + " at " + time + "...");
+
+        String userId = guestMode ? null : this.userID;
+        String guestContactLocal = guestMode ? this.guestContact : null;
+
+        clientController.requestNewReservation(
+                ReservationRequestType.SECOND_PHASE,
+                date,
+                time,
+                currentPartySize,
+                userId,
+                guestContactLocal,
+                0
+        );
     }
 
     private void switchToStep1() {

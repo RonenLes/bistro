@@ -51,25 +51,14 @@
    <left>
       <VBox alignment="TOP_CENTER" prefHeight="589.0" prefWidth="127.0" spacing="8.0" BorderPane.alignment="CENTER">
          <children>
-            <VBox fx:id="repGroup" prefHeight="200.0" prefWidth="100.0" spacing="10.0">
-               <children>
-                  <ToggleButton fx:id="reservationsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Reservations" />
-                  <ToggleButton fx:id="waitlistBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Waitlist" />
-                  <ToggleButton fx:id="tablesBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Tables" />
-               </children>
-            </VBox>
-            <VBox fx:id="subscriberGroup" prefHeight="135.0" prefWidth="127.0" spacing="10.0">
-               <children>
-                  <ToggleButton fx:id="historyBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="My History" />
-                  <ToggleButton fx:id="editDetailsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Edit Details" />
-               </children>
-            </VBox>
-            <VBox fx:id="managerGroup" prefHeight="122.0" prefWidth="127.0" spacing="10.0">
-               <children>
-                  <ToggleButton fx:id="reportsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Reports" />
-                  <ToggleButton fx:id="analyticsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Analytics" />
-               </children>
-            </VBox>
+            <ToggleButton fx:id="waitlistBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Waitlist" />
+            <ToggleButton fx:id="tablesBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Tables" />
+            <ToggleButton fx:id="payBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Pay" />
+            <ToggleButton fx:id="reportsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Reports" />
+            <ToggleButton fx:id="historyBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="My History" />
+            <ToggleButton fx:id="analyticsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Analytics" />
+            <ToggleButton fx:id="editDetailsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Edit Details" />
+            <ToggleButton fx:id="reservationsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Reservations" />
          </children>
          <BorderPane.margin>
             <Insets left="5.0" />

@@ -2,6 +2,8 @@ package desktop_screen;
 
 import controllers.ClientController;
 import controllers.ClientControllerAware;
+import desktop_views.ReservationsViewController;
+import responses.ReservationResponse;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -12,25 +14,31 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.io.IOException;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
- * Shell controller (top bar + left navigation + center content host).
+ * Shell controller (top bar + left navigation + center content host)
  * Handles:
- *  - Role-based nav visibility (Rep/Subscriber/Manager)
- *  - Single selection across all nav toggle buttons
- *  - Content swapping into contentHost
+ * Role based nav visibility (per button)
+ * Single selection across all nav toggle buttons
+ * Content swapping into contentHost
  */
 public class DesktopScreenController {
 
     public enum Role {
-        GUEST, CUSTOMER, SUBSCRIBER, REP, MANAGER
+        GUEST,
+        SUBSCRIBER,
+        REP,
+        MANAGER
     }
 
     @FXML private StackPane contentHost;
 
-    // Role groups
+    // Role groups (just layout containers)
     @FXML private VBox repGroup;
     @FXML private VBox subscriberGroup;
     @FXML private VBox managerGroup;
@@ -39,7 +47,7 @@ public class DesktopScreenController {
     @FXML private Label welcomeNameLabel;
 
     // Nav buttons
-    @FXML private ToggleButton reservationsBtn;
+    @FXML private ToggleButton reservationsBtn;   // "New Reservations"
     @FXML private ToggleButton waitlistBtn;
     @FXML private ToggleButton tablesBtn;
 
@@ -48,11 +56,14 @@ public class DesktopScreenController {
 
     @FXML private ToggleButton reportsBtn;
     @FXML private ToggleButton analyticsBtn;
+    @FXML private ToggleButton payBtn;
 
     private final ToggleGroup navToggleGroup = new ToggleGroup();
     private final Map<ToggleButton, ScreenKey> navMap = new HashMap<>();
 
     private ClientController clientController;
+    private ReservationsViewController reservationsVC;
+
     private Role role = Role.GUEST;
     private Runnable onLogout;
 
@@ -64,7 +75,47 @@ public class DesktopScreenController {
         HISTORY,
         EDIT_DETAILS,
         REPORTS,
-        ANALYTICS
+        ANALYTICS,
+        PAY
+    }
+
+    // Role -> allowed screens
+    private static final Map<Role, Set<ScreenKey>> ROLE_SCREENS = new EnumMap<>(Role.class);
+    static {
+        // GUEST -> edit details, new reservations, pay
+        ROLE_SCREENS.put(Role.GUEST, EnumSet.of(
+                ScreenKey.EDIT_DETAILS,
+                ScreenKey.RESERVATIONS,
+                ScreenKey.PAY
+        ));
+
+        // SUBSCRIBER -> edit details, new reservations, pay, history
+        ROLE_SCREENS.put(Role.SUBSCRIBER, EnumSet.of(
+                ScreenKey.EDIT_DETAILS,
+                ScreenKey.RESERVATIONS,
+                ScreenKey.PAY,
+                ScreenKey.HISTORY
+        ));
+
+        // REP -> edit details, new reservations, pay, history, tables
+        ROLE_SCREENS.put(Role.REP, EnumSet.of(
+                ScreenKey.EDIT_DETAILS,
+                ScreenKey.RESERVATIONS,
+                ScreenKey.PAY,
+                ScreenKey.HISTORY,
+                ScreenKey.TABLES
+        ));
+
+        // MANAGER -> edit details, new reservations, pay, history, tables, analytics, reports
+        ROLE_SCREENS.put(Role.MANAGER, EnumSet.of(
+                ScreenKey.EDIT_DETAILS,
+                ScreenKey.RESERVATIONS,
+                ScreenKey.PAY,
+                ScreenKey.HISTORY,
+                ScreenKey.TABLES,
+                ScreenKey.ANALYTICS,
+                ScreenKey.REPORTS
+        ));
     }
 
     // Public API
@@ -75,14 +126,20 @@ public class DesktopScreenController {
     public void setRole(Role role) {
         this.role = role != null ? role : Role.GUEST;
         applyRoleVisibility();
-        navToggleGroup.selectToggle(null);
+        navToggleGroup.selectToggle(null);// clear selection
+        selectDefaultForRole(); // pick default screen for this role
     }
 
     public void setWelcomeName(String name) {
         if (welcomeNameLabel != null) {
-            welcomeNameLabel.setText(
-                    "Welcome," + (name == null || name.isBlank() ? "" : " " + name)
-            );
+            String trimmed = name == null ? "" : name.trim();
+            if (role == Role.GUEST || trimmed.equalsIgnoreCase("guest")) {
+                welcomeNameLabel.setText("Hello, guest.");
+            } else if (trimmed.isEmpty()) {
+                welcomeNameLabel.setText("Hello.");
+            } else {
+                welcomeNameLabel.setText("Hello, " + trimmed + ".");
+            }
         }
     }
 
@@ -95,60 +152,82 @@ public class DesktopScreenController {
     private void initialize() {
 
         registerNavButton(reservationsBtn, ScreenKey.RESERVATIONS);
-        registerNavButton(waitlistBtn, ScreenKey.WAITLIST);
-        registerNavButton(tablesBtn, ScreenKey.TABLES);
+        registerNavButton(waitlistBtn,     ScreenKey.WAITLIST);
+        registerNavButton(tablesBtn,       ScreenKey.TABLES);
 
-        registerNavButton(historyBtn, ScreenKey.HISTORY);
-        registerNavButton(editDetailsBtn, ScreenKey.EDIT_DETAILS);
+        registerNavButton(historyBtn,      ScreenKey.HISTORY);
+        registerNavButton(editDetailsBtn,  ScreenKey.EDIT_DETAILS);
 
-        registerNavButton(reportsBtn, ScreenKey.REPORTS);
-        registerNavButton(analyticsBtn, ScreenKey.ANALYTICS);
+        registerNavButton(reportsBtn,      ScreenKey.REPORTS);
+        registerNavButton(analyticsBtn,    ScreenKey.ANALYTICS);
+        registerNavButton(payBtn,          ScreenKey.PAY);
 
         applyRoleVisibility();
 
-
         navToggleGroup.selectedToggleProperty().addListener((obs, oldT, newT) -> {
-            // Allow "no selection" so welcome screen can remain visible.
+            // Allow no selection so welcome screen can remain visible.
             if (newT instanceof ToggleButton btn) {
                 ScreenKey key = navMap.get(btn);
                 if (key != null) navigate(key);
             }
         });
     }
-    
+
     private void registerNavButton(ToggleButton btn, ScreenKey key) {
         if (btn == null) return;
         btn.setToggleGroup(navToggleGroup);
         navMap.put(btn, key);
     }
 
-    // Role visibility
+    // Role visibility (PER BUTTON)
     private void applyRoleVisibility() {
-        setGroupVisible(repGroup, role == Role.REP || role == Role.MANAGER);
-        setGroupVisible(subscriberGroup, role == Role.SUBSCRIBER || role == Role.MANAGER);
-        setGroupVisible(managerGroup, role == Role.MANAGER);
+        Set<ScreenKey> allowed = ROLE_SCREENS.getOrDefault(role, Set.of());
+
+        // Show/hide each button individually
+        for (Map.Entry<ToggleButton, ScreenKey> entry : navMap.entrySet()) {
+            ToggleButton btn = entry.getKey();
+            ScreenKey key = entry.getValue();
+            if (btn == null) continue;
+
+            boolean visible = allowed.contains(key);
+            btn.setVisible(visible);
+            btn.setManaged(visible);
+        }
+
+        // Update groups visibility based on whether they have any visible children
+        updateGroupVisibility(repGroup);
+        updateGroupVisibility(subscriberGroup);
+        updateGroupVisibility(managerGroup);
     }
 
-    private void setGroupVisible(VBox group, boolean visible) {
+    private void updateGroupVisibility(VBox group) {
         if (group == null) return;
-        group.setVisible(visible);
-        group.setManaged(visible);
+
+        boolean hasVisibleChild = group.getChildren().stream()
+                .filter(n -> n instanceof ToggleButton)
+                .map(n -> (ToggleButton) n)
+                .anyMatch(btn -> btn.isVisible() && btn.isManaged());
+
+        group.setVisible(hasVisibleChild);
+        group.setManaged(hasVisibleChild);
     }
 
     private void selectDefaultForRole() {
         switch (role) {
-            case MANAGER -> selectIfVisible(reportsBtn);
-            case REP -> selectIfVisible(reservationsBtn);
-            case SUBSCRIBER -> selectIfVisible(historyBtn);
-            default -> selectFirstAvailable();
+            case MANAGER -> selectIfVisible(reportsBtn);       // manager default
+            case REP     -> selectIfVisible(reservationsBtn);  // rep default
+            case SUBSCRIBER -> selectIfVisible(historyBtn);    // subscriber default
+            case GUEST   -> selectIfVisible(reservationsBtn);  // guest default
+            default      -> selectFirstAvailable();
         }
     }
 
     private void selectFirstAvailable() {
-        for (ToggleButton btn : navMap.keySet()) {
+        for (Map.Entry<ToggleButton, ScreenKey> entry : navMap.entrySet()) {
+            ToggleButton btn = entry.getKey();
             if (btn != null && btn.isVisible() && btn.isManaged() && !btn.isDisable()) {
                 btn.setSelected(true);
-                navigate(navMap.get(btn));
+                navigate(entry.getValue());
                 return;
             }
         }
@@ -163,7 +242,6 @@ public class DesktopScreenController {
             selectFirstAvailable();
         }
     }
-
 
     // FXML handlers
     @FXML
@@ -194,9 +272,7 @@ public class DesktopScreenController {
         }
     }
 
-
     // Navigation (REAL SCREEN LOADING)
-
     private void navigate(ScreenKey key) {
         switch (key) {
             case RESERVATIONS ->
@@ -219,6 +295,9 @@ public class DesktopScreenController {
 
             case ANALYTICS ->
                     loadIntoContentHost("/desktop_views/AnalyticsView.fxml");
+
+            case PAY ->
+                    loadIntoContentHost("/desktop_views/PayView.fxml");
         }
     }
 
@@ -228,6 +307,10 @@ public class DesktopScreenController {
             Node view = loader.load();
 
             Object ctrl = loader.getController();
+            if (ctrl instanceof ReservationsViewController rvc) {
+                reservationsVC = rvc;
+            }
+            
             if (ctrl instanceof ClientControllerAware aware) {
                 aware.setClientController(clientController, clientController != null);
             }
@@ -241,4 +324,13 @@ public class DesktopScreenController {
             contentHost.getChildren().setAll(error);
         }
     }
+    public void onReservationResponse(ReservationResponse response) {
+        // Ensure UI updates happen on the FX Thread
+        javafx.application.Platform.runLater(() -> {
+            if (reservationsVC != null) {
+                reservationsVC.handleServerResponse(response);
+            }
+        });
+    }
+    
 }

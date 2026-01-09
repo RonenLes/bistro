@@ -1,5 +1,8 @@
 package controllers;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+
 import client.BistroEchoClient;
 import desktop_screen.DesktopScreenController;
 import kryo.KryoUtil;
@@ -7,16 +10,19 @@ import requests.LoginRequest;
 import requests.LoginRequest.UserCommand;
 import requests.Request;
 import responses.LoginResponse;
+import responses.ReservationResponse;
 import responses.Response;
+import requests.ReservationRequest;
+import requests.ReservationRequest.ReservationRequestType;
 
 /**
  * Central application controller for the Bistro Echo Client.
- * - All JavaFX screen controllers call THIS class (UI -> Controller)
- * - Only THIS class sends requests to server (Controller -> Network)
- * - Only THIS class routes responses from server (Network -> Controller)
+ * All JavaFX screen controllers call THIS class (UI -> Controller)
+ * Only THIS class sends requests to server (Controller -> Network)
+ * Only THIS class routes responses from server (Network -> Controller)
  *
- * Important: OCSF calls back on a non-JavaFX thread.
- * This controller must NOT directly touch JavaFX.
+ * Important: OCSF calls back on a non JavaFX thread
+ * This controller must NOT directly touch JavaFX
  */
 public class ClientController {
 
@@ -24,6 +30,10 @@ public class ClientController {
     private ClientUIHandler ui;
     private boolean connected;
 
+    // Session identity state
+    private boolean guestSession;
+    private String guestContact;
+    private String currentUsername;
 
     public ClientController(BistroEchoClient client) {
         this.client = client;
@@ -35,7 +45,7 @@ public class ClientController {
     }
 
 
-    // UI --> Controller API
+    // UI - Controller API
 
 
     /**
@@ -85,12 +95,18 @@ public class ClientController {
             }
 
             Object responseData = response.getData();
+            
 
             if (responseData instanceof LoginResponse loginResponse) {
                 switch (loginResponse.getResponseCommand()) {
                     case LOGIN_RESPONSE -> {
                         DesktopScreenController.Role uiRole =
                                 mapRoleFromServer(loginResponse.getRole());
+
+                        // update session state for member login
+                        this.guestSession = false;
+                        this.guestContact = null;
+                        this.currentUsername = loginResponse.getUsername();
 
                         // THIS is where we move to the next screen
                         if (ui != null) {
@@ -104,6 +120,23 @@ public class ClientController {
                     case EDIT_RESPONSE -> {
                         // handle other login-related responses if needed
                     }
+                }
+            }
+
+            else if (responseData instanceof ReservationResponse reservationResponse) {
+
+                // if this is the final confirmation, show a global info message + confirmation code
+                if (reservationResponse.getType() == ReservationResponse.ReservationResponseType.SECOND_PHASE_CONFIRMED) {
+                    String messege = "Reservation confirmed successfully. "
+                               + "Confirmation code: " + reservationResponse.getConfirmationCode();
+                    safeUiInfo("Reservation", messege);
+                }
+
+                //push to UI handler
+                if (ui != null) {
+                    ui.onReservationResponse(reservationResponse);
+                } else {
+                    uiPayload(reservationResponse);
                 }
             }
 
@@ -139,14 +172,37 @@ public class ClientController {
             safeUiError("Logout", "Error while closing connection:\n" + e.getMessage());
         } finally {
             connected = false;
+
+            // reset session identity
+            guestSession = false;
+            guestContact = null;
+            currentUsername = null;
+
             // Optionally notify UI to go back to login screen
             if (ui != null) {
                 ui.showInfo("Logout", "You have been logged out.");
-                //ui.routeToLogin(); // <-- add this to your ClientUIHandler if you don't have it yet
+                //ui.routeToLogin(); // <-- add this to your ClientUIHandler if you do not have it yet
             }
         }
     }
 
+    public void requestBillAction(
+            BillRequestType type,
+            int confirmationCode,
+            boolean isCashPayment
+    ) {
+        if (!connected) {
+            safeUiWarning("Billing", "Not connected to server.");
+            return;
+        }
+
+        BillRequest payload = new BillRequest(type, confirmationCode, isCashPayment);
+
+        Request<BillRequest> req =
+                new Request<>(Request.Command.BILL_REQUEST, payload);
+
+        sendRequest(req);
+    }
     
     // helper function for requestLogin
     private String validateUsername(String u) {
@@ -166,6 +222,36 @@ public class ClientController {
     }
     // END
     
+    public void requestNewReservation(
+            ReservationRequestType type,
+            LocalDate reservationDate,
+            LocalTime startTime,
+            int partySize,
+            String userID,
+            String guestContact,
+            int confirmationCode
+    ) {
+        //client side validation
+    	
+        if (!connected) {
+            safeUiWarning("Reservations", "Not connected to server.");
+            return;
+        }
+
+        ReservationRequest payload = new ReservationRequest(
+                type,
+                reservationDate,
+                startTime,
+                partySize,
+                userID,
+                guestContact,
+                confirmationCode
+        );
+
+        Request<ReservationRequest> req = new Request<>(Request.Command.RESERVATION_REQUEST, payload);
+        sendRequest(req);
+    }
+    //role mapper
     private DesktopScreenController.Role mapRoleFromServer(String rawRole) {
         if (rawRole == null) {
             return DesktopScreenController.Role.GUEST;
@@ -177,7 +263,7 @@ public class ClientController {
         try {
             return DesktopScreenController.Role.valueOf(normalized);
         } catch (IllegalArgumentException e) {
-            // Fallback – don't crash UI if server sends unexpected role
+            // fallback - dont crash UI if server sends unexpected role
             System.err.println("[WARN] Unknown role from server: " + rawRole);
             return DesktopScreenController.Role.GUEST;
         }
@@ -189,7 +275,7 @@ public class ClientController {
         }
     }
     
-    // Safe UI calls
+    // safe UI calls
 
     private void safeUiInfo(String title, String message) {
         if (ui != null) ui.showInfo(title, message);
@@ -214,5 +300,25 @@ public class ClientController {
     // Setters
     public void setConnected(boolean connected) {
         this.connected = connected;
+    }
+
+    // Session identity API
+
+    public void startGuestSession(String contact) {
+        this.guestSession = true;
+        this.guestContact = contact;
+        this.currentUsername = "guest";
+    }
+
+    public boolean isGuestSession() {
+        return guestSession;
+    }
+
+    public String getGuestContact() {
+        return guestContact;
+    }
+
+    public String getCurrentUsername() {
+        return currentUsername;
     }
 }

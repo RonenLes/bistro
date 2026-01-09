@@ -234,11 +234,9 @@ public class ReservationControl {
 
                 int newAllocatedCapacity = roundToCapacity(conn, partySize);
 
-                // Option A (current): may be too strict in edit cases
+                
                 boolean available = isStillAvailable(conn, reservationDate, startTime, newAllocatedCapacity);
 
-                // Option B (recommended): exclude itself (uncomment if you add DAO method)
-                // boolean available = isStillAvailableExcluding(conn, reservationDate, startTime, newAllocatedCapacity, confirmationCode);
 
                 if (!available) {
                     conn.rollback();
@@ -246,11 +244,9 @@ public class ReservationControl {
                 }
 
                 boolean updated = reservationDAO.updateReservation(conn,reservationDate,status, partySize,confirmationCode,
-                        guestContactToSave,
-                        userID,
-                        startTime
-                );
-
+                        guestContactToSave,userID,startTime,newAllocatedCapacity);
+                        
+                                       
                 if (!updated) {
                     conn.rollback();
                     return new Response<>(false, "Reservation was not updated", null);

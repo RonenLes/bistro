@@ -1,32 +1,13 @@
 package responses;
 
-import java.time.LocalDateTime;
-
 public class WaitingListResponse {
-	
-	private String priority;
-	private LocalDateTime dateTime;
-	public String contact;
-	
-	public WaitingListResponse () {}
-
-	public WaitingListResponse(String priority, LocalDateTime dateTime, String contact) {
-		this.priority = priority;
-		this.dateTime = dateTime;
-		this.contact = contact;
+	boolean hasBeenCancelled;
+	public WaitingListResponse () {
 	}
-
-	public String getPriority() {
-		return priority;
+	public WaitingListResponse(boolean hasBeenCancelled) {
+		this.hasBeenCancelled=hasBeenCancelled;
 	}
-
-	public LocalDateTime getDateTime() {
-		return dateTime;
+	public boolean getHasBeenCancelled() {
+		return this.hasBeenCancelled;
 	}
-
-	public String getContact() {
-		return contact;
-	}
-		
-	
 }

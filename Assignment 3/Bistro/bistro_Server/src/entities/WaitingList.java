@@ -7,10 +7,11 @@ public class WaitingList {
 	
 	private int waitID;
 	private int reservationID;
-	private String status; //ENUM('WAITING', 'ASSIGNED', 'CANCELLED')
+	private String status; //ENUM('WAITING', 'ASSIGNED', 'CANCELLED','CALLED')
 	private int priority; //1-high priority (reserved place) , 0-low priority (walk in)
 	private LocalDateTime createdAt;
 	private LocalDateTime assignedAt; //or cancelled at
+	
 	
 	public WaitingList(int waitID, int reservationID, String status, int priority, LocalDateTime createdAt,
 			LocalDateTime assignedAt) {

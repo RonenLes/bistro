@@ -101,4 +101,21 @@ public class NotificationControl {
 		System.out.println(msg);
 		return true;
 	}
+	public boolean sendInviteToTable(String email,String phone, String msg) {
+		System.out.println(msg);
+		return true;
+		
+	}
+	public boolean sendInviteToTable(String guestContact, String msg) {
+		System.out.println(msg);
+		return true;
+	}
+	public boolean sendNotificationEnteringWaitingList(String guestContact,String msg) {
+		System.out.println(msg);
+		return true;
+	}
+	public boolean sendNotificationEnteringWaitingList(String email,String phone,String msg) {
+		System.out.println(msg);
+		return true;
+	}
 }

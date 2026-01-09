@@ -40,12 +40,11 @@ public class BillingScheduler {
         t3.setDaemon(true);
         return t3;
     });
-    private final ScheduledExecutorService callForNextCustomer= Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t4 = new Thread(r, "MonthlyReportScheduler");
-        t4.setDaemon(true);
-        return t4;
+    private final ScheduledExecutorService waitingListScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "waitingListScheduler");
+        t.setDaemon(true);
+        return t;
     });
-
     private final SeatingDAO seatingDAO;
     private final BillingControl billingControl;
     private final ReservationDAO reservationDAO;
@@ -82,25 +81,20 @@ public class BillingScheduler {
                     return;
                 }
                 conn.setAutoCommit(false);
+
                 try {
                     mark2HoursSeating(conn);
-                } catch (Exception ex) {
-                    System.err.println("mark2HoursSeating failed: " + ex.getMessage());
-                }
-
-                try {
                     markNoShows(conn);
+                    conn.commit();
                 } catch (Exception ex) {
-                    System.err.println("markNoShows failed: " + ex.getMessage());
+                    try { conn.rollback(); } catch (Exception ignore) {}
+                    System.err.println("tick failed (rolled back): " + ex.getMessage());
                 }
-
-                conn.commit();
 
             } catch (Exception e) {
                 System.err.println("tick failed: " + e.getMessage());
             }
         }, 0, 60, TimeUnit.SECONDS);
-
         
         reminderScheduler.scheduleAtFixedRate(() -> {
             try (Connection conn = DBManager.getConnection()) {
@@ -123,7 +117,7 @@ public class BillingScheduler {
                 System.err.println("reminder tick failed: " + e.getMessage());
             }
         }, 0, 30, TimeUnit.MINUTES);
-
+        
         monthlyReportScheduler.scheduleAtFixedRate(() -> {
             try {
                 if (reportControl == null) {
@@ -142,23 +136,7 @@ public class BillingScheduler {
                 } else {
                     System.out.println("Monthly visitor report created/exists (for previous month)");
                 }
-
-            } catch (Exception e) {
-                System.err.println("Monthly report tick failed: " + e.getMessage());
-            }
-        }, 0, 24, TimeUnit.HOURS);
-        callForNextCustomer.scheduleAtFixedRate(() -> {
-            try {
-                if (waitingListControl == null) {
-                    System.err.println("cant call for next customer");
-                    return;
-                }
-                LocalDate today = LocalDate.now();
-                if (today.getDayOfMonth() != 1) {
-                    return; 
-                }
-
-                boolean ok = reportControl.createMonthlyVisitorReportIfMissing();
+                ok=reportControl.createMonthlyReservationWaitingListReportIfMissing();
                 if (!ok) {
                     System.err.println("Monthly visitor report creation failed");
                 } else {
@@ -169,6 +147,14 @@ public class BillingScheduler {
                 System.err.println("Monthly report tick failed: " + e.getMessage());
             }
         }, 0, 24, TimeUnit.HOURS);
+        
+        waitingListScheduler.scheduleAtFixedRate(() -> {
+            try {
+                waitingListControl.cancelLateArrivalsFromWaitingListToTable();
+            } catch (Exception e) {
+                System.out.println("BillingScheduler tick failed: " + e.getMessage());
+            }
+        }, 0, 1, TimeUnit.MINUTES);
     }
 
     private void findPrior2HourReservation(Connection conn) throws SQLException {
@@ -250,6 +236,7 @@ public class BillingScheduler {
         scheduler.shutdownNow();
         reminderScheduler.shutdownNow();
         monthlyReportScheduler.shutdownNow(); 
+        waitingListScheduler.shutdownNow();
         started = false;
     }
 }

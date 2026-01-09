@@ -23,6 +23,7 @@ public class UserDAO {
 		private final String INSERT_NEW_USER = "INSERT INTO user (userID, username, password, role, phone, email) (?, ?, ?, ?, ?, ?)";
 
 	//SELECT statements
+		private final String SELECT_USER_BY_USERNAME = "SELECT * FROM `user` WHERE username = ?";
 		private final String SELECT_ALL_SUBSCRIBER = "SELECT * FROM `user` WHERE role = 'SUBSCRIBER'";
 		private static final String SELECT_LOGIN ="SELECT userID, username, role, phone, email FROM `user` WHERE username= ? AND password= ?";
 		private static final String SELECT_USER_BY_ID ="SELECT userID, username, role, phone, email FROM `user` WHERE userID = ?";
@@ -181,6 +182,22 @@ public class UserDAO {
 		    }
 		    
 		    
-		    
+		    public User fetchUserByUsername(Connection conn,String username)throws SQLException{
+		    	try(PreparedStatement ps = conn.prepareStatement(SELECT_USER_BY_USERNAME)){
+		    		ps.setString(1,username);
+		    		ResultSet rs = ps.executeQuery();
+		    		if(rs.next()) {
+		    			return new User(
+		            		    rs.getString("userID"),
+		            		    rs.getString("username"),
+		            		    null,                    
+		            		    rs.getString("role"),
+		            		    rs.getString("phone"),
+		            		    rs.getString("email")
+		            		);
+		    		}
+		    		return null;
+		    	}
+		    }
 		    
 }

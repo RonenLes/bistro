@@ -30,7 +30,7 @@ public class TableDAO {
 	private static final String SELECT_availableTable ="SELECT t.tableID, t.tableNumber, t.capacity "
 			+ "FROM `restaurant_table` t "
 			+ "WHERE t.isActive = 1 AND t.capacity >= ? "
-			+ "AND t.tableID NOT EXISTS "
+			+ "AND t.tableID NOT IN "
 			+ "(SELECT s.tableID "
 			+ "FROM seating s "
 			+ "WHERE s.checkOutTime IS NULL) "

@@ -154,7 +154,7 @@ public class ReservationControl {
 
                 int inserted = reservationDAO.insertNewReservation(conn,req.getReservationDate(),partySize,allocatedCapacity,confirmationCode,userID,
                         req.getStartTime(),
-                        "NEW",
+                        "CONFIRMED",
                         guestContact
                 );
 

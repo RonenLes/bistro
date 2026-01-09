@@ -5,6 +5,7 @@ public class Request<T> {
 	private T data;
 	
 	public enum Command{
+		GUEST_REQUEST,
 		USER_REQUEST,
 		RESERVATION_REQUEST,	
 		SEATING_REQUEST,

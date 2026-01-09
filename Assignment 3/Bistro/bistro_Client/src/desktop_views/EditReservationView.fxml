@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.TilePane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.StackPane?>
+
+<BorderPane prefHeight="800.0" prefWidth="1280.0" styleClass="surface"
+            xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="desktop_views.EditReservationViewController">
+
+    <top>
+        <HBox spacing="10.0" alignment="CENTER_LEFT" BorderPane.alignment="CENTER">
+            <BorderPane.margin>
+                <Insets top="12.0" right="14.0" bottom="8.0" left="14.0"/>
+            </BorderPane.margin>
+            <children>
+                <Label text="Edit reservation" styleClass="h2"/>
+                <Region HBox.hgrow="ALWAYS"/>
+            </children>
+        </HBox>
+    </top>
+
+    <center>
+        <BorderPane BorderPane.alignment="CENTER">
+            <BorderPane.margin>
+                <Insets top="0.0" right="14.0" bottom="14.0" left="14.0"/>
+            </BorderPane.margin>
+
+            <center>
+                <StackPane alignment="CENTER">
+                    <children>
+
+                        <!-- step 1: confirmation code -->
+                        <VBox fx:id="step1Pane" alignment="CENTER" spacing="12.0" styleClass="panel" maxWidth="520.0">
+                            <padding>
+                                <Insets top="18.0" right="18.0" bottom="18.0" left="18.0"/>
+                            </padding>
+                            <children>
+                                <Label text="Enter your confirmation code" styleClass="h3"/>
+                                <TextField fx:id="confirmationCodeField" promptText="e.g. 123456" maxWidth="320.0"/>
+                                <Label fx:id="codeErrorLabel" text="" styleClass="muted"/>
+
+                                <HBox spacing="10.0" alignment="CENTER">
+                                    <children>
+                                        <Button fx:id="loadButton" text="Load" styleClass="primary" onAction="#onLoadReservation"/>
+                                        <Button text="Clear" styleClass="ghost" onAction="#onClearCode"/>
+                                    </children>
+                                </HBox>
+
+                                <Label fx:id="statusLabel" text="" styleClass="muted"/>
+                            </children>
+                        </VBox>
+
+                        <!-- step 2: choose date + party + time, then confirm -->
+                        <VBox fx:id="step2Pane" spacing="12.0" styleClass="panel"
+                              visible="false" managed="false" maxWidth="860.0">
+                            <padding>
+                                <Insets top="14.0" right="14.0" bottom="14.0" left="14.0"/>
+                            </padding>
+
+								<children>
+								
+					
+								    <!-- original vs new -->
+								    <HBox spacing="18.0" alignment="CENTER_LEFT">
+								        <children>
+								            <VBox spacing="4.0">
+								                <children>
+								                    <Label text="Original" styleClass="subtle"/>
+								                    <Label fx:id="originalSummaryLabel" text="-" styleClass="h3"/>
+								                </children>
+								            </VBox>
+								
+								            <VBox spacing="4.0">
+								                <children>
+								                    <Label text="New" styleClass="subtle"/>
+								                    <Label fx:id="newSummaryLabel" text="Select date, party, and time" styleClass="h3"/>
+								                </children>
+								            </VBox>
+								
+								            <Region HBox.hgrow="ALWAYS"/>
+								        </children>
+								    </HBox>
+								
+								    <!-- controls -->
+								    <HBox spacing="12.0" alignment="CENTER_LEFT">
+								        <children>
+								            <VBox spacing="6.0">
+								                <children>
+								                    <Label text="Date" styleClass="subtle"/>
+								                    <DatePicker fx:id="datePicker" prefWidth="220.0"/>
+								                </children>
+								            </VBox>
+								
+								            <VBox spacing="6.0">
+								                <children>
+								                    <Label text="Party size" styleClass="subtle"/>
+								                    <Spinner fx:id="partySizeSpinner" prefWidth="160.0"/>
+								                </children>
+								            </VBox>
+								
+								            <Region HBox.hgrow="ALWAYS"/>
+								        </children>
+								    </HBox>
+								
+								    <Label fx:id="slotInfoLabel" text="" styleClass="muted"/>
+								
+								    <TilePane fx:id="slotsTile" hgap="10.0" vgap="10.0" prefColumns="6"
+								              styleClass="edge-to-edge"/>
+								
+								    <Region VBox.vgrow="ALWAYS"/>
+								
+								    <!-- bottom action row -->
+								    <HBox spacing="10.0" alignment="CENTER_RIGHT">
+								        <children>
+								            <Label fx:id="actionStatusLabel" text="" styleClass="muted"/>
+								
+								            <Region HBox.hgrow="ALWAYS"/>
+								
+								            <Button text="Change code" styleClass="ghost" onAction="#onBackToCode"/>
+								            <Button text="Find times" styleClass="primary" onAction="#onFindTimes"/>
+								
+								            <Button fx:id="confirmNewDetailsButton"
+								                    text="Confirm change"
+								                    styleClass="primary"
+								                    disable="true"
+								                    onAction="#onConfirmChange"/>
+								
+								            <Button text="Cancel reservation" styleClass="danger" onAction="#onCancelReservation"/>
+								        </children>
+								    </HBox>
+								</children>
+
+                        </VBox>
+
+                    </children>
+                </StackPane>
+            </center>
+
+        </BorderPane>
+    </center>
+
+</BorderPane>

@@ -16,6 +16,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import desktop_views.TablesViewController;
 import manager_screen.EditTableScreenController;
+import manager_screen.*;
 import manager_screen.UpdateOpeningHoursScreenController;
 import responses.ManagerResponse;
 import java.io.IOException;
@@ -73,6 +74,13 @@ public class DesktopScreenController {
     private TablesViewController tablesVC;
     private EditTableScreenController editTableVC;
     private UpdateOpeningHoursScreenController openingHoursVC;
+    private ShowDataScreenController showDataVC;
+    private AddSubscriberScreenController addSubscriberVC;
+    
+    @FXML private ToggleButton editTablesBtn;
+    @FXML private ToggleButton openingHoursBtn;
+    @FXML private ToggleButton managerDataBtn;
+    @FXML private ToggleButton addSubscriberBtn;
 
 
     private Role role = Role.GUEST;
@@ -85,9 +93,13 @@ public class DesktopScreenController {
         TABLES,
         HISTORY,
         EDIT_DETAILS,
+        ADD_SUBSCRIBER,
         REPORTS,
         ANALYTICS,
-        PAY
+        PAY,
+        EDIT_TABLES,
+        OPENING_HOURS,
+        MANAGER_DATA
     }
 
     // Role == allowed screens
@@ -119,13 +131,14 @@ public class DesktopScreenController {
 
         // MANAGER -> edit details, new reservations, pay, history, tables, analytics, reports
         ROLE_SCREENS.put(Role.MANAGER, EnumSet.of(
-                ScreenKey.EDIT_DETAILS,
-                ScreenKey.RESERVATIONS,
-                ScreenKey.PAY,
-                ScreenKey.HISTORY,
+                                             
+                ScreenKey.ADD_SUBSCRIBER,
                 ScreenKey.TABLES,
+                ScreenKey.EDIT_TABLES,
+                ScreenKey.MANAGER_DATA,
                 ScreenKey.ANALYTICS,
-                ScreenKey.REPORTS
+                ScreenKey.REPORTS,
+                ScreenKey.OPENING_HOURS
         ));
     }
 
@@ -172,6 +185,10 @@ public class DesktopScreenController {
         registerNavButton(reportsBtn,      ScreenKey.REPORTS);
         registerNavButton(analyticsBtn,    ScreenKey.ANALYTICS);
         registerNavButton(payBtn,          ScreenKey.PAY);
+        registerNavButton(editTablesBtn,   ScreenKey.EDIT_TABLES);
+        registerNavButton(openingHoursBtn, ScreenKey.OPENING_HOURS);
+        registerNavButton(managerDataBtn,  ScreenKey.MANAGER_DATA);
+        registerNavButton(addSubscriberBtn, ScreenKey.ADD_SUBSCRIBER);
 
         applyRoleVisibility();
 
@@ -294,7 +311,12 @@ public class DesktopScreenController {
 
             case TABLES ->
                     loadIntoContentHost("/desktop_views/TablesView.fxml");
-
+            case EDIT_TABLES ->
+            		loadIntoContentHost("/manager_screen/EditTableScreen.fxml");
+            case MANAGER_DATA ->
+            		loadIntoContentHost("/manager_screen/ShowDataScreen.fxml");    
+            case ADD_SUBSCRIBER ->
+            		loadIntoContentHost("/manager_screen/AddSubscriberScreen.fxml");
             case HISTORY ->
                     loadIntoContentHost("/desktop_views/HistoryView.fxml");
 
@@ -306,6 +328,8 @@ public class DesktopScreenController {
 
             case ANALYTICS ->
                     loadIntoContentHost("/desktop_views/AnalyticsView.fxml");
+            case OPENING_HOURS ->
+            		loadIntoContentHost("/manager_screen/UpdateOpeningHoursScreen.fxml");
 
             case PAY ->
                     loadIntoContentHost("/desktop_views/PayView.fxml");
@@ -336,10 +360,22 @@ public class DesktopScreenController {
             if (ctrl instanceof EditReservationViewController edvc) {
                 editReservationVC = edvc;
             }
+            if (ctrl instanceof ShowDataScreenController sdc) {
+                showDataVC = sdc;
+            }
+            if (ctrl instanceof AddSubscriberScreenController asc) {
+                addSubscriberVC = asc;
+            }
             
             if (ctrl instanceof ClientControllerAware aware) {
             	boolean isConnected = clientController != null && clientController.isConnected();
             	aware.setClientController(clientController, isConnected);
+            }
+            if (ctrl instanceof EditTableScreenController etc) {
+                etc.requestInitialData();
+            }
+            if (ctrl instanceof ShowDataScreenController sdc) {
+                sdc.requestInitialData();
             }
 
 
@@ -361,6 +397,26 @@ public class DesktopScreenController {
             }
             if (editReservationVC != null) {
                 editReservationVC.onReservationResponse(response);
+            }
+        });
+    }
+    
+    public void onManagerResponse(ManagerResponse response) {
+        javafx.application.Platform.runLater(() -> {
+            if (tablesVC != null) {
+                tablesVC.handleManagerResponse(response);
+            }
+            if (editTableVC != null) {
+                editTableVC.handleManagerResponse(response);
+            }
+            if (openingHoursVC != null) {
+                openingHoursVC.handleManagerResponse(response);
+            }
+            if (showDataVC != null) {
+                showDataVC.handleManagerResponse(response);
+            }
+            if (addSubscriberVC != null) {
+                addSubscriberVC.handleManagerResponse(response);
             }
         });
     }

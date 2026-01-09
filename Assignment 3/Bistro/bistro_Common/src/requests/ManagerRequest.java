@@ -37,6 +37,10 @@ public class ManagerRequest {
 
 	public ManagerRequest() {}
 	
+	public ManagerRequest(ManagerCommand managerCommand) {
+		this.managerCommand = managerCommand;
+	}
+	
 	public ManagerRequest(ManagerCommand managerCommand,LocalDate date) {
 		this.managerCommand = managerCommand;
 		this.newDate = date;

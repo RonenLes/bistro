@@ -44,9 +44,15 @@ public class EditTableScreenController implements ClientControllerAware {
             colSeats.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
             colSeats.setOnEditCommit(event -> {
                 TableRow row = event.getRowValue();
-                if (row != null) {
-                    row.setCapacity(event.getNewValue());
+                Integer newValue = event.getNewValue();
+                if (row == null) return;
+                if (newValue == null || newValue <= 0) {
+                    setInfo("Seats must be a positive number.");
+                    row.setCapacity(event.getOldValue());
+                    tablesTable.refresh();
+                    return;
                 }
+                row.setCapacity(newValue);
             });
         }
         if (colStatus != null) {
@@ -113,8 +119,12 @@ public class EditTableScreenController implements ClientControllerAware {
     @FXML
     private void onRefresh() {
         if (!readyForServer()) return;
-        clientController.requestManagerAction(new ManagerRequest(ManagerCommand.VIEW_ALL_TABLES, 0));
+        clientController.requestManagerAction(new ManagerRequest(ManagerCommand.VIEW_ALL_TABLES));
         setInfo("Fetching tables...");
+    }
+
+    public void requestInitialData() {
+        onRefresh();
     }
 
     public void handleManagerResponse(ManagerResponse response) {
@@ -139,6 +149,10 @@ public class EditTableScreenController implements ClientControllerAware {
 
     private void sendEditRequest(TableRow row) {
         if (!readyForServer()) return;
+        if (row.getCapacity() <= 0) {
+            setInfo("Seats must be a positive number.");
+            return;
+        }
         clientController.requestManagerAction(
                 new ManagerRequest(ManagerCommand.EDIT_TABLES, row.getTableNumber(), row.getCapacity())
         );

@@ -11,7 +11,8 @@
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane prefHeight="800.0" prefWidth="1280.0" styleClass="surface"
-            xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+            xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="manager_screen.EditTableScreenController">
     <top>
         <HBox spacing="12.0" alignment="CENTER_LEFT" BorderPane.alignment="CENTER">
             <children>
@@ -22,7 +23,7 @@
                     </children>
                 </VBox>
                 <Region HBox.hgrow="ALWAYS"/>
-                <Button text="Refresh" styleClass="ghost"/>
+                <Button text="Refresh" styleClass="ghost" onAction="#onRefresh"/>
             </children>
             <BorderPane.margin>
                 <Insets top="14.0" right="14.0" bottom="10.0" left="14.0"/>
@@ -33,14 +34,14 @@
     <center>
         <VBox spacing="12.0" BorderPane.alignment="CENTER">
             <children>
-                <TableView prefHeight="620.0">
+                <TableView fx:id="tablesTable" prefHeight="620.0" editable="true">
                     <columns>
-                        <TableColumn text="Table #" prefWidth="120.0"/>
-                        <TableColumn text="Seats" prefWidth="120.0"/>
-                        <TableColumn text="Status" prefWidth="140.0"/>
-                        <TableColumn text="Notes" prefWidth="360.0"/>
-                        <TableColumn text="Edit" prefWidth="120.0"/>
-                        <TableColumn text="Disable" prefWidth="140.0"/>
+                        <TableColumn fx:id="colTableNo" text="Table #" prefWidth="120.0"/>
+                        <TableColumn fx:id="colSeats" text="Seats" prefWidth="120.0"/>
+                        <TableColumn fx:id="colStatus" text="Status" prefWidth="140.0"/>
+                        <TableColumn fx:id="colNotes" text="Notes" prefWidth="360.0"/>
+                        <TableColumn fx:id="colEdit" text="Save" prefWidth="120.0"/>
+                        <TableColumn fx:id="colDisable" text="Disable" prefWidth="140.0"/>
                     </columns>
                 </TableView>
 
@@ -49,10 +50,11 @@
                         <VBox spacing="4.0" styleClass="panel">
                             <children>
                                 <Label text="Hint" styleClass="subtle"/>
-                                <Label text="Use the actions column to edit or disable a table." styleClass="muted"/>
+                                <Label text="Use the Save/Disable actions to update each row." styleClass="muted"/>
                             </children>
                             <padding><Insets top="10.0" right="12.0" bottom="10.0" left="12.0"/></padding>
                         </VBox>
+                        <Label fx:id="infoLabel" text="" styleClass="muted"/>
                     </children>
                 </HBox>
             </children>

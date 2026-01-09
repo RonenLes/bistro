@@ -12,6 +12,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
+import responses.ManagerResponse;
 import responses.ReservationResponse;
 import responses.SeatingResponse;
 import terminal_screen.TerminalScreenController;
@@ -273,6 +274,15 @@ public class MainScreenController extends Application implements ClientUIHandler
         javafx.application.Platform.runLater(() -> {
             if (terminalController != null) {
                 terminalController.onSeatingResponse(response);
+            }
+        });
+    }
+    
+    @Override
+    public void onManagerResponse(ManagerResponse response) {
+        javafx.application.Platform.runLater(() -> {
+            if (desktopController != null) {
+                desktopController.onManagerResponse(response);
             }
         });
     }

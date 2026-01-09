@@ -28,6 +28,7 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 
 public class UpdateOpeningHoursScreenController implements ClientControllerAware {
+	
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private static final List<String> OCCASIONS = List.of("Regular", "Holiday", "Private Event", "Maintenance");
@@ -55,9 +56,14 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
             colOpen.setCellFactory(TextFieldTableCell.forTableColumn(new LocalTimeStringConverter()));
             colOpen.setOnEditCommit(event -> {
                 OpeningHoursRow row = event.getRowValue();
-                if (row != null && event.getNewValue() != null) {
-                    row.setOpen(event.getNewValue());
+                if (row == null) return;
+                if (event.getNewValue() == null) {
+                    setInfo("Open time must be HH:mm.");
+                    row.setOpen(event.getOldValue());
+                    hoursTable.refresh();
+                    return;
                 }
+                row.setOpen(event.getNewValue());
             });
         }
         if (colClose != null) {
@@ -65,9 +71,14 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
             colClose.setCellFactory(TextFieldTableCell.forTableColumn(new LocalTimeStringConverter()));
             colClose.setOnEditCommit(event -> {
                 OpeningHoursRow row = event.getRowValue();
-                if (row != null && event.getNewValue() != null) {
-                    row.setClose(event.getNewValue());
+                if (row == null) return;
+                if (event.getNewValue() == null) {
+                    setInfo("Close time must be HH:mm.");
+                    row.setClose(event.getOldValue());
+                    hoursTable.refresh();
+                    return;
                 }
+                row.setClose(event.getNewValue());
             });
         }
         if (colOccasion != null) {
@@ -159,6 +170,14 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
 
     private void sendEditRequest(OpeningHoursRow row) {
         if (!readyForServer()) return;
+        if (row.getOpen() == null || row.getClose() == null) {
+            setInfo("Open/close time is required.");
+            return;
+        }
+        if (!row.getOpen().isBefore(row.getClose())) {
+            setInfo("Open time must be before close time.");
+            return;
+        }
         clientController.requestManagerAction(
                 new ManagerRequest(
                         ManagerCommand.EDIT_OPENING_HOURS,

@@ -3,6 +3,7 @@ package desktop_views;
 import controllers.ClientController;
 import controllers.ClientControllerAware;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.Spinner;
@@ -11,8 +12,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 import requests.ReservationRequest.ReservationRequestType;
 import responses.ReservationResponse;
-import requests.LoginRequest;
-import requests.Request;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -20,7 +19,7 @@ import java.time.format.DateTimeFormatter;
 /**
  * Edit reservation flow:
  * Step 1 confirmation code
- * Step 2 edit/cancel,  subscriber contact details (subscriber only)
+ * Step 2 edit/cancel
  */
 public class EditDetailsViewController implements ClientControllerAware {
 
@@ -30,6 +29,7 @@ public class EditDetailsViewController implements ClientControllerAware {
 
     // Step 1
     @FXML private TextField confirmationCodeField;
+    @FXML private Button loadButton;
     @FXML private Label codeErrorLabel;
     @FXML private Label statusLabel;
 
@@ -43,13 +43,8 @@ public class EditDetailsViewController implements ClientControllerAware {
 
     @FXML private Label actionStatusLabel;
 
-    // Subscriber only pane
-    @FXML private VBox subscriberContactPane;
-    @FXML private TextField subscriberEmailField;
-    @FXML private TextField subscriberPhoneField;
-    @FXML private Label subscriberErrorLabel;
-    // end
-    
+    private boolean cancelledLock;
+
     private ClientController clientController;
     private boolean connected;
 
@@ -85,8 +80,6 @@ public class EditDetailsViewController implements ClientControllerAware {
                 this.guestContact = null;
             }
         }
-
-        applySubscriberVisibility();
     }
 
     private void initPartySpinner() {
@@ -97,18 +90,14 @@ public class EditDetailsViewController implements ClientControllerAware {
         editPartySizeSpinner.setEditable(true);
     }
 
-    private void applySubscriberVisibility() {
-        boolean show = !guestMode;
-
-        if (subscriberContactPane != null) {
-            subscriberContactPane.setVisible(show);
-            subscriberContactPane.setManaged(show);
-        }
-    }
-
     @FXML
     private void onLoadReservation() {
         clearErrors();
+
+        if (cancelledLock) {
+            setStatus("Reservation was cancelled. Loading by confirmation code is disabled.", true);
+            return;
+        }
 
         if (clientController == null) {
             setStatus("ClientController not set.", true);
@@ -223,55 +212,18 @@ public class EditDetailsViewController implements ClientControllerAware {
     }
 
     @FXML
-    private void onSaveSubscriberDetails() {
-        if (subscriberErrorLabel != null) subscriberErrorLabel.setText("");
-
-        if (clientController == null) {
-            setActionStatus("ClientController not set.", true);
-            return;
-        }
-        if (!connected) {
-            setActionStatus("Not connected to server.", true);
-            return;
-        }
-
-        if (guestMode) {
-            if (subscriberErrorLabel != null) subscriberErrorLabel.setText("Only subscribers can edit these details.");
-            return;
-        }
-
-        String email = subscriberEmailField == null ? "" : subscriberEmailField.getText().trim();
-        String phone = subscriberPhoneField == null ? "" : subscriberPhoneField.getText().trim();
-
-        String err = validateEmailOrPhone(email, true);
-        if (err != null) {
-            if (subscriberErrorLabel != null) subscriberErrorLabel.setText(err);
-            return;
-        }
-
-        err = validateEmailOrPhone(phone, false);
-        if (err != null) {
-            if (subscriberErrorLabel != null) subscriberErrorLabel.setText(err);
-            return;
-        }
-
-        setActionStatus("Submitting subscriber details update...", false);
-
-        LoginRequest payload = new LoginRequest(phone, email);
-        payload.setUserCommand(LoginRequest.UserCommand.EDIT_DETAIL_REQUEST);
-
-        Request<LoginRequest> req = new Request<>(Request.Command.USER_REQUEST, payload);
-        clientController.sendRequest(req);
-    }
-
-    @FXML
     private void onBackToCode() {
         switchToStep1();
-        setStatus("", false);
+        if (!cancelledLock) setStatus("", false);
     }
 
     @FXML
     private void onClearCode() {
+        if (cancelledLock) {
+            setStatus("Reservation was cancelled. Loading by confirmation code is disabled.", true);
+            return;
+        }
+
         if (confirmationCodeField != null) confirmationCodeField.setText("");
         clearErrors();
         setStatus("", false);
@@ -298,23 +250,6 @@ public class EditDetailsViewController implements ClientControllerAware {
         }
     }
 
-    private String validateEmailOrPhone(String value, boolean allowEmail) {
-        String v = value == null ? "" : value.trim();
-        if (v.isEmpty()) return "Field is required.";
-
-        boolean isEmail = v.contains("@");
-        if (isEmail) {
-            if (!allowEmail) return "Phone field must be a phone number.";
-            if (!v.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) return "Invalid email format.";
-            return null;
-        }
-
-        // phone: allow + and digits, 7-15 digits
-        String digits = v.startsWith("+") ? v.substring(1) : v;
-        if (!digits.matches("\\d{7,15}")) return "Invalid phone format (use digits, optional +, length 7-15).";
-        return null;
-    }
-
     private void switchToStep1() {
         if (step1Pane != null) { step1Pane.setVisible(true); step1Pane.setManaged(true); }
         if (step2Pane != null) { step2Pane.setVisible(false); step2Pane.setManaged(false); }
@@ -328,9 +263,17 @@ public class EditDetailsViewController implements ClientControllerAware {
     private void clearErrors() {
         if (codeErrorLabel != null) codeErrorLabel.setText("");
         if (editErrorLabel != null) editErrorLabel.setText("");
-        if (subscriberErrorLabel != null) subscriberErrorLabel.setText("");
         if (actionStatusLabel != null) actionStatusLabel.setText("");
         if (statusLabel != null) statusLabel.setText("");
+    }
+
+    private void lockLoadingAfterCancel() {
+        cancelledLock = true;
+
+        if (confirmationCodeField != null) confirmationCodeField.setDisable(true);
+        if (loadButton != null) loadButton.setDisable(true);
+
+        setStatus("Reservation was cancelled. Loading by confirmation code is disabled.", true);
     }
 
     private void setCodeError(String msg) {
@@ -407,6 +350,7 @@ public class EditDetailsViewController implements ClientControllerAware {
             case CANCEL_RESERVATION -> {
                 setActionStatus("Reservation cancelled successfully.", false);
                 switchToStep1();
+                lockLoadingAfterCancel();
             }
 
             default -> {

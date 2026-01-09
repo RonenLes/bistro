@@ -10,7 +10,6 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Priority?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
@@ -27,7 +26,7 @@
                 <VBox spacing="2.0">
                     <children>
                         <Label text="Edit Reservation" styleClass="h2"/>
-                        <Label text="Load by confirmation code, then edit or cancel" styleClass="muted"/>
+                        <Label text="Enter your confirmation code to load a reservation, then edit or cancel it." styleClass="muted"/>
                     </children>
                 </VBox>
                 <Region HBox.hgrow="ALWAYS"/>
@@ -42,12 +41,13 @@
             </BorderPane.margin>
 
             <!-- Step 1 Pane (left) -->
-            <VBox fx:id="step1Pane" spacing="12.0" prefWidth="380.0" styleClass="panel">
+            <VBox fx:id="step1Pane" spacing="12.0" prefWidth="400.0" styleClass="panel">
                 <padding>
                     <Insets top="14.0" right="14.0" bottom="14.0" left="14.0"/>
                 </padding>
                 <children>
-                    <Label text="Step 1 - Confirmation code" styleClass="h3"/>
+                    <Label text="Step 1 - Load reservation" styleClass="h3"/>
+                    <Label text="Tip: You can find the code in your reservation email/SMS." styleClass="muted"/>
 
                     <VBox spacing="6.0">
                         <children>
@@ -59,7 +59,7 @@
 
                     <HBox spacing="10.0">
                         <children>
-                            <Button text="Load" styleClass="primary" onAction="#onLoadReservation"/>
+                            <Button fx:id="loadButton" text="Load" styleClass="primary" onAction="#onLoadReservation"/>
                             <Button text="Clear" styleClass="ghost" onAction="#onClearCode"/>
                         </children>
                     </HBox>
@@ -157,52 +157,11 @@
                                     </children>
                                 </VBox>
 
-                                <Separator/>
-
-                                <!-- Subscriber-only contact editing -->
-                                <VBox fx:id="subscriberContactPane" spacing="10.0" styleClass="panel"
-                                      visible="false" managed="false">
-                                    <padding>
-                                        <Insets top="12.0" right="12.0" bottom="12.0" left="12.0"/>
-                                    </padding>
-                                    <children>
-                                        <Label text="Subscriber details" styleClass="subtle"/>
-
-                                        <HBox spacing="12.0" alignment="CENTER_LEFT">
-                                            <children>
-                                                <VBox spacing="6.0">
-                                                    <children>
-                                                        <Label text="Email" styleClass="subtle"/>
-                                                        <TextField fx:id="subscriberEmailField" promptText="user@example.com" prefWidth="280.0"/>
-                                                    </children>
-                                                </VBox>
-
-                                                <VBox spacing="6.0">
-                                                    <children>
-                                                        <Label text="Phone" styleClass="subtle"/>
-                                                        <TextField fx:id="subscriberPhoneField" promptText="+972501234567" prefWidth="220.0"/>
-                                                    </children>
-                                                </VBox>
-
-                                                <Region HBox.hgrow="ALWAYS"/>
-
-                                                <Button text="Save details" styleClass="primary" onAction="#onSaveSubscriberDetails"/>
-                                            </children>
-                                        </HBox>
-
-                                        <Label fx:id="subscriberErrorLabel" text="" styleClass="muted"/>
-                                    </children>
-                                </VBox>
-
                                 <Label fx:id="actionStatusLabel" text="" styleClass="muted"/>
                             </VBox>
                         </content>
                     </ScrollPane>
                 </children>
-
-                <HBox.hgrow>
-                    <Priority>ALWAYS</Priority>
-                </HBox.hgrow>
             </VBox>
 
         </HBox>

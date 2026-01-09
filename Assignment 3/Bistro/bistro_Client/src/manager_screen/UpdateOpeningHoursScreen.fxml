@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="800.0" prefWidth="1280.0" styleClass="surface"
+            xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="manager_screen.UpdateOpeningHoursScreenController">
+    <top>
+        <HBox spacing="12.0" alignment="CENTER_LEFT" BorderPane.alignment="CENTER">
+            <children>
+                <VBox spacing="2.0">
+                    <children>
+                        <Label text="Update Opening Hours" styleClass="h2"/>
+                        <Label text="Select a date and edit opening hours (placeholder UI)" styleClass="muted"/>
+                    </children>
+                </VBox>
+                <Region HBox.hgrow="ALWAYS"/>
+                <DatePicker fx:id="datePicker" promptText="Select date"/>
+                <Button text="Load" styleClass="ghost" onAction="#onLoad"/>
+                <Button text="Save All" styleClass="primary" onAction="#onSaveAll"/>
+            </children>
+            <BorderPane.margin>
+                <Insets top="14.0" right="14.0" bottom="10.0" left="14.0"/>
+            </BorderPane.margin>
+        </HBox>
+    </top>
+
+    <center>
+        <VBox spacing="14.0" BorderPane.alignment="CENTER">
+            <children>
+                <TableView fx:id="hoursTable" prefHeight="420.0" editable="true">
+                    <columns>
+                        <TableColumn fx:id="colDate" text="Date" prefWidth="160.0"/>
+                        <TableColumn fx:id="colOpen" text="Open Time" prefWidth="140.0"/>
+                        <TableColumn fx:id="colClose" text="Close Time" prefWidth="140.0"/>
+                        <TableColumn fx:id="colOccasion" text="Occasion" prefWidth="220.0"/>
+                        <TableColumn fx:id="colSave" text="Save" prefWidth="120.0"/>
+                    </columns>
+                </TableView>
+
+                <Label fx:id="infoLabel" text="" styleClass="muted"/>
+            </children>
+            <BorderPane.margin>
+                <Insets top="0.0" right="14.0" bottom="14.0" left="14.0"/>
+            </BorderPane.margin>
+        </VBox>
+    </center>
+</BorderPane>

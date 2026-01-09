@@ -43,10 +43,11 @@ public class ManagerRequest {
 	}
 	
 	//for updating opening hours
-	public ManagerRequest(ManagerCommand managerCommand,LocalDate date,LocalTime time,String occasion) {
+	public ManagerRequest(ManagerCommand managerCommand, LocalDate date, LocalTime openTime, LocalTime closeTime, String occasion) {
 		this.managerCommand = managerCommand;
 		this.newDate = date;
-		this.newOpenTime = time;
+		this.newOpenTime = openTime;
+		this.newCloseTime = closeTime;
 		this.occasion = occasion;
 	}
 	

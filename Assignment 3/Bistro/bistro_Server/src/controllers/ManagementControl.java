@@ -389,6 +389,9 @@ public class ManagementControl {
 				
 			}
 			
+			boolean updated = openingHoursDAO.updateOpeningHours(conn, req.getNewOpenTime(), req.getNewCloseTime(), req.getNewDate(), req.getOccasion());
+			if(!updated) safeRollback(conn, "failed to update hours");
+			
 			collectVictimContacts(conn, reservationsToCancel, victimsContact);
 			conn.commit();
 			

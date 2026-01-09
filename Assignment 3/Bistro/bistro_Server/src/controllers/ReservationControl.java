@@ -222,7 +222,9 @@ public class ReservationControl {
                 if (existing == null) {
                     conn.rollback();
                     return new Response<>(false, "Reservation not found", null);
-                }                
+                }
+                if(existing.getReservationDate().isBefore(reservationDate)) return new Response<>(false, "Requested date already passed", null);
+                
 
                 String userID = existing.getUserID();     // preserved
                 String status = existing.getStatus();     // preserved

@@ -60,6 +60,7 @@ public class ReservationControl {
             case SECOND_PHASE -> handleSecondPhase(req);
             case EDIT_RESERVATION -> handleEdit(req);
             case CANCEL_RESERVATION -> handleCancel(req);
+            case SHOW_RESERVATION -> showReservation(req.getConfirmationCode());
         };
     }
 
@@ -348,6 +349,7 @@ public class ReservationControl {
         try (Connection conn = DBManager.getConnection()) {
             Reservation existing = reservationDAO.getReservationByConfirmationCode(conn, confirmationCode);
             if (existing == null) return new Response<>(false, "Reservation not found", null);
+            if(existing.getReservationDate().isBefore(LocalDate.now())) return new Response<>(false, "cant edit past reservations", null);
 
             String userID = existing.getUserID();
             String guestContact = (userID == null || userID.isBlank()) ? existing.getGuestContact() : null;

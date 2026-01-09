@@ -132,7 +132,7 @@ public class BistroEchoServer extends AbstractServer {
 
 	                case USER_REQUEST -> {
 	                    LoginRequest loginReq = (LoginRequest) request.getData();	                    
-	                    Response<LoginResponse> loginResp = userControl.login(loginReq);
+	                    Response<LoginResponse> loginResp = userControl.handleUserRequest(loginReq);
 	                    response = loginResp;
 	                    handleLoginSuccess(client, loginReq, loginResp);
 	                    System.out.println(session != null ? session.getUserId() : "session=null");
@@ -171,6 +171,12 @@ public class BistroEchoServer extends AbstractServer {
 	                	ReportRequest repReq = (ReportRequest)request.getData();	                	
 	                	Response<ReportResponse> repResp = reportControl.handleReportRequest(repReq);
 	                	response= repResp;
+	                }
+	                case GUEST_REQUEST->{
+	                	GuestRequest guestReq = (GuestRequest)request.getData();
+	                	loggedUsers.get(client).setRole("GUEST");
+	                	loggedUsers.get(client).setUsername(guestReq.getContact());
+	                	response = new Response<>(true,"Welcome to McDickies",null);
 	                }
 	                	                
 	                default -> response = new Response<>(false, "Unknown command", null);

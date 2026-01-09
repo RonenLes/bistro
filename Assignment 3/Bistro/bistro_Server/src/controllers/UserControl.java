@@ -20,15 +20,16 @@ public class UserControl {
 			
 	public UserControl() {this(new UserDAO());} //constructors for server use
 	
-	public Response<?> handleUserRequest(LoginRequest req,String userID){
+	public Response<LoginResponse> handleUserRequest(LoginRequest req){
 		if(req==null) return new Response<>(false, "LoginRequest is missing", null);
 		if (req.getUserCommand() == null) return new Response<>(false, "user command is missing", null);
 		
 		return switch(req.getUserCommand()) {
 		
 		case LOGIN_REQUEST-> login(req);
-		case EDIT_DETAIL_REQUEST -> editDetail(userID, req);
-		case HISTORY_REQUEST-> getHistory(userID);
+		case SHOW_DETAILS_REQUEST->viewUserDetails(req);
+		case EDIT_DETAIL_REQUEST -> editDetail(req);
+		case HISTORY_REQUEST-> getHistory(req);
 		};
 	}
 
@@ -58,10 +59,10 @@ public class UserControl {
         
     }
     
-    public Response<LoginResponse> editDetail(String userID,LoginRequest req) {
+    public Response<LoginResponse> editDetail(LoginRequest req) {
     	try (Connection conn = DBManager.getConnection()){
-    		
-    		boolean editUser = userDAO.updateUserDetailsByUserID(conn,userID, req.getEmail(), req.getPhone());
+    		User user = userDAO.fetchUserByUsername(conn, req.getUsername());
+    		boolean editUser = userDAO.updateUserDetailsByUserID(conn,user.getUserID(), req.getEmail(), req.getPhone());
     		if(!editUser) return new Response<>(false, "Failed to edit details", null);
     		LoginResponse loginResponse = new LoginResponse(null,null,null,UserReponseCommand.EDIT_RESPONSE);
     		
@@ -77,10 +78,12 @@ public class UserControl {
     	}
     }
     
-    public Response<List<UserHistoryResponse>> getHistory(String userID){
+    public Response<LoginResponse> getHistory(LoginRequest req){
     	try(Connection conn = DBManager.getConnection()){
-    		List<UserHistoryResponse> history = userDAO.getHistoryByUserID(conn, userID);
-    		return new Response<>(true,"History",history);
+    		User user = userDAO.fetchUserByUsername(conn, req.getUsername());
+    		List<UserHistoryResponse> history = userDAO.getHistoryByUserID(conn, user.getUserID());
+    		LoginResponse userHistory = new LoginResponse(UserReponseCommand.HISTORY_RESPONSE,history);
+    		return new Response<>(true,"History",userHistory);
     	}catch(SQLException e) {
     		System.err.println("history DB ERROR: " + e.getMessage());
     		e.printStackTrace();
@@ -105,6 +108,18 @@ public class UserControl {
     		return null;
     	}
     	
+    }
+    
+    public Response<LoginResponse> viewUserDetails(LoginRequest req){
+    	try(Connection conn = DBManager.getConnection()){
+    		User user = userDAO.fetchUserByUsername(conn, req.getUsername());
+    		LoginResponse resp = new LoginResponse(UserReponseCommand.SHOW_DETAIL_RESPONSE,user.getEmail(),user.getPhone());
+    		return new Response<>(true,"Your current details",resp);
+    	}catch(Exception e) {
+    		System.err.println("user DB ERROR: " + e.getMessage());
+    		e.printStackTrace();
+    		return new Response<>(false, "user details server error", null);
+    	}
     }
     
     

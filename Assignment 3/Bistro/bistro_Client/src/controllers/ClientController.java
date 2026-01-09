@@ -6,14 +6,21 @@ import java.time.LocalTime;
 import client.BistroEchoClient;
 import desktop_screen.DesktopScreenController;
 import kryo.KryoUtil;
+//requests
+import requests.BillRequest;
+import requests.BillRequest.BillRequestType;
 import requests.LoginRequest;
 import requests.LoginRequest.UserCommand;
 import requests.Request;
+import requests.ReservationRequest;
+import requests.ReservationRequest.ReservationRequestType;
+import requests.SeatingRequest;
+import requests.SeatingRequest.SeatingRequestType;
+//responses
+import responses.SeatingResponse;
 import responses.LoginResponse;
 import responses.ReservationResponse;
 import responses.Response;
-import requests.ReservationRequest;
-import requests.ReservationRequest.ReservationRequestType;
 
 /**
  * Central application controller for the Bistro Echo Client.
@@ -34,6 +41,8 @@ public class ClientController {
     private boolean guestSession;
     private String guestContact;
     private String currentUsername;
+    private String currentEmail;
+    private String currentPhone;
 
     public ClientController(BistroEchoClient client) {
         this.client = client;
@@ -43,11 +52,13 @@ public class ClientController {
     public void setUIHandler(ClientUIHandler ui) {
         this.ui = ui;
     }
-
+    
+    //connected boolean
+    public boolean isConnected() {
+        return connected;
+    }
 
     // UI - Controller API
-
-
     /**
      * Generic send method. Screens can call this with any request object
      * (e.g., LoginRequest, ReservationRequest, etc.) from your common package.
@@ -107,6 +118,8 @@ public class ClientController {
                         this.guestSession = false;
                         this.guestContact = null;
                         this.currentUsername = loginResponse.getUsername();
+                        this.currentEmail = loginResponse.getEmail();
+                        this.currentPhone = loginResponse.getPhone();
 
                         // THIS is where we move to the next screen
                         if (ui != null) {
@@ -118,7 +131,10 @@ public class ClientController {
                         }
                     }
                     case EDIT_RESPONSE -> {
-                        // handle other login-related responses if needed
+                        //update local cache if server returns updated values
+                        this.currentEmail = loginResponse.getEmail();
+                        this.currentPhone = loginResponse.getPhone();
+                        safeUiInfo("Subscriber Details", "Details updated successfully");
                     }
                 }
             }
@@ -139,8 +155,27 @@ public class ClientController {
                     uiPayload(reservationResponse);
                 }
             }
+            
+            else if (responseData instanceof responses.SeatingResponse seatingResponse) {
 
-            // handle other response types here (Reservations, etc.)
+                if (seatingResponse.getType() == responses.SeatingResponse.SeatingResponseType.CUSTOMER_CHECKED_IN) {
+                    Integer tn = seatingResponse.getTableNumberl();
+                    String seatingMessage = "Checked-in successfully."
+                            + (tn != null ? (" Table: " + tn) : "");
+                    safeUiInfo("Check-in", seatingMessage);
+                } else if (seatingResponse.getType() == responses.SeatingResponse.SeatingResponseType.CUSTOMER_IN_WAITINGLIST) {
+                    safeUiInfo("Check-in", "No table available. You were added to the waiting list.");
+                }
+
+                // push to UI handler
+                if (ui != null) {
+                    ui.onSeatingResponse(seatingResponse);
+                } else {
+                    uiPayload(seatingResponse);
+                }
+            }
+
+            // handle other response types here (Reservations, etc)
 
         } catch (Exception e) {
             safeUiError("Client Error", "Error handling server response:\n" + e.getMessage());
@@ -172,11 +207,14 @@ public class ClientController {
             safeUiError("Logout", "Error while closing connection:\n" + e.getMessage());
         } finally {
             connected = false;
+            
 
             // reset session identity
             guestSession = false;
             guestContact = null;
             currentUsername = null;
+            currentEmail = null;
+            currentPhone = null;
 
             // Optionally notify UI to go back to login screen
             if (ui != null) {
@@ -199,7 +237,25 @@ public class ClientController {
         BillRequest payload = new BillRequest(type, confirmationCode, isCashPayment);
 
         Request<BillRequest> req =
-                new Request<>(Request.Command.BILL_REQUEST, payload);
+                new Request<>(Request.Command.BILLING_REQUEST, payload);
+
+        sendRequest(req);
+    }
+    
+    public void requestSeatingCheckInByConfirmationCode(int confirmationCode) {
+        if (!connected) {
+            safeUiWarning("Check-in", "Not connected to server.");
+            return;
+        }
+
+        SeatingRequest payload = new SeatingRequest(
+                SeatingRequestType.BY_CONFIRMATIONCODE,
+                confirmationCode,
+                null
+        );
+
+        Request<SeatingRequest> req =
+                new Request<>(Request.Command.SEATING_REQUEST, payload);
 
         sendRequest(req);
     }
@@ -302,18 +358,19 @@ public class ClientController {
         this.connected = connected;
     }
 
-    // Session identity API
-
+    // session identity API (guest)
     public void startGuestSession(String contact) {
         this.guestSession = true;
         this.guestContact = contact;
         this.currentUsername = "guest";
     }
+    
 
     public boolean isGuestSession() {
         return guestSession;
     }
-
+    
+    //Getters
     public String getGuestContact() {
         return guestContact;
     }
@@ -321,4 +378,13 @@ public class ClientController {
     public String getCurrentUsername() {
         return currentUsername;
     }
+    
+    public String getCurrentEmail() {
+        return currentEmail;
+    }
+
+    public String getCurrentPhone() {
+        return currentPhone;
+    }
+
 }

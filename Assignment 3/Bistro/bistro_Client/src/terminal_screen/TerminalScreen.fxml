@@ -10,57 +10,71 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 
-<BorderPane prefHeight="800.0" prefWidth="1280.0" stylesheets="@../../resources/stylesheet.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="terminal_screen.TerminalScreenController">
+<BorderPane prefHeight="800.0" prefWidth="1280.0" styleClass="terminal-root" stylesheets="@../../resources/stylesheet.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="terminal_screen.TerminalScreenController">
 
-    <top>
-	<ToolBar prefHeight="92.0">
-	    <items>
-	        <ImageView fitHeight="71.0" fitWidth="123.0" pickOnBounds="true" preserveRatio="true">
-	            <image>
-	                <Image url="@../../resources/title_logo.png" />
-	            </image>
-	        </ImageView>
+	<top>
+	    <ToolBar maxWidth="-Infinity" prefHeight="92.0" styleClass="terminal-topbar">
+	        <items>
 	
-	        <Region prefHeight="62.0" prefWidth="192.0" />
+	            <!-- Left block: logo (fixed width) -->
+	            <HBox alignment="CENTER_LEFT" prefWidth="160.0" spacing="12.0">
+	                <children>
+	                    <ImageView fitHeight="56.0" fitWidth="120.0" pickOnBounds="true" preserveRatio="true">
+	                        <image>
+	                            <Image url="@../../resources/title_logo.png" />
+	                        </image>
+	                    </ImageView>
+	                </children>
+	            </HBox>
 	
-	        <HBox alignment="CENTER" prefHeight="72.0" prefWidth="579.0" spacing="10.0" styleClass="content">
-	            <children>
-	                <Button fx:id="checkInBtn"
-	                        onAction="#onCheckIn"
-	                        prefHeight="55"
-	                        prefWidth="138.0"
-	                        text="Check-in" />
-	                <Button fx:id="joinWaitlistBtn"
-	                        onAction="#onJoinWaitingList"
-	                        prefHeight="55"
-	                        prefWidth="150.0"
-	                        text="Join Waiting List" />
-	                <Button fx:id="lostCodeBtn"
-	                        onAction="#onLostCode"
-	                        prefHeight="55"
-	                        prefWidth="137.0"
-	                        text="Lost My Code" />
-	                <Button fx:id="payBillBtn"
-	                        onAction="#onPayBill"
-	                        prefHeight="55"
-	                        prefWidth="135.0"
-	                        text="Pay Bill" />
-	            </children>
-	        </HBox>
-	    </items>
-	</ToolBar>
+	            <!-- Flexible spacer -->
+	            <Region prefHeight="71.0" prefWidth="147.0" />
+	
+	            <!-- Center block: nav buttons -->
+	            <HBox alignment="CENTER" spacing="10.0" styleClass="terminal-nav">
+	                <children>
+	                    <Button fx:id="checkInBtn" onAction="#onCheckIn" prefHeight="52.0" prefWidth="140.0" styleClass="terminal-nav-btn" text="Check-in" />
+	
+	                    <Button fx:id="joinWaitlistBtn" onAction="#onJoinWaitingList" prefHeight="52.0" prefWidth="170.0" styleClass="terminal-nav-btn" text="Waiting list" />
+	
+	                    <Button fx:id="lostCodeBtn" onAction="#onLostCode" prefHeight="52.0" prefWidth="160.0" styleClass="terminal-nav-btn" text="Retrieve code" />
+	
+	                    <Button fx:id="payBillBtn" onAction="#onPayBill" prefHeight="52.0" prefWidth="143.0" styleClass="terminal-nav-btn" text="Pay bill" />
+	                </children>
+	            </HBox>
+	
+	            <!-- Flexible spacer -->
+	            <Region prefHeight="71.0" prefWidth="100.0" />
+	
+	            <!-- Right block: invisible spacer equal to logo block width -->
+	            <HBox alignment="CENTER_RIGHT" managed="true" prefWidth="160.0" spacing="0.0" visible="false">
+	                <children>
+	                    <Region prefWidth="160.0" />
+	                </children>
+	            </HBox>
+	
+	        </items>
+	    </ToolBar>
+	</top>
 
-    </top>
-   <center>
-        <!-- THIS is where screens appear -->
-        <StackPane fx:id="contentHolder" prefHeight="642.0" prefWidth="1280.0" BorderPane.alignment="CENTER" />
-   </center>
-   <bottom>
-      <Button onAction="#onBackToMain" prefHeight="55" prefWidth="137.0" text="Back to main" BorderPane.alignment="CENTER_LEFT">
-         <BorderPane.margin>
-            <Insets bottom="20.0" left="20.0" />
-         </BorderPane.margin>
-      </Button>
-   </bottom>
+    <center>
+        <StackPane fx:id="contentHolder" styleClass="terminal-content">
+            <BorderPane.margin>
+                <Insets bottom="22.0" left="22.0" right="22.0" top="22.0" />
+            </BorderPane.margin>
+        </StackPane>
+    </center>
+
+    <bottom>
+        <HBox alignment="CENTER_LEFT">
+            <children>
+                <Button onAction="#onBackToMain" prefHeight="52.0" prefWidth="160.0" styleClass="terminal-secondary-btn" text="Back to main">
+                    <HBox.margin>
+                        <Insets bottom="18.0" left="18.0" />
+                    </HBox.margin>
+                </Button>
+            </children>
+        </HBox>
+    </bottom>
 
 </BorderPane>

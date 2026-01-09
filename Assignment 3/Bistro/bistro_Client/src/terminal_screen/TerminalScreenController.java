@@ -33,6 +33,8 @@ public class TerminalScreenController {
     }
 
     private final Map<View, Parent> cache = new EnumMap<>(View.class);
+    private final Map<View, Object> controllerCache = new EnumMap<>(View.class);
+    private Object currentContentController;
 
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
@@ -91,14 +93,26 @@ public class TerminalScreenController {
             show(View.CHECK_IN);
         }
     }
+    
+    public void onSeatingResponse(responses.SeatingResponse response) {
+        javafx.application.Platform.runLater(() -> {
+            if (currentContentController instanceof terminal_screen.TerminalCheckInController checkInCtrl) {
+                checkInCtrl.handleSeatingResponse(response);
+            }
+        });
+    }
 
     private void show(View view) {
         if (!connected || clientController == null) {
-            // Safety: ignore navigation if offline (buttons should already be disabled)
+            // safety - ignore navigation if offline
             return;
         }
 
         Parent root = cache.computeIfAbsent(view, this::loadView);
+        // keep current controller aligned with the shown view
+        currentContentController = controllerCache.get(view);
+        
+
         contentHolder.getChildren().setAll(root);
     }
 
@@ -116,6 +130,10 @@ public class TerminalScreenController {
             Parent root = loader.load();
 
             Object ctrl = loader.getController();
+
+            // cache controller so we can route async server responses to the active page
+            controllerCache.put(view, ctrl);
+
             if (ctrl instanceof ClientControllerAware aware) {
                 aware.setClientController(clientController, connected);
             }

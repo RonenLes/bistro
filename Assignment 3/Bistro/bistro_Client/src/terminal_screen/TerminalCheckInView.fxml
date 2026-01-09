@@ -1,30 +1,59 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
+<?import javafx.geometry.Pos?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<StackPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="terminal_screen.TerminalCheckInController">
-   <children>
-      <VBox prefHeight="200.0" prefWidth="0.0" />
-      <VBox alignment="CENTER" prefHeight="571.0" prefWidth="635.0" spacing="12.0">
-         <children>
-            <Label text="Check-in">
-               <font>
-                  <Font size="24.0" />
-               </font>
-            </Label>
-            <TextField fx:id="reservationNumberField" alignment="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="73.0" prefWidth="449.0" promptText="Enter reservation/confirmation number" />
-            <Button mnemonicParsing="false" onAction="#onEnter" prefHeight="48.0" prefWidth="149.0" text="Enter" />
-            <Label fx:id="statusLabel" alignment="CENTER" prefHeight="65.0" prefWidth="477.0" text="status" textFill="RED">
-               <font>
-                  <Font size="18.0" />
-               </font>
-            </Label>
-         </children>
-      </VBox>
-   </children>
+<StackPane xmlns="http://javafx.com/javafx/25"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="terminal_screen.TerminalCheckInController">
+
+    <children>
+        <VBox alignment="CENTER" maxWidth="640.0" spacing="18.0">
+            <StackPane.margin>
+                <Insets top="40.0" right="40.0" bottom="40.0" left="40.0" />
+            </StackPane.margin>
+
+            <VBox alignment="CENTER" spacing="6.0">
+                <children>
+                    <Label text="Check-in">
+                        <font><Font size="30.0" /></font>
+                    </Label>
+                    <Label text="Enter your confirmation code to check in quickly."
+                           wrapText="true" maxWidth="560.0" alignment="CENTER" textAlignment="CENTER"/>
+                </children>
+            </VBox>
+
+            <Separator maxWidth="560.0"/>
+
+            <VBox alignment="CENTER" spacing="10.0" maxWidth="560.0">
+                <children>
+                    <Label text="Confirmation code" />
+                    <TextField fx:id="reservationNumberField"
+                               prefHeight="56.0"
+                               maxWidth="420.0"
+                               promptText="e.g. 482913" />
+                </children>
+            </VBox>
+
+            <Button text="Continue"
+                    prefHeight="54.0"
+                    prefWidth="220.0"
+                    onAction="#onEnter"
+                    defaultButton="true" />
+
+            <Label fx:id="statusLabel"
+                   text=" "
+                   wrapText="true"
+                   maxWidth="560.0"
+                   alignment="CENTER"
+                   textAlignment="CENTER"/>
+        </VBox>
+    </children>
 </StackPane>

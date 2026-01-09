@@ -3,32 +3,56 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TextField?>
-<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="196.0" prefWidth="465.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="terminal_screen.TerminalLostCodeController">
-   <top>
-      <TextField fx:id="phoneOrEmailField" alignment="CENTER" prefHeight="72.0" prefWidth="465.0" promptText="Enter phone number/email" BorderPane.alignment="CENTER">
-         <font>
-            <Font size="18.0" />
-         </font>
-         <BorderPane.margin>
-            <Insets />
-         </BorderPane.margin>
-      </TextField>
-   </top>
-   <center>
-      <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#onSend" style="-fx-font-size: 18;" text="Send code" BorderPane.alignment="CENTER" />
-   </center>
-   <bottom>
-      <Label fx:id="statusLabel" alignment="TOP_CENTER" prefHeight="37.0" prefWidth="436.0" text="status" textFill="RED" BorderPane.alignment="TOP_CENTER">
-         <font>
-            <Font size="18.0" />
-         </font>
-         <BorderPane.margin>
-            <Insets bottom="20.0" />
-         </BorderPane.margin>
-      </Label>
-   </bottom>
-</BorderPane>
+<StackPane xmlns="http://javafx.com/javafx/25"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="terminal_screen.TerminalLostCodeController">
+
+    <children>
+        <VBox alignment="CENTER" maxWidth="720.0" spacing="18.0">
+            <StackPane.margin>
+                <Insets top="40.0" right="40.0" bottom="40.0" left="40.0" />
+            </StackPane.margin>
+
+            <VBox alignment="CENTER" spacing="6.0">
+                <children>
+                    <Label text="Retrieve code">
+                        <font><Font size="30.0" /></font>
+                    </Label>
+                    <Label text="Enter the phone or email used for the reservation."
+                           wrapText="true" maxWidth="620.0" alignment="CENTER" textAlignment="CENTER"/>
+                </children>
+            </VBox>
+
+            <Separator maxWidth="620.0"/>
+
+            <VBox alignment="CENTER" spacing="10.0" maxWidth="620.0">
+                <children>
+                    <Label text="Phone or email" />
+                    <TextField fx:id="phoneOrEmailField"
+                               prefHeight="56.0"
+                               maxWidth="520.0"
+                               promptText="e.g. 052-1234567 or name@email.com" />
+                </children>
+            </VBox>
+
+            <Button text="Send code"
+                    prefHeight="54.0"
+                    prefWidth="240.0"
+                    onAction="#onSend"
+                    defaultButton="true" />
+
+            <Label fx:id="statusLabel"
+                   text=" "
+                   wrapText="true"
+                   maxWidth="620.0"
+                   alignment="CENTER"
+                   textAlignment="CENTER"/>
+        </VBox>
+    </children>
+</StackPane>

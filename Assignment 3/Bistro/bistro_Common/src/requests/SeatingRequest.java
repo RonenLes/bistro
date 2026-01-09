@@ -3,7 +3,8 @@ package requests;
 public class SeatingRequest {
 	public enum SeatingRequestType{
 		BY_CONFIRMATIONCODE,
-		BY_RESERVATION
+		BY_RESERVATION,
+		BY_CALLED
 	}
 	private SeatingRequestType type;
 	private int confirmationCode;

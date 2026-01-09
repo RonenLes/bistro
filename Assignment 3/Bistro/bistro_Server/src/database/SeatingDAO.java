@@ -13,6 +13,9 @@ public class SeatingDAO {
     private static final String INSERT_SEATING =
             "INSERT INTO seating (tableID, reservationID, checkInTime, checkOutTime) " +
             "VALUES (?, ?, NOW(), NULL,0)";
+    private static final String INSERT_HELD_SEATING =
+    	    "INSERT INTO seating (tableID, reservationID, checkInTime, checkOutTime) " +
+    	    "VALUES (?, ?, NULL, NULL)";
 
     // UPDATE
     private static final String UPDATE_CHEKOUT_BY_SEATING_ID ="UPDATE `seating` SET checkOutTime = NOW() WHERE seatingID = ?";
@@ -21,7 +24,10 @@ public class SeatingDAO {
     private static final String UPDATE_BILL_SENT =
     	    "UPDATE seating SET billSent = ? WHERE seatingID = ?";    
         
-    
+    private static final String UPDATE_CHECKIN_TIME_NOW =
+            "UPDATE seating " +
+            "SET checkInTime = NOW() " +
+            "WHERE seatingID = ? AND checkOutTime IS NULL AND checkInTime IS NULL";
     //SELECT
     private static final String SELECT_TABLE_ID_BY_SEATING_ID ="SELECT tableID FROM seating WHERE seatingID = ?";        
     private static final String SELECT_VISIT_TIMES_BETWEEN ="SELECT checkInTime, checkOutTime " +"FROM seating " +"WHERE checkInTime >= ? " +
@@ -49,7 +55,20 @@ public class SeatingDAO {
     																 "ORDER BY checkInTime DESC " +
     																 "LIMIT 1";
     
+    
+    public int insertHeldSeating(Connection conn, int tableId, int reservationId) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(INSERT_HELD_SEATING, PreparedStatement.RETURN_GENERATED_KEYS)) {
+            ps.setInt(1, tableId);
+            ps.setInt(2, reservationId);
 
+            int affected = ps.executeUpdate();
+            if (affected != 1) return -1;
+
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                return rs.next() ? rs.getInt(1) : -1;
+            }
+        }
+    }
 
     public boolean claimAutoBillSend(Connection conn, int seatingId) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(CLAIM_AUTO_BILL_SEND)) {
@@ -119,7 +138,12 @@ public class SeatingDAO {
         }
     }
     
-   
+    public boolean markCheckInNow(Connection conn, int seatingId) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(UPDATE_CHECKIN_TIME_NOW)) {
+            ps.setInt(1, seatingId);
+            return ps.executeUpdate() == 1;
+        }
+    }
     public Integer fetchOpenSeatingID(Connection conn,int tableID)throws SQLException {
     	try(PreparedStatement ps = conn.prepareStatement(SELECT_OPEN_SEATING_TO_UPDATE)){
     		ps.setInt(1, tableID);

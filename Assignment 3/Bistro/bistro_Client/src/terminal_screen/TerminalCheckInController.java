@@ -39,17 +39,40 @@ public class TerminalCheckInController implements ClientControllerAware {
         String txt = reservationNumberField == null ? "" : reservationNumberField.getText().trim();
         if (txt.isEmpty()) { setStatus("Enter reservation number."); return; }
 
-        int reservationNumber = Integer.parseInt(txt);
+        int confirmationCode = Integer.parseInt(txt);
 
-        // Placeholder (no DB)
         if (!connected || clientController == null) {
-            setStatus("Demo: checked-in reservation " + reservationNumber + " (offline).");
+            setStatus("Offline Mode: cannot check-in without server connection.");
             return;
         }
 
-        // Later:
-        // clientController.sendRequest(new TerminalCheckInRequest(reservationNumber));
-        setStatus("Sent check-in request (placeholder).");
+        setStatus("Checking in...");
+
+        clientController.requestSeatingCheckInByConfirmationCode(confirmationCode);
+    }
+    
+    public void handleSeatingResponse(responses.SeatingResponse response) {
+        if (response == null) {
+            setStatus("Unexpected: empty seating response.");
+            return;
+        }
+
+        switch (response.getType()) {
+            case CUSTOMER_CHECKED_IN -> {
+                Integer tableNum = response.getTableNumberl(); // do not unbox
+                Integer cap = response.getTableCapacity();
+
+                String msg = "Checked-in successfully."
+                        + (tableNum != null ? (" Table: " + tableNum) : "")
+                        + (cap != null ? (" (Capacity: " + cap + ")") : "");
+
+                setStatus(msg);
+            }
+            case CUSTOMER_IN_WAITINGLIST -> {
+                setStatus("No table available. You were added to the waiting list.");
+            }
+            default -> setStatus("Unknown seating response.");
+        }
     }
 
     private void setStatus(String msg) {

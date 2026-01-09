@@ -84,7 +84,7 @@ public class ReservationsViewController implements ClientControllerAware {
         if (datePicker == null) return;
 
         LocalDate today = LocalDate.now();
-        LocalDate max = today.plusDays(30);
+        LocalDate max = today.plusDays(6);
 
         datePicker.setValue(today);
 
@@ -169,7 +169,7 @@ public class ReservationsViewController implements ClientControllerAware {
 
         if (clientController == null) { setInfo("ClientController not set."); return; }
 
-        setInfo("Fetching available times from server...");
+        setInfo("Fetching available times...");
 
         String userId = guestMode ? null : this.userID;
         String guestContactLocal = guestMode ? this.guestContact : null;
@@ -178,41 +178,21 @@ public class ReservationsViewController implements ClientControllerAware {
                 ReservationRequestType.FIRST_PHASE,
                 date,
                 null,
-                partySize,
+                Integer.valueOf(partySize),
                 userId,
                 guestContactLocal,
                 0
         );
+        System.out.println("Sent FIRST_PHASE request to server");
+        System.out.println("Date: " + date.toString() + ", Party size: " + partySize);
+        System.out.println("Guest mode: " + guestMode + ", UserID: " + userId + ", Guest contact: " + guestContactLocal);
+       
     }
 
     @FXML
     private void onBackToForm() {
         switchToStep1();
         setInfo("Pick party size + date, then choose a time block.");
-    }
-
-    private void onTimeChosen(LocalDate date, String time, int partySize) {
-        setInfo("Selected: " + date + " at " + time + " for " + partySize + " people.");
-
-        if (clientController == null) {
-            setInfo("ClientController not set.");
-            return;
-        }
-
-        LocalTime chosenTime = LocalTime.parse(time, TIME_FMT);
-
-        String userId = guestMode ? null : this.userID;
-        String guestContactLocal = guestMode ? this.guestContact : null;
-
-        clientController.requestNewReservation(
-                ReservationRequest.ReservationRequestType.FIRST_PHASE,
-                date,
-                chosenTime,
-                partySize,
-                userId,
-                guestContactLocal,
-                0
-        );
     }
 
     /**

@@ -13,6 +13,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
 import responses.ReservationResponse;
+import responses.SeatingResponse;
 import terminal_screen.TerminalScreenController;
 
 public class MainScreenController extends Application implements ClientUIHandler {
@@ -21,6 +22,8 @@ public class MainScreenController extends Application implements ClientUIHandler
     private static ClientController controller;
     private static boolean connected;
     private DesktopScreenController desktopController;
+    private TerminalScreenController terminalController;
+
 
     public static void launchUI(ClientController c, boolean isConnected) {
         controller = c;
@@ -160,9 +163,10 @@ public class MainScreenController extends Application implements ClientUIHandler
 
     @FXML
     private void onTerminalClicked() {
+    	
         try {
             String fxml = "/terminal_screen/TerminalScreen.fxml";
-
+            
             var url = getClass().getResource(fxml);
             if (url == null) {
                 throw new IllegalArgumentException("FXML not found on classpath: " + fxml);
@@ -173,10 +177,12 @@ public class MainScreenController extends Application implements ClientUIHandler
 
             // Inject controller dependencies
             TerminalScreenController ctrl = loader.getController();
+            this.terminalController = ctrl;
             ctrl.setClientController(controller, connected);
 
             // Back callback: restore original main root (no re-load)
             ctrl.setOnBackToMain(() -> {
+                this.terminalController = null;
                 stage.getScene().setRoot(mainRoot);
                 stage.setTitle("Bistro Client");
                 stage.sizeToScene();
@@ -255,6 +261,18 @@ public class MainScreenController extends Application implements ClientUIHandler
             // 2. Pass the response to it
             if (desktopController != null) {
                 desktopController.onReservationResponse(response);
+            }
+        });
+    }
+
+    @Override
+    public void onSeatingResponse(SeatingResponse response) {
+        /* * Since OCSF calls this from "Thread-0", we MUST wrap the logic
+         * in Platform.runLater to avoid UI threading exceptions.
+         */
+        javafx.application.Platform.runLater(() -> {
+            if (terminalController != null) {
+                terminalController.onSeatingResponse(response);
             }
         });
     }

@@ -4,6 +4,7 @@ import controllers.ClientController;
 import controllers.ClientControllerAware;
 import desktop_views.ReservationsViewController;
 import responses.ReservationResponse;
+import desktop_views.EditDetailsViewController;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -63,6 +64,8 @@ public class DesktopScreenController {
 
     private ClientController clientController;
     private ReservationsViewController reservationsVC;
+    private EditDetailsViewController editDetailsVC;
+
 
     private Role role = Role.GUEST;
     private Runnable onLogout;
@@ -79,7 +82,7 @@ public class DesktopScreenController {
         PAY
     }
 
-    // Role -> allowed screens
+    // Role == allowed screens
     private static final Map<Role, Set<ScreenKey>> ROLE_SCREENS = new EnumMap<>(Role.class);
     static {
         // GUEST -> edit details, new reservations, pay
@@ -298,6 +301,7 @@ public class DesktopScreenController {
 
             case PAY ->
                     loadIntoContentHost("/desktop_views/PayView.fxml");
+                    
         }
     }
 
@@ -311,9 +315,16 @@ public class DesktopScreenController {
                 reservationsVC = rvc;
             }
             
-            if (ctrl instanceof ClientControllerAware aware) {
-                aware.setClientController(clientController, clientController != null);
+            if (ctrl instanceof EditDetailsViewController edvc) {
+                editDetailsVC = edvc;
             }
+            
+            if (ctrl instanceof ClientControllerAware aware) {
+            	boolean isConnected = clientController != null && clientController.isConnected();
+            	aware.setClientController(clientController, isConnected);
+            }
+
+
 
             contentHost.getChildren().setAll(view);
 
@@ -324,11 +335,14 @@ public class DesktopScreenController {
             contentHost.getChildren().setAll(error);
         }
     }
+    // handle javafx run-later on responses
     public void onReservationResponse(ReservationResponse response) {
-        // Ensure UI updates happen on the FX Thread
         javafx.application.Platform.runLater(() -> {
             if (reservationsVC != null) {
                 reservationsVC.handleServerResponse(response);
+            }
+            if (editDetailsVC != null) {
+                editDetailsVC.onReservationResponse(response);
             }
         });
     }

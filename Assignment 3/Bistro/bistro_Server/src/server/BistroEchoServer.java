@@ -10,6 +10,13 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import database.SeatingDAO;
+import database.ReservationDAO;
+import database.UserDAO;
+import database.OpeningHoursDAO;
+
+import controllers.NotificationControl;
+import controllers.WaitingListControl;
 
 import controllers.*;
 import kryo.KryoUtil;
@@ -35,6 +42,10 @@ public class BistroEchoServer extends AbstractServer {
 	private final ManagementControl managerControl;
 	private final BillingControl billingControl;
 	private final ReportControl reportControl;
+	private final WaitingListControl waitingListControl;
+	// scheduler
+	private final BillingScheduler billingScheduler;
+
 	 
 	/**
 	 * 
@@ -55,8 +66,28 @@ public class BistroEchoServer extends AbstractServer {
 		managerControl = new ManagementControl();
 		billingControl = new BillingControl();
 		reportControl = new ReportControl();
+		waitingListControl=new WaitingListControl();
+		billingScheduler = new BillingScheduler(
+		        new SeatingDAO(),
+		        billingControl,
+		        new ReservationDAO(),
+		        new UserDAO(),
+		        new NotificationControl(),
+		        reportControl,
+		        waitingListControl,
+		        new OpeningHoursDAO()
+		);
 	}
-	
+	@Override
+	protected void serverStarted() {
+	    System.out.println("SERVER started listening on port " + getPort());
+	    billingScheduler.start(); 
+	}
+	@Override
+	protected void serverStopped() {
+	    System.out.println("SERVER stopped listening");
+	    billingScheduler.stop();
+	}
 	/**
 	 * 
 	 * @return object containing server metadata

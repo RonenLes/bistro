@@ -133,10 +133,7 @@ public class BillingScheduler {
                     return;
                 }
 
-                LocalDate today = LocalDate.now();
-                if (today.getDayOfMonth() != 1) {
-                    return; 
-                }
+                
 
                 boolean ok = reportControl.createMonthlyVisitorReportIfMissing();
                 if (!ok) {

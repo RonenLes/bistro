@@ -5,6 +5,7 @@ import controllers.NotificationControl;
 import controllers.ReportControl;
 import controllers.WaitingListControl;
 import database.DBManager;
+import database.OpeningHoursDAO;
 import database.ReservationDAO;
 import database.SeatingDAO;
 import database.UserDAO;
@@ -45,12 +46,18 @@ public class BillingScheduler {
         t.setDaemon(true);
         return t;
     });
+    private final ScheduledExecutorService openingHoursScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t4 = new Thread(r, "openingHoursScheduler");
+        t4.setDaemon(true);
+        return t4;
+    });
     private final SeatingDAO seatingDAO;
     private final BillingControl billingControl;
     private final ReservationDAO reservationDAO;
     private final UserDAO userDAO;
     private final NotificationControl notificationControl;
     private final WaitingListControl waitingListControl;
+    private final OpeningHoursDAO openingHoursDAO;
     
     private final ReportControl reportControl;
 
@@ -58,7 +65,7 @@ public class BillingScheduler {
 
     public BillingScheduler(SeatingDAO seatingDAO,BillingControl billingControl,ReservationDAO reservationDAO,UserDAO userDAO,
     						NotificationControl notificationControl,
-                            ReportControl reportControl,WaitingListControl waitingListControl) {
+                            ReportControl reportControl,WaitingListControl waitingListControl,OpeningHoursDAO openingHoursDAO) {
 
         this.seatingDAO = seatingDAO;
         this.billingControl = billingControl;
@@ -67,6 +74,7 @@ public class BillingScheduler {
         this.notificationControl = notificationControl;
         this.waitingListControl=waitingListControl;
         this.reportControl = reportControl;
+        this.openingHoursDAO=openingHoursDAO;
     }
 
     public synchronized void start() {
@@ -152,9 +160,69 @@ public class BillingScheduler {
             try {
                 waitingListControl.cancelLateArrivalsFromWaitingListToTable();
             } catch (Exception e) {
-                System.out.println("BillingScheduler tick failed: " + e.getMessage());
+                System.out.println("waitngListScheduler failed " + e.getMessage());
             }
         }, 0, 1, TimeUnit.MINUTES);
+        openingHoursScheduler.scheduleAtFixedRate(() -> {
+            Connection conn = null;
+            try {
+                conn = DBManager.getConnection();
+                if (conn == null) {
+                    System.err.println("openingHoursScheduler tick failed: conn is null");
+                    return;
+                }
+
+                conn.setAutoCommit(false);
+
+                ensureOpeningHoursNext30Days(conn);
+
+                conn.commit();
+            } catch (Exception e) {
+                System.out.println("openingHoursScheduler failed: " + e.getMessage());
+                if (conn != null) {
+                    try { conn.rollback(); } catch (SQLException ignore) {}
+                }
+            } finally {
+                if (conn != null) {
+                    try { conn.close(); } catch (SQLException ignore) {}
+                }
+            }
+        }, 0, 24, TimeUnit.HOURS);
+    }
+    public void ensureOpeningHoursNext30Days(Connection conn) throws SQLException {
+        LocalDate startDate = LocalDate.now();
+        LocalDate endExclusive = startDate.plusDays(30); 
+        LocalTime defaultOpen = LocalTime.of(10, 0);
+        LocalTime defaultClose = LocalTime.of(23, 0);
+        for (LocalDate d = startDate; d.isBefore(endExclusive); d = d.plusDays(1)) {
+            
+            if (openingHoursDAO.getOpeningHour(conn, d) != null) {
+                continue;
+            }
+            boolean inserted = openingHoursDAO.insertNewOpeningHour(
+                    conn,
+                    d,
+                    dayNameEnglish(d),  
+                    defaultOpen,
+                    defaultClose
+            );
+
+            if (!inserted) {
+                throw new SQLException("Failed to insert opening_hours for missing date: " + d);
+            }
+        }
+    }
+    private String dayNameEnglish(LocalDate d) {
+        switch (d.getDayOfWeek()) {
+            case SUNDAY: return "Sunday";
+            case MONDAY: return "Monday";
+            case TUESDAY: return "Tuesday";
+            case WEDNESDAY: return "Wednesday";
+            case THURSDAY: return "Thursday";
+            case FRIDAY: return "Friday";
+            case SATURDAY: return "Saturday";
+            default: throw new IllegalStateException("Unexpected day: " + d.getDayOfWeek());
+        }
     }
 
     private void findPrior2HourReservation(Connection conn) throws SQLException {
@@ -237,6 +305,7 @@ public class BillingScheduler {
         reminderScheduler.shutdownNow();
         monthlyReportScheduler.shutdownNow(); 
         waitingListScheduler.shutdownNow();
+        openingHoursScheduler.shutdownNow();
         started = false;
     }
 }

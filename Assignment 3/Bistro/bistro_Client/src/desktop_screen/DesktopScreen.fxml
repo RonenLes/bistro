@@ -77,6 +77,7 @@
                <children>
                   <ToggleButton fx:id="addSubscriberBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Add Subscriber" />
                   <ToggleButton fx:id="editTablesBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Edit Tables" />
+                  <ToggleButton fx:id="managerReservationsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text=" View Reservations" />
                   <ToggleButton fx:id="openingHoursBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Open Hours" />
                   <ToggleButton fx:id="managerDataBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Manager Data" />
                   <ToggleButton fx:id="reportsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Reports" />

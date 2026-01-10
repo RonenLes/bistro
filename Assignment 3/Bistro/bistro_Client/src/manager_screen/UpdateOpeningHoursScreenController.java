@@ -30,10 +30,8 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
 	
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
-    private static final List<String> OCCASIONS = List.of("Regular", "Holiday", "Private Event", "Maintenance");
-    private static final List<LocalTime> OPEN_TIMES = buildTimes(LocalTime.of(9, 0), LocalTime.of(15, 0));
-    private static final List<LocalTime> CLOSE_TIMES = buildTimes(LocalTime.MIDNIGHT, LocalTime.of(23, 0));
-
+    private static final List<String> OCCASIONS = List.of("Regular", "Holiday", "War", "Strike");
+   
 
     @FXML private DatePicker datePicker;
     @FXML private TableView<OpeningHoursRow> hoursTable;
@@ -50,40 +48,17 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
 
     @FXML
     private void initialize() {
-        if (colDate != null) {
-            colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
-        }
+        if (colDate != null) colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
+                    
         if (colOpen != null) {
         	colOpen.setEditable(true);
             colOpen.setCellValueFactory(new PropertyValueFactory<>("open"));
             colOpen.setCellFactory(column -> createTimeAdjustCell(true));
-            colOpen.setOnEditCommit(event -> {
-                OpeningHoursRow row = event.getRowValue();
-                if (row == null) return;
-                if (event.getNewValue() == null) {
-                	 setInfo("Please select an open time.");
-                    row.setOpen(event.getOldValue());
-                    hoursTable.refresh();
-                    return;
-                }
-                row.setOpen(event.getNewValue());
-            });
         }
         if (colClose != null) {
         	colClose.setEditable(true);
             colClose.setCellValueFactory(new PropertyValueFactory<>("close"));
             colClose.setCellFactory(column -> createTimeAdjustCell(false));
-            colClose.setOnEditCommit(event -> {
-                OpeningHoursRow row = event.getRowValue();
-                if (row == null) return;
-                if (event.getNewValue() == null) {
-                	 setInfo("Please select a close time.");
-                    row.setClose(event.getOldValue());
-                    hoursTable.refresh();
-                    return;
-                }
-                row.setClose(event.getNewValue());
-            });
         }
         if (colOccasion != null) {
             colOccasion.setCellValueFactory(new PropertyValueFactory<>("occasion"));

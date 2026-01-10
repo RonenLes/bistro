@@ -18,6 +18,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import manager_screen.AddSubscriberScreenController;
 import manager_screen.EditTableScreenController;
+import manager_screen.ManagerReservationsScreenController;
 import manager_screen.ShowDataScreenController;
 import manager_screen.UpdateOpeningHoursScreenController;
 import responses.ManagerResponse;
@@ -71,6 +72,7 @@ public class DesktopScreenController implements ClientUIHandler {
 
     @FXML private ToggleButton editTablesBtn;
     @FXML private ToggleButton openingHoursBtn;
+    @FXML private ToggleButton managerReservationsBtn;
     @FXML private ToggleButton managerDataBtn;
     @FXML private ToggleButton addSubscriberBtn;
 
@@ -89,6 +91,7 @@ public class DesktopScreenController implements ClientUIHandler {
     private TablesViewController tablesVC;
     private EditTableScreenController editTableVC;
     private UpdateOpeningHoursScreenController openingHoursVC;
+    private ManagerReservationsScreenController managerReservationsVC;
     private ShowDataScreenController showDataVC;
     private AddSubscriberScreenController addSubscriberVC;
 
@@ -107,6 +110,7 @@ public class DesktopScreenController implements ClientUIHandler {
         ANALYTICS,
         PAY,
         EDIT_TABLES,
+        MANAGER_RESERVATIONS,
         OPENING_HOURS,
         MANAGER_DATA
     }
@@ -133,22 +137,26 @@ public class DesktopScreenController implements ClientUIHandler {
         ROLE_SCREENS.put(Role.REP, EnumSet.of(
                 ScreenKey.EDIT_DETAILS,
                 ScreenKey.RESERVATIONS,
-                ScreenKey.PAY,
-                ScreenKey.HISTORY,
+                //ScreenKey.PAY,                
                 ScreenKey.WAITLIST,
-                ScreenKey.TABLES
+                ScreenKey.EDIT_TABLES,
+                ScreenKey.MANAGER_DATA,
+                ScreenKey.MANAGER_RESERVATIONS,
+                ScreenKey.ADD_SUBSCRIBER
+                //ScreenKey.TABLES
         ));
 
         // MANAGER -> manager screens
         ROLE_SCREENS.put(Role.MANAGER, EnumSet.of(
                 ScreenKey.EDIT_DETAILS,
                 ScreenKey.RESERVATIONS,
-                ScreenKey.PAY,
+                //ScreenKey.PAY,    maybe later
                 ScreenKey.ADD_SUBSCRIBER,
-                ScreenKey.TABLES,
+               //ScreenKey.TABLES, 
                 ScreenKey.EDIT_TABLES,
                 ScreenKey.MANAGER_DATA,
                 ScreenKey.ANALYTICS,
+                ScreenKey.MANAGER_RESERVATIONS,
                 ScreenKey.REPORTS,
                 ScreenKey.OPENING_HOURS
         ));
@@ -201,6 +209,7 @@ public class DesktopScreenController implements ClientUIHandler {
 
         registerNavButton(editTablesBtn,   ScreenKey.EDIT_TABLES);
         registerNavButton(openingHoursBtn, ScreenKey.OPENING_HOURS);
+        registerNavButton(managerReservationsBtn, ScreenKey.MANAGER_RESERVATIONS);
         registerNavButton(managerDataBtn,  ScreenKey.MANAGER_DATA);
         registerNavButton(addSubscriberBtn, ScreenKey.ADD_SUBSCRIBER);
 
@@ -349,6 +358,8 @@ public class DesktopScreenController implements ClientUIHandler {
 
             case OPENING_HOURS ->
                     loadIntoContentHost("/manager_screen/UpdateOpeningHoursScreen.fxml");
+            case MANAGER_RESERVATIONS ->
+            		loadIntoContentHost("/manager_screen/ManagerReservationsScreen.fxml");
 
             case PAY ->
                     loadIntoContentHost("/desktop_views/PayView.fxml");
@@ -370,6 +381,7 @@ public class DesktopScreenController implements ClientUIHandler {
             if (ctrl instanceof TablesViewController tvc) tablesVC = tvc;
             if (ctrl instanceof EditTableScreenController etc) editTableVC = etc;
             if (ctrl instanceof UpdateOpeningHoursScreenController uohc) openingHoursVC = uohc;
+            if (ctrl instanceof ManagerReservationsScreenController mrc) managerReservationsVC = mrc;
             if (ctrl instanceof ShowDataScreenController sdc) showDataVC = sdc;
             if (ctrl instanceof AddSubscriberScreenController asc) addSubscriberVC = asc;
 
@@ -447,6 +459,9 @@ public class DesktopScreenController implements ClientUIHandler {
             }
             if (openingHoursVC != null) {
                 openingHoursVC.handleManagerResponse(response);
+            }
+            if (managerReservationsVC != null) {
+                managerReservationsVC.handleManagerResponse(response);
             }
             if (showDataVC != null) {
                 showDataVC.handleManagerResponse(response);

@@ -78,6 +78,16 @@ public final class ReservationSlotsUI {
             BiPredicate<LocalDate, LocalTime> exclude,
             BiConsumer<LocalDate, LocalTime> onPick
     ) {
+    	if (slotsTile == null) return;
+
+    	slotsTile.getChildren().clear();
+    	clearSelection();
+
+    	if (selectedDate == null) {
+    	    info("Select a date to see available times.");
+    	    return;
+    	}
+
         if (slotsTile == null) return;
 
         boolean addedAny = false;
@@ -182,7 +192,9 @@ public final class ReservationSlotsUI {
             BiConsumer<LocalDate, LocalTime> onPick,
             boolean selectable
     ) {
-        String text = time.format(TIME_FMT) + "\n" + date.format(DATE_SHORT);
+    	String text = date == null
+    	        ? time.format(TIME_FMT)
+    	        : time.format(TIME_FMT) + "\n" + date.format(DATE_SHORT);
         Button btn = new Button(text);
 
         btn.getStyleClass().addAll(styleClass, "slot-btn");

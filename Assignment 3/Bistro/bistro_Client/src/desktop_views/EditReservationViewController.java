@@ -553,13 +553,6 @@ public class EditReservationViewController implements ClientControllerAware {
                     }
                 } catch (Exception ignored) { }
                 
-                // cancelled reservations cannot be loaded into edit flow TODO
-                if (resp.isCancelled()) {
-                    resetStep2State();
-                    switchToStep1();
-                    setStatus("This reservation was cancelled and cannot be edited.", true);
-                    return;
-                }
 
                 selectedDate = datePicker == null ? currentReservationDate : datePicker.getValue();
                 selectedParty = partySizeSpinner == null ? currentReservationParty : partySizeSpinner.getValue();

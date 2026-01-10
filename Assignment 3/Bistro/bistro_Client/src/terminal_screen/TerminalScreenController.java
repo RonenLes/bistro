@@ -25,7 +25,7 @@ public class TerminalScreenController {
     private ClientController clientController;
     private boolean connected;
 
-    // Back to main callback (set by MainScreenController)
+    // Back to main callback (set by the ui navigator)
     private Runnable onBackToMain;
 
     private enum View {
@@ -35,6 +35,7 @@ public class TerminalScreenController {
     private final Map<View, Parent> cache = new EnumMap<>(View.class);
     private final Map<View, Object> controllerCache = new EnumMap<>(View.class);
     private Object currentContentController;
+    private View currentView;
 
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
@@ -78,6 +79,10 @@ public class TerminalScreenController {
             payBillBtn.setDisable(!online);
         }
 
+        if (contentHolder == null) {
+            return;
+        }
+
         if (!online) {
             // Show offline message in the content area
             Label offlineLabel = new Label("""
@@ -88,14 +93,23 @@ public class TerminalScreenController {
                     """);
             offlineLabel.getStyleClass().add("muted"); // optional: you already have this in your CSS
             contentHolder.getChildren().setAll(offlineLabel);
+
+            currentView = null;
+            currentContentController = null;
         } else {
             // When we become online, show default view
-            show(View.CHECK_IN);
+            if (currentView == null) {
+                show(View.CHECK_IN);
+            } else {
+                // keep current view, but re-inject controller with updated connection state
+                reinjectActiveController();
+            }
         }
     }
-    
+
     public void onSeatingResponse(responses.SeatingResponse response) {
         javafx.application.Platform.runLater(() -> {
+            // Route server responses only to the currently displayed view
             if (currentContentController instanceof terminal_screen.TerminalCheckInController checkInCtrl) {
                 checkInCtrl.handleSeatingResponse(response);
             }
@@ -103,17 +117,38 @@ public class TerminalScreenController {
     }
 
     private void show(View view) {
-        if (!connected || clientController == null) {
+        if (!isOnline()) {
             // safety - ignore navigation if offline
             return;
         }
 
+        if (view == currentView && contentHolder != null && !contentHolder.getChildren().isEmpty()) {
+            return;
+        }
+
         Parent root = cache.computeIfAbsent(view, this::loadView);
+
         // keep current controller aligned with the shown view
         currentContentController = controllerCache.get(view);
-        
+        currentView = view;
 
-        contentHolder.getChildren().setAll(root);
+        if (contentHolder != null) {
+            contentHolder.getChildren().setAll(root);
+        }
+    }
+
+    private boolean isOnline() {
+        return connected && clientController != null;
+    }
+
+    private void reinjectActiveController() {
+        if (!isOnline()) return;
+        if (currentView == null) return;
+
+        Object ctrl = controllerCache.get(currentView);
+        if (ctrl instanceof ClientControllerAware aware) {
+            aware.setClientController(clientController, connected);
+        }
     }
 
     // View loader for the fxml sub-pages inside terminal UI

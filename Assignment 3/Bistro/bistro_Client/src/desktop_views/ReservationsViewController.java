@@ -64,15 +64,21 @@ public class ReservationsViewController implements ClientControllerAware {
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
+        
         if (controller != null) {
-            boolean isGuest = controller.isGuestSession();
-            this.guestMode = isGuest;
-            if (isGuest) {
+            // Explicitly check if we have a Subscriber ID first
+            String subId = controller.getCurrentUserId();
+            
+            if (subId != null && !subId.isEmpty()) {
+                // This is a Subscriber
+                this.guestMode = false;
+                this.userID = subId;
+                this.guestContact = null;
+            } else {
+                // This is a Guest
+                this.guestMode = true;
                 this.userID = null;
                 this.guestContact = controller.getGuestContact();
-            } else {
-                this.userID = controller.getCurrentUsername();
-                this.guestContact = null;
             }
         }
     }
@@ -202,18 +208,31 @@ public class ReservationsViewController implements ClientControllerAware {
         if (slotsContainer != null) slotsContainer.getChildren().clear();
 
         switch (resp.getType()) {
-            case FIRST_PHASE_SHOW_AVAILABILITY -> {
-                setInfo("Select a time for " + currentDate);
+        case FIRST_PHASE_SHOW_AVAILABILITY -> {
 
-                addSectionHeader("Available times for " + currentDate.format(DateTimeFormatter.ofPattern("dd/MM")));
-                buildTimeSlots(currentDate, resp.getAvailableTimes());
+            LocalDate effectiveDate = resp.getNewDate() != null ? resp.getNewDate() : currentDate;
 
-                if (resp.getSuggestedDates() != null && !resp.getSuggestedDates().isEmpty()) {
-                    addSectionHeader("Or choose a different date:");
-                    buildSuggestions(resp.getSuggestedDates());
-                }
-                switchToStep2();
+            if (effectiveDate == null) {
+                setInfo("No date provided for availability. Please select a date and try again.");
+                switchToStep1();
+                return;
             }
+
+            // keep client state aligned with server, prevents stale/null currentDate later
+            currentDate = effectiveDate;
+
+            setInfo("Select a time for " + effectiveDate);
+
+            addSectionHeader("Available times");
+            buildTimeSlots(effectiveDate, resp.getAvailableTimes());
+
+            if (resp.getSuggestedDates() != null && !resp.getSuggestedDates().isEmpty()) {
+                addSectionHeader("Or choose a different date:");
+                buildSuggestions(resp.getSuggestedDates());
+            }
+
+            switchToStep2();
+        }
 
             case FIRST_PHASE_SHOW_SUGGESTIONS -> {
                 setInfo("No exact matches found.");

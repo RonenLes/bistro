@@ -4,7 +4,9 @@ import controllers.ClientController;
 import controllers.ClientControllerAware;
 import desktop_views.ReservationsViewController;
 import responses.ReservationResponse;
+import responses.SeatingResponse;
 import desktop_views.EditReservationViewController;
+import desktop_views.HistoryViewController;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -13,6 +15,8 @@ import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.control.Alert;
+
 
 import java.io.IOException;
 import java.util.EnumMap;
@@ -26,9 +30,9 @@ import java.util.Set;
  * Handles:
  * Role based nav visibility (per button)
  * Single selection across all nav toggle buttons
- * Content swapping into contentHost
+ * Content swapping into contentHosts
  */
-public class DesktopScreenController {
+public class DesktopScreenController implements controllers.ClientUIHandler {
 
     public enum Role {
         GUEST,
@@ -58,6 +62,8 @@ public class DesktopScreenController {
     @FXML private ToggleButton reportsBtn;
     @FXML private ToggleButton analyticsBtn;
     @FXML private ToggleButton payBtn;
+    
+    private boolean connected;
 
     private final ToggleGroup navToggleGroup = new ToggleGroup();
     private final Map<ToggleButton, ScreenKey> navMap = new HashMap<>();
@@ -65,6 +71,8 @@ public class DesktopScreenController {
     private ClientController clientController;
     private ReservationsViewController reservationsVC;
     private EditReservationViewController editReservationVC;
+    private HistoryViewController historyVC;
+
 
 
     private Role role = Role.GUEST;
@@ -122,10 +130,11 @@ public class DesktopScreenController {
     }
 
     // Public API
-    public void setClientController(ClientController controller) {
+    public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
+        this.connected = connected;
     }
-
+    
     public void setRole(Role role) {
         this.role = role != null ? role : Role.GUEST;
         applyRoleVisibility();
@@ -219,7 +228,7 @@ public class DesktopScreenController {
         switch (role) {
             case MANAGER -> selectIfVisible(reportsBtn);       // manager default
             case REP     -> selectIfVisible(reservationsBtn);  // rep default
-            case SUBSCRIBER -> selectIfVisible(historyBtn);    // subscriber default
+            case SUBSCRIBER -> selectIfVisible(reservationsBtn);    // subscriber default
             case GUEST   -> selectIfVisible(reservationsBtn);  // guest default
             default      -> selectFirstAvailable();
         }
@@ -320,8 +329,10 @@ public class DesktopScreenController {
             }
             
             if (ctrl instanceof ClientControllerAware aware) {
-            	boolean isConnected = clientController != null && clientController.isConnected();
-            	aware.setClientController(clientController, isConnected);
+            	aware.setClientController(clientController, connected);
+            }
+            if (ctrl instanceof HistoryViewController hvc) {
+                historyVC = hvc;
             }
 
 
@@ -344,6 +355,64 @@ public class DesktopScreenController {
             if (editReservationVC != null) {
                 editReservationVC.onReservationResponse(response);
             }
+        });
+    }
+    public void onUserHistoryResponse(java.util.List<responses.UserHistoryResponse> rows) {
+        javafx.application.Platform.runLater(() -> {
+            if (historyVC != null) {
+                historyVC.renderHistory(rows);
+            }
+        });
+    }
+
+    @Override
+    public void showInfo(String title, String message) {
+        showAlert(title, message, Alert.AlertType.INFORMATION);
+    }
+
+    @Override
+    public void showWarning(String title, String message) {
+        showAlert(title, message, Alert.AlertType.WARNING);
+    }
+
+    @Override
+    public void showError(String title, String message) {
+        showAlert(title, message, Alert.AlertType.ERROR);
+    }
+
+    @Override
+    public void showPayload(Object payload) {
+        showInfo("Server Message", String.valueOf(payload));
+    }
+
+    @Override
+    public void routeToDesktop(Role role, String username) {
+        // already in desktop
+    }
+
+    @Override
+    public void onSeatingResponse(responses.SeatingResponse response) {
+        // desktop currently does not handle seating responses
+    }
+
+    @Override
+    public void onUserHistoryError(String message) {
+        javafx.application.Platform.runLater(() -> {
+            if (historyVC != null) {
+                historyVC.showHistoryError(message);
+            } else {
+                showError("History", message);
+            }
+        });
+    }
+
+    private void showAlert(String title, String msg, Alert.AlertType type) {
+        javafx.application.Platform.runLater(() -> {
+            Alert a = new Alert(type);
+            a.setTitle(title);
+            a.setHeaderText(null);
+            a.setContentText(msg == null ? "" : msg);
+            a.showAndWait();
         });
     }
     

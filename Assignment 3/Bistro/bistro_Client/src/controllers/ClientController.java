@@ -21,6 +21,7 @@ import responses.SeatingResponse;
 import responses.LoginResponse;
 import responses.ReservationResponse;
 import responses.Response;
+import responses.UserHistoryResponse;
 
 /**
  * Central application controller for the Bistro Echo Client.
@@ -40,7 +41,9 @@ public class ClientController {
     // Session identity state
     private boolean guestSession;
     private String guestContact;
+    private String currentUserId;
     private String currentUsername;
+    private String lastLoginUsername;
     private String currentEmail;
     private String currentPhone;
 
@@ -106,7 +109,21 @@ public class ClientController {
             }
 
             Object responseData = response.getData();
-            
+
+            // user history payload: Response<List<UserHistoryResponse>>
+            if (responseData instanceof java.util.List<?> list) {
+                if (list.isEmpty() || list.get(0) instanceof UserHistoryResponse) {
+                    @SuppressWarnings("unchecked")
+                    java.util.List<UserHistoryResponse> rows = (java.util.List<UserHistoryResponse>) list;
+
+                    if (ui != null) {
+                        ui.onUserHistoryResponse(rows);
+                    } else {
+                        safeUiInfo("History", "History response received. Rows: " + rows.size());
+                    }
+                    return;
+                }
+            }
 
             if (responseData instanceof LoginResponse loginResponse) {
                 switch (loginResponse.getResponseCommand()) {
@@ -117,10 +134,23 @@ public class ClientController {
                         // update session state for member login
                         this.guestSession = false;
                         this.guestContact = null;
+                        this.currentUserId = loginResponse.getUserID();
                         this.currentUsername = loginResponse.getUsername();
                         this.currentEmail = loginResponse.getEmail();
                         this.currentPhone = loginResponse.getPhone();
+  
 
+                        // choose username for server history lookup
+                        String serverUsername = loginResponse.getUsername();
+                        serverUsername = serverUsername == null ? null : serverUsername.trim();
+
+                        // reuse the username typed in the login screen if server did not return it
+                        if (serverUsername != null && !serverUsername.isEmpty()) {
+                            this.currentUsername = serverUsername;
+                        } else {
+                            this.currentUsername = lastLoginUsername == null ? null : lastLoginUsername.trim();
+                        }
+                        
                         // THIS is where we move to the next screen
                         if (ui != null) {
                         	//move on with the respected role, and username
@@ -187,14 +217,38 @@ public class ClientController {
     public void requestLogin(String usernameRaw, String passwordRaw) {
         String username = usernameRaw == null ? "" : usernameRaw.trim();
         String password = passwordRaw == null ? "" : passwordRaw.trim();
+        this.lastLoginUsername = username == null ? null : username.trim();
 
         String err = validateUsername(username);
         if (err != null) { safeUiWarning("Login", err); return; }
 
         err = validatePassword(password);
         if (err != null) { safeUiWarning("Login", err); return; }
+
+
         LoginRequest loginRequest = new LoginRequest(username,password,UserCommand.LOGIN_REQUEST);       
         Request<LoginRequest> req = new Request<LoginRequest>(Request.Command.USER_REQUEST,loginRequest);
+        sendRequest(req);
+    }
+
+    public void requestUserHistory() {
+        if (!connected) {
+            safeUiWarning("History", "Not connected to server.");
+            return;
+        }
+
+        String username = guestSession ? guestContact : currentUsername;
+        username = username == null ? null : username.trim();
+
+        System.out.println("[HISTORY_REQUEST] sending username='" + username + "'");
+
+        if (username == null || username.isEmpty()) {
+            safeUiWarning("History", "No active user session.");
+            return;
+        }
+
+        LoginRequest payload = new LoginRequest(username, null, UserCommand.HISTORY_REQUEST);
+        Request<LoginRequest> req = new Request<>(Request.Command.USER_REQUEST, payload);
         sendRequest(req);
     }
     
@@ -215,6 +269,7 @@ public class ClientController {
             currentUsername = null;
             currentEmail = null;
             currentPhone = null;
+            currentUserId = null;
 
             // Optionally notify UI to go back to login screen
             if (ui != null) {
@@ -363,6 +418,8 @@ public class ClientController {
         this.guestSession = true;
         this.guestContact = contact;
         this.currentUsername = "guest";
+        this.currentUserId = null;
+
     }
     
 
@@ -371,6 +428,10 @@ public class ClientController {
     }
     
     //Getters
+    public String getCurrentUserId() {
+        return currentUserId;
+    }
+    
     public String getGuestContact() {
         return guestContact;
     }

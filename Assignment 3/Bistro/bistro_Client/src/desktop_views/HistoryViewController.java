@@ -42,6 +42,7 @@ public class HistoryViewController implements ClientControllerAware {
 
     private ClientController clientController;
     private boolean connected;
+    private boolean historyRequested;
 
     private DesktopScreenController.Role role = DesktopScreenController.Role.GUEST;
     private DiscountInfo discountInfo = DiscountInfo.none();
@@ -59,13 +60,14 @@ public class HistoryViewController implements ClientControllerAware {
 
         initMonthFilter();
         applyDiscountVisibility();
-        setInfo("History loaded (placeholder).");
+        setInfo("Loading history...");
     }
 
     @Override
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
+        requestHistoryIfPossible();
     }
 
     public void setUserContext(DesktopScreenController.Role role, DiscountInfo discountInfo) {
@@ -82,6 +84,20 @@ public class HistoryViewController implements ClientControllerAware {
         setInfo(items.isEmpty() ? "No history found." : "History loaded.");
     }
 
+    private void requestHistoryIfPossible() {
+        if (historyRequested) return;
+        if (clientController == null) return;
+        if (!connected) return;
+
+        historyRequested = true;
+        setInfo("loading history...");
+        clientController.requestUserHistory();
+    }
+
+    public void showHistoryError(String message) {
+        items.clear();
+        setInfo(message == null || message.isBlank() ? "failed to load history." : message);
+    }
 
     private void initMonthFilter() {
         if (monthFilter == null) return;

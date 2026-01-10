@@ -1,8 +1,6 @@
 package main_screen;
 
 import controllers.ClientController;
-import controllers.ClientUIHandler;
-import desktop_screen.DesktopScreenController;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -12,18 +10,12 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
-import responses.ReservationResponse;
-import responses.SeatingResponse;
-import terminal_screen.TerminalScreenController;
 
-public class MainScreenController extends Application implements ClientUIHandler {
+public class MainScreenController extends Application {
 
     // Static boot injection
     private static ClientController controller;
     private static boolean connected;
-    private DesktopScreenController desktopController;
-    private TerminalScreenController terminalController;
-
 
     public static void launchUI(ClientController c, boolean isConnected) {
         controller = c;
@@ -31,25 +23,23 @@ public class MainScreenController extends Application implements ClientUIHandler
         launch();
     }
 
-    // JavaFX state
     private Stage stage;
+    private AppNavigator navigator;
 
     // Keep the already-loaded main root so we can go back without reloading
     private Parent mainRoot;
 
-    // FXML fields
     @FXML private Label connectionStatusLabel;
 
-    // Application entry point
     @Override
     public void start(Stage stage) {
         this.stage = stage;
+        this.navigator = new AppNavigator(stage, controller, connected);
         stage.setResizable(false);
 
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/main_screen/MainScreen.fxml"));
 
-            // CRITICAL: reuse THIS instance as the controller, so @FXML fields inject here
             loader.setControllerFactory(type -> {
                 if (type == MainScreenController.class) return this;
                 try {
@@ -59,16 +49,15 @@ public class MainScreenController extends Application implements ClientUIHandler
                 }
             });
 
-            Parent root = loader.load();         // injects @FXML fields into THIS instance
-            this.mainRoot = root;                // <-- SAVE MAIN ROOT
+            Parent root = loader.load();
+            this.mainRoot = root;
+            navigator.setMainRoot(this.mainRoot);
 
-            // Allow ClientController -> UI callbacks
             if (controller != null) {
-                controller.setUIHandler(this);
+                controller.setUIHandler(navigator.getNavigationHandler());
                 controller.setConnected(connected);
             }
 
-            // Now that FXML injected, update label safely
             updateConnectionLabel();
 
             stage.setScene(new Scene(root));
@@ -76,12 +65,12 @@ public class MainScreenController extends Application implements ClientUIHandler
             stage.show();
 
             if (!connected) {
-                showWarning("Offline Mode", "Server connection failed. UI is running offline.");
+                showAlert("Offline Mode", "Server connection failed. UI is running offline.", Alert.AlertType.WARNING);
             }
 
         } catch (Exception e) {
             e.printStackTrace();
-            showError("Fatal Error", "Failed to load MainScreen.fxml:\n" + e.getMessage());
+            showAlert("Fatal Error", "Failed to load MainScreen.fxml:\n" + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
 
@@ -93,187 +82,21 @@ public class MainScreenController extends Application implements ClientUIHandler
 
     @FXML
     private void onRemoteClicked() {
-        showLoginScreen();
-    }
-
-    private void showLoginScreen() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/main_screen/LoginScreen.fxml"));
-            Parent loginRoot = loader.load();
-
-            LoginScreenController loginCtrl = loader.getController();
-            loginCtrl.setClientController(controller, connected);
-
-            // Back goes to main root (no reload)
-            loginCtrl.setOnBackToMain(() -> {
-                stage.getScene().setRoot(mainRoot);
-                stage.setTitle("Bistro Client");
-                stage.sizeToScene();
-                stage.centerOnScreen();
-                updateConnectionLabel();
-            });
-
-            // Route from login screen directly to desktop (for guest or role based stubs)
-            loginCtrl.setOnLoginAsRole(role -> {
-                String welcome;
-                if (role == DesktopScreenController.Role.GUEST) {
-                    welcome = "guest";
-                } else {
-                    welcome = loginCtrl.getUsernameForWelcome();
-                }
-                showDesktopScreen(role, welcome);
-            });
-
-            stage.getScene().setRoot(loginRoot);
-            stage.setTitle("Login");
-            stage.sizeToScene();
-            stage.centerOnScreen();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            showError("Navigation Error", "Failed to open LoginScreen.\n" + e.getMessage());
-        }
-    }
-
-    private void showDesktopScreen(desktop_screen.DesktopScreenController.Role role, String welcomeName) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/desktop_screen/DesktopScreen.fxml"));
-            Parent desktopRoot = loader.load();
-
-            this.desktopController = loader.getController();
-            this.desktopController.setClientController(controller);
-            this.desktopController.setRole(role);
-            this.desktopController.setWelcomeName(welcomeName);
-
-            this.desktopController.setOnLogout(() -> {
-                this.desktopController = null; // clean up
-                showLoginScreen(); 
-            });
-
-            stage.getScene().setRoot(desktopRoot);
-            stage.setTitle("Desktop");
-            stage.sizeToScene();
-            stage.centerOnScreen();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            showError("Navigation Error", "Failed to open DesktopScreen.\n" + e.getMessage());
-        }
+        navigator.showLogin();
     }
 
     @FXML
     private void onTerminalClicked() {
-    	
-        try {
-            String fxml = "/terminal_screen/TerminalScreen.fxml";
-            
-            var url = getClass().getResource(fxml);
-            if (url == null) {
-                throw new IllegalArgumentException("FXML not found on classpath: " + fxml);
-            }
-
-            FXMLLoader loader = new FXMLLoader(url);
-            Parent terminalRoot = loader.load();
-
-            // Inject controller dependencies
-            TerminalScreenController ctrl = loader.getController();
-            this.terminalController = ctrl;
-            ctrl.setClientController(controller, connected);
-
-            // Back callback: restore original main root (no re-load)
-            ctrl.setOnBackToMain(() -> {
-                this.terminalController = null;
-                stage.getScene().setRoot(mainRoot);
-                stage.setTitle("Bistro Client");
-                stage.sizeToScene();
-                stage.centerOnScreen();
-                updateConnectionLabel();
-            });
-
-            // Swap in same window
-            stage.getScene().setRoot(terminalRoot);
-            stage.sizeToScene();
-            stage.centerOnScreen();
-            stage.setTitle("Terminal");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            showError("Navigation Error", "Failed to open Terminal.\n" + e.getMessage());
-        }
+        navigator.showTerminal();
     }
 
-    // Optional helper for navigation later
-    private void loadScreen(String fxmlPath, String title) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
-            Parent root = loader.load();
-            stage.getScene().setRoot(root);
-            stage.setTitle(title);
-        } catch (Exception e) {
-            e.printStackTrace();
-            showError("Navigation Error", "Failed to load: " + fxmlPath + "\n" + e.getMessage());
-        }
-    }
-
-    // ClientUIHandler impl
-    @Override
-    public void showInfo(String title, String message) {
-        showAlert(title, message, Alert.AlertType.INFORMATION);
-    }
-
-    @Override
-    public void showWarning(String title, String message) {
-        showAlert(title, message, Alert.AlertType.WARNING);
-    }
-
-    @Override
-    public void showError(String title, String message) {
-        showAlert(title, message, Alert.AlertType.ERROR);
-    }
-
-    @Override
-    public void showPayload(Object payload) {
-        showInfo("Server Message", String.valueOf(payload));
-    }
-
-    private void showAlert(String title, String msg, Alert.AlertType type) {
+    static void showAlert(String title, String msg, Alert.AlertType type) {
         Platform.runLater(() -> {
             Alert a = new Alert(type);
             a.setTitle(title);
             a.setHeaderText(null);
-            a.setContentText(msg);
+            a.setContentText(msg == null ? "" : msg);
             a.showAndWait();
-        });
-    }
-
-    @Override
-    public void routeToDesktop(DesktopScreenController.Role role, String username) {
-        Platform.runLater(() -> showDesktopScreen(role, username));
-    }
-    
-    @Override
-    public void onReservationResponse(ReservationResponse response) {
-        /* * Since OCSF calls this from "Thread-0", we MUST wrap the logic 
-         * in Platform.runLater to avoid UI threading exceptions.
-         */
-        javafx.application.Platform.runLater(() -> {
-            // 1. Find the current active controller (your DesktopScreenController)
-            // 2. Pass the response to it
-            if (desktopController != null) {
-                desktopController.onReservationResponse(response);
-            }
-        });
-    }
-
-    @Override
-    public void onSeatingResponse(SeatingResponse response) {
-        /* * Since OCSF calls this from "Thread-0", we MUST wrap the logic
-         * in Platform.runLater to avoid UI threading exceptions.
-         */
-        javafx.application.Platform.runLater(() -> {
-            if (terminalController != null) {
-                terminalController.onSeatingResponse(response);
-            }
         });
     }
 }

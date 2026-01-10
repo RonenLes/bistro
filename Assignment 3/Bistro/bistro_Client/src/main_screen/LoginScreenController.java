@@ -130,7 +130,7 @@ public class LoginScreenController {
         if (loginButton != null) loginButton.setDisable(false);
 
         if (statusLabel != null && !connected) {
-            setStatus("Disconnected (test login still works).", true);
+            setStatus("No server connection", true);
         }
     }
 

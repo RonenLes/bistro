@@ -3,6 +3,8 @@ package controllers;
 import desktop_screen.DesktopScreenController;
 import responses.ReservationResponse;
 import responses.SeatingResponse;
+import responses.UserHistoryResponse;
+
 
 //Interface for desktopUI or terminalUI to implement
 public interface ClientUIHandler {
@@ -13,5 +15,6 @@ public interface ClientUIHandler {
     void routeToDesktop(DesktopScreenController.Role role, String username);
     void onReservationResponse(ReservationResponse response);
     void onSeatingResponse(SeatingResponse response);
-
+    void onUserHistoryResponse(java.util.List<responses.UserHistoryResponse> rows);
+    void onUserHistoryError(String message);
 }

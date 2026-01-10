@@ -13,7 +13,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.control.cell.TextFieldTableCell;
+
 import javafx.util.StringConverter;
 import requests.ManagerRequest;
 import requests.ManagerRequest.ManagerCommand;
@@ -32,6 +32,9 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private static final List<String> OCCASIONS = List.of("Regular", "Holiday", "Private Event", "Maintenance");
+    private static final List<LocalTime> OPEN_TIMES = buildTimes(LocalTime.of(9, 0), LocalTime.of(15, 0));
+    private static final List<LocalTime> CLOSE_TIMES = buildTimes(LocalTime.MIDNIGHT, LocalTime.of(23, 0));
+
 
     @FXML private DatePicker datePicker;
     @FXML private TableView<OpeningHoursRow> hoursTable;
@@ -52,13 +55,17 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
             colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
         }
         if (colOpen != null) {
+        	colOpen.setEditable(true);
             colOpen.setCellValueFactory(new PropertyValueFactory<>("open"));
-            colOpen.setCellFactory(TextFieldTableCell.forTableColumn(new LocalTimeStringConverter()));
+            colOpen.setCellFactory(ComboBoxTableCell.forTableColumn(
+                    new LocalTimeStringConverter(),
+                    FXCollections.observableArrayList(OPEN_TIMES)
+            ));
             colOpen.setOnEditCommit(event -> {
                 OpeningHoursRow row = event.getRowValue();
                 if (row == null) return;
                 if (event.getNewValue() == null) {
-                    setInfo("Open time must be HH:mm.");
+                	 setInfo("Please select an open time.");
                     row.setOpen(event.getOldValue());
                     hoursTable.refresh();
                     return;
@@ -67,13 +74,17 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
             });
         }
         if (colClose != null) {
+        	colClose.setEditable(true);
             colClose.setCellValueFactory(new PropertyValueFactory<>("close"));
-            colClose.setCellFactory(TextFieldTableCell.forTableColumn(new LocalTimeStringConverter()));
+            colClose.setCellFactory(ComboBoxTableCell.forTableColumn(
+                    new LocalTimeStringConverter(),
+                    FXCollections.observableArrayList(CLOSE_TIMES)
+            ));
             colClose.setOnEditCommit(event -> {
                 OpeningHoursRow row = event.getRowValue();
                 if (row == null) return;
                 if (event.getNewValue() == null) {
-                    setInfo("Close time must be HH:mm.");
+                	 setInfo("Please select a close time.");
                     row.setClose(event.getOldValue());
                     hoursTable.refresh();
                     return;
@@ -200,6 +211,14 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
 
     private void setInfo(String msg) {
         if (infoLabel != null) infoLabel.setText(msg == null ? "" : msg);
+    }
+    
+    private static List<LocalTime> buildTimes(LocalTime start, LocalTime end) {
+        List<LocalTime> times = new java.util.ArrayList<>();
+        for (LocalTime t = start; !t.isAfter(end); t = t.plusHours(1)) {
+            times.add(t);
+        }
+        return times;
     }
 
     public static class OpeningHoursRow {

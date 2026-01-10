@@ -124,7 +124,7 @@ public class ManagementControl {
 		Connection conn = null;
 		List<Reservation> cancelledReservation = new ArrayList<>();
 		List<String> victimContacts = new ArrayList<>();
-
+		
 		try {
 			conn = DBManager.getConnection();
 			conn.setAutoCommit(false);
@@ -132,15 +132,26 @@ public class ManagementControl {
 			Integer currentCap = tableDAO.getCapacityByTableNumber(conn, req.getTableNumber());
 			if (currentCap == null) {
 				conn.rollback();
+				System.out.println("table not found for number: " + req.getTableNumber());
 				return new Response<>(false, "table not found for number: " + req.getTableNumber(), null);
+			}
+			if (req.getNewCap() == currentCap) {
+				conn.rollback();
+				System.out.println("we are here");
+				ManagerResponse resp = new ManagerResponse(
+						ManagerResponseCommand.EDIT_TABLE_RESPONSE,new TableInfo(req.getTableNumber(), req.getNewCap()),List.of());
+																
+				return new Response<>(true, "No changes needed (capacity unchanged).", resp);
 			}
 			if (req.getNewCap() < currentCap) {
 				int newTotal = computeNewTotalAfterReduction(conn, currentCap);
+				System.out.println(victimContacts+"req.getNewCap");
 				cancelVictimsForOverbookedSlots(conn, currentCap, newTotal, cancelledReservation, victimContacts);
 			}
 
 			if (!tableDAO.updateTableByTableNumber(conn, req.getTableNumber(), req.getNewCap())) {
 				conn.rollback();
+				System.out.println("failed to edit table number: ");
 				return new Response<>(false, "failed to edit table number: " + req.getTableNumber(), null);
 			}
 

@@ -96,18 +96,18 @@ public class UserControl {
     }
     
     public String generateUserID() {
-    	String userID = null;
-    	try (Connection conn = DBManager.getConnection()){
-    		do {
-    			int n = +100000 + (int) (Math.random() * 900000);
-    			userID = "U-"+n;
-    		}while(userDAO.getUserByUserID(conn, userID)!=null);
-    		return userID;
-    	}catch(SQLException e){
-    		System.out.println("generating userID db fail");
-    		return null;
-    	}
-    	
+        try (Connection conn = DBManager.getConnection()) {
+            String userID;
+            do {
+                int n = 1 + (int) (Math.random() * 99999); // 1..99999
+                userID = String.format("U-%05d", n);       // U-00001 .. U-99999
+            } while (userDAO.getUserByUserID(conn, userID) != null);
+            return userID;
+
+        } catch (SQLException e) {
+            System.out.println("generating userID db fail");
+            return null;
+        }
     }
     
     public Response<LoginResponse> viewUserDetails(LoginRequest req){

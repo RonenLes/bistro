@@ -18,10 +18,14 @@ import requests.ManagerRequest.ManagerCommand;
 import requests.TableInfo;
 import responses.ManagerResponse;
 import responses.ManagerResponse.ManagerResponseCommand;
+import javafx.scene.control.TextField;
+import javafx.scene.control.TextFormatter;
 
 public class EditTableScreenController implements ClientControllerAware {
 
     @FXML private Label infoLabel;
+    @FXML private TextField newTableNumberField;
+    @FXML private TextField newCapacityField;
     @FXML private TableView<TableRow> tablesTable;
     @FXML private TableColumn<TableRow, Integer> colTableNo;
     @FXML private TableColumn<TableRow, Integer> colSeats;
@@ -40,8 +44,21 @@ public class EditTableScreenController implements ClientControllerAware {
             colTableNo.setCellValueFactory(new PropertyValueFactory<>("tableNumber"));
         }
         if (colSeats != null) {
+        	colSeats.setEditable(true);
             colSeats.setCellValueFactory(new PropertyValueFactory<>("capacity"));
-            colSeats.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
+            colSeats.setCellFactory(column -> new TextFieldTableCell<>(new IntegerStringConverter()) {
+                @Override
+                public void startEdit() {
+                    super.startEdit();
+                    if (getGraphic() instanceof TextField textField) {
+                        textField.focusedProperty().addListener((obs, oldVal, newVal) -> {
+                            if (!newVal) {
+                                commitEdit(getConverter().fromString(textField.getText()));
+                            }
+                        });
+                    }
+                }
+            });
             colSeats.setOnEditCommit(event -> {
                 TableRow row = event.getRowValue();
                 Integer newValue = event.getNewValue();
@@ -107,6 +124,8 @@ public class EditTableScreenController implements ClientControllerAware {
             tablesTable.setItems(tableItems);
             tablesTable.setEditable(true);
         }
+        initNumericField(newTableNumberField, 4);
+        initNumericField(newCapacityField, 3);
         setInfo("Load tables to begin editing.");
     }
 
@@ -121,6 +140,21 @@ public class EditTableScreenController implements ClientControllerAware {
         if (!readyForServer()) return;
         clientController.requestManagerAction(new ManagerRequest(ManagerCommand.VIEW_ALL_TABLES));
         setInfo("Fetching tables...");
+    }
+    
+    @FXML
+    private void onAddTable() {
+        if (!readyForServer()) return;
+        Integer tableNumber = parsePositiveInt(newTableNumberField, "Table number");
+        if (tableNumber == null) return;
+        Integer capacity = parsePositiveInt(newCapacityField, "Seats");
+        if (capacity == null) return;
+
+        clientController.requestManagerAction(
+                new ManagerRequest(ManagerCommand.ADD_NEW_TABLE, tableNumber, capacity)
+        );
+        setInfo("Adding table " + tableNumber + "...");
+        clearAddFields();
     }
 
     public void requestInitialData() {
@@ -140,10 +174,16 @@ public class EditTableScreenController implements ClientControllerAware {
                 }
             }
             setInfo("Tables updated.");
-        } else if (response.getResponseCommand() == ManagerResponseCommand.EDIT_TABLE_RESPONSE
-                || response.getResponseCommand() == ManagerResponseCommand.DELETED_TABLE_RESPONSE
-                || response.getResponseCommand() == ManagerResponseCommand.NEW_TABLE_RESPONSE) {
+        } else if (response.getResponseCommand() == ManagerResponseCommand.EDIT_TABLE_RESPONSE){
+                setInfo("Table number "+response.getTable().getTableNumber()+" was edited\n Nubmer of cancelled reservations "+response.getTables().size());  // the getTables recvies contacts if later we want to show               
             onRefresh();
+        }
+        else if(response.getResponseCommand() == ManagerResponseCommand.NEW_TABLE_RESPONSE) {
+        	setInfo("Table "+response.getTable().getTableNumber() +" added successfully");
+        	onRefresh();
+        }
+        else if(response.getResponseCommand() == ManagerResponseCommand.DELETED_TABLE_RESPONSE) {
+        	setInfo("Table disabled, number of cancelled reservations: "+response.getTables().size());
         }
     }
 
@@ -153,9 +193,8 @@ public class EditTableScreenController implements ClientControllerAware {
             setInfo("Seats must be a positive number.");
             return;
         }
-        clientController.requestManagerAction(
-                new ManagerRequest(ManagerCommand.EDIT_TABLES, row.getTableNumber(), row.getCapacity())
-        );
+        clientController.requestManagerAction(new ManagerRequest(ManagerCommand.EDIT_TABLES, row.getTableNumber(), row.getCapacity()));
+                        
         setInfo("Saving table " + row.getTableNumber() + "...");
     }
 
@@ -174,6 +213,40 @@ public class EditTableScreenController implements ClientControllerAware {
         }
         return true;
     }
+    
+    private void initNumericField(TextField field, int maxLength) {
+        if (field == null) return;
+        field.setTextFormatter(new TextFormatter<String>(change -> {
+            String newText = change.getControlNewText();
+            if (!newText.matches("\\d*")) return null;
+            if (newText.length() > maxLength) return null;
+            return change;
+        }));
+    }
+
+    private Integer parsePositiveInt(TextField field, String label) {
+        if (field == null) {
+            setInfo(label + " is missing.");
+            return null;
+        }
+        String raw = field.getText() == null ? "" : field.getText().trim();
+        if (raw.isEmpty()) {
+            setInfo(label + " is required.");
+            return null;
+        }
+        int value = Integer.parseInt(raw);
+        if (value <= 0) {
+            setInfo(label + " must be a positive number.");
+            return null;
+        }
+        return value;
+    }
+
+    private void clearAddFields() {
+        if (newTableNumberField != null) newTableNumberField.clear();
+        if (newCapacityField != null) newCapacityField.clear();
+    }
+
 
     private void setInfo(String msg) {
         if (infoLabel != null) infoLabel.setText(msg == null ? "" : msg);

@@ -20,7 +20,7 @@ import java.time.LocalTime;
 public class UserDAO {
 	
 	//INSERT 
-		private final String INSERT_NEW_USER = "INSERT INTO user (userID, username, password, role, phone, email) (?, ?, ?, ?, ?, ?)";
+		private final String INSERT_NEW_USER = "INSERT INTO user (userID, username, password, role, phone, email) VALUES(?, ?, ?, ?, ?, ?)";
 
 	//SELECT statements
 		private final String SELECT_USER_BY_USERNAME = "SELECT * FROM `user` WHERE username = ?";
@@ -37,8 +37,7 @@ public class UserDAO {
 		
 	//UPDATE
 		private final String UPDATE_USER_DETAILS_BY_ID = "UPDATE `user` SET phone = ?, email = ? WHERE userID = ?";
-		
-		
+				
 		public List<User> fetchAllUsers(Connection conn)throws SQLException{
 			List<User> users = new ArrayList<>();
 			try(PreparedStatement ps = conn.prepareStatement(SELECT_ALL_SUBSCRIBER)){
@@ -65,7 +64,7 @@ public class UserDAO {
 				ps.setString(3, password);
 				ps.setString(4, role);
 				ps.setString(5, phone);
-				ps.setString(2, email);
+				ps.setString(6, email);
 				
 				int insert = ps.executeUpdate();
 				return insert == 1;				

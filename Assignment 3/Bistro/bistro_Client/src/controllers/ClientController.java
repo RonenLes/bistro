@@ -7,6 +7,7 @@ import client.BistroEchoClient;
 import desktop_screen.DesktopScreenController;
 import kryo.KryoUtil;
 //requests
+import requests.ManagerRequest;
 import requests.BillRequest;
 import requests.BillRequest.BillRequestType;
 import requests.LoginRequest;
@@ -17,6 +18,7 @@ import requests.ReservationRequest.ReservationRequestType;
 import requests.SeatingRequest;
 import requests.SeatingRequest.SeatingRequestType;
 //responses
+import responses.ManagerResponse;
 import responses.SeatingResponse;
 import responses.LoginResponse;
 import responses.ReservationResponse;
@@ -204,6 +206,14 @@ public class ClientController {
                     uiPayload(seatingResponse);
                 }
             }
+            else if (responseData instanceof ManagerResponse managerResponse) {
+                if (ui != null) {
+                    ui.onManagerResponse(managerResponse);
+                } else {
+                    uiPayload(managerResponse);
+                }
+            }
+            
 
             // handle other response types here (Reservations, etc)
 
@@ -249,6 +259,21 @@ public class ClientController {
 
         LoginRequest payload = new LoginRequest(username, null, UserCommand.HISTORY_REQUEST);
         Request<LoginRequest> req = new Request<>(Request.Command.USER_REQUEST, payload);
+        sendRequest(req);
+    }
+    
+    public void requestManagerAction(ManagerRequest request) {
+        if (!connected) {
+            safeUiWarning("Manager", "Not connected to server.");
+            return;
+        }
+        if (request == null) {
+            safeUiWarning("Manager", "Missing manager request.");
+            return;
+        }
+
+        Request<ManagerRequest> req =
+                new Request<>(Request.Command.MANAGER_REQUEST, request);
         sendRequest(req);
     }
     

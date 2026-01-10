@@ -367,8 +367,8 @@ public class ManagementControl {
 								
 				
 				if(isWaiting(r.getStatus())) {
-					WaitingList wL = waitingListDAO.updateWaitingStatus(conn, r.getReservationID(), "CANCELLED");
-					if(wL == null) safeRollback(conn, "No waiting list to cancel");
+					boolean  wL = waitingListDAO.updateWaitingStatus(conn, r.getReservationID(), "CANCELLED");
+					if(!wL) safeRollback(conn, "No waiting list to cancel");
 				}
 				
 				if(isSeated(r.getStatus())) {
@@ -388,6 +388,9 @@ public class ManagementControl {
 			
 				
 			}
+			
+			boolean updated = openingHoursDAO.updateOpeningHours(conn, req.getNewOpenTime(), req.getNewCloseTime(), req.getNewDate(), req.getOccasion());
+			if(!updated) safeRollback(conn, "failed to update hours");
 			
 			collectVictimContacts(conn, reservationsToCancel, victimsContact);
 			conn.commit();

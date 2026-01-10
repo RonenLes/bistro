@@ -10,6 +10,13 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
+<<<<<<< HEAD
+=======
+import responses.ManagerResponse;
+import responses.ReservationResponse;
+import responses.SeatingResponse;
+import terminal_screen.TerminalScreenController;
+>>>>>>> refs/heads/ronen-database/entities
 
 public class MainScreenController extends Application {
 
@@ -99,4 +106,47 @@ public class MainScreenController extends Application {
             a.showAndWait();
         });
     }
+<<<<<<< HEAD
+=======
+
+    @Override
+    public void routeToDesktop(DesktopScreenController.Role role, String username) {
+        Platform.runLater(() -> showDesktopScreen(role, username));
+    }
+    
+    @Override
+    public void onReservationResponse(ReservationResponse response) {
+        /* * Since OCSF calls this from "Thread-0", we MUST wrap the logic 
+         * in Platform.runLater to avoid UI threading exceptions.
+         */
+        javafx.application.Platform.runLater(() -> {
+            // 1. Find the current active controller (your DesktopScreenController)
+            // 2. Pass the response to it
+            if (desktopController != null) {
+                desktopController.onReservationResponse(response);
+            }
+        });
+    }
+
+    @Override
+    public void onSeatingResponse(SeatingResponse response) {
+        /* * Since OCSF calls this from "Thread-0", we MUST wrap the logic
+         * in Platform.runLater to avoid UI threading exceptions.
+         */
+        javafx.application.Platform.runLater(() -> {
+            if (terminalController != null) {
+                terminalController.onSeatingResponse(response);
+            }
+        });
+    }
+    
+    @Override
+    public void onManagerResponse(ManagerResponse response) {
+        javafx.application.Platform.runLater(() -> {
+            if (desktopController != null) {
+                desktopController.onManagerResponse(response);
+            }
+        });
+    }
+>>>>>>> refs/heads/ronen-database/entities
 }

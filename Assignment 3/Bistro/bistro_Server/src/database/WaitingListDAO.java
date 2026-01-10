@@ -31,11 +31,27 @@ public class WaitingListDAO {
 											   "WHERE w.status = 'WAITING' AND r.allocatedCapacity <= ? "+
 											   "ORDER BY w.priority DESC, w.createdAt ASC "+
 											   "LIMIT 1 FOR UPDATE";
-	
+	private static final String SELECT_RESERVATION_BY_WAIT_ID =
+	        "SELECT r.* " +
+	        "FROM waiting_list w " +
+	        "JOIN reservation r ON w.reservationID = r.reservationID " +
+	        "WHERE w.waitID = ?";
+	private static final String SELECT_WAITINGLIST_BY_RESERVATION_ID =
+	        "SELECT waitID, reservationID, status, priority, createdAt, assignedAt " +
+	        "FROM waiting_list " +
+	        "WHERE reservationID = ? " +
+	        "ORDER BY waitID DESC " +
+	        "LIMIT 1";
 	//UPDATE
 	private final String UPDATE_WAITLIST_STATUS = "UPDATE `waiting_list` SET status = ? WHERE reservationID = ?";
-	private final String UPDATE_STATUS_TO_ASSIGNED = "UPDATE `waiting_list` SET status='ASSIGNED', assignedAt=NOW() "+
-													 "WHERE waitID = ? AND status = 'WAITING'";
+	private static final String UPDATE_WAITINGLIST_TO_ASSIGNED =
+	        "UPDATE waiting_list SET status='ASSIGNED' " +
+	        "WHERE reservationID = ? AND status='CALLED'";
+
+	private final String UPDATE_STATUS_TO_CALLED = "UPDATE `waiting_list` SET status='CALLED', assignedAt=NOW() "+
+			 "WHERE waitID = ? AND status = 'WAITING'";
+	
+
 	// SELECT (put near the top of WaitingListDAO)
 	private static final String SELECT_WAITING_COUNTS_BY_DAY_BETWEEN =
 	        "SELECT DAY(createdAt) AS dayOfMonth, COUNT(*) AS cnt " +
@@ -47,9 +63,34 @@ public class WaitingListDAO {
 	        "WHERE status = 'WAITING' " +
 	        "AND assignedAt IS NULL " +
 	        "AND DATE(createdAt) = CURRENT_DATE";
+	private static final String SELECT_EXPIRED_CALLED_WAITINGLIST =
+	        "SELECT waitID, reservationID, status, priority, createdAt, assignedAt " +
+	        "FROM waiting_list " +
+	        "WHERE status = 'CALLED' " +
+	        "AND assignedAt IS NOT NULL " +
+	        "AND assignedAt <= NOW() - INTERVAL 15 MINUTE";
 
 
-	
+	public Reservation getReservationByWaitingID(Connection conn,int waitID) throws SQLException {
+		try(PreparedStatement ps=conn.prepareStatement(SELECT_RESERVATION_BY_WAIT_ID)){
+			ps.setInt(1,waitID);
+			try(ResultSet rs=ps.executeQuery()){
+				if(!rs.next())return null;
+				Reservation r= new Reservation(rs.getInt("reservationID"),
+	                rs.getDate("reservationDate").toLocalDate(),
+	                rs.getString("status"),
+	                rs.getInt("partySize"),
+	                rs.getInt("allocatedCapacity"),
+	                rs.getInt("confirmationCode"),
+	                rs.getString("guestContact"),  // may be null
+	                rs.getString("userID"),        // may be null
+	                rs.getTime("startTime") != null? rs.getTime("startTime").toLocalTime(): null,	                        	                        
+	                rs.getTimestamp("timeOfCreation").toLocalDateTime());
+				return r;
+			}
+			
+		}
+	}
 	public WaitingList getNextWaitingThatFits(Connection conn, int tableCapacity) throws SQLException {
 	    try (PreparedStatement ps = conn.prepareStatement(SELECT_NEXT_IN_LINE)) {
 	        ps.setInt(1, tableCapacity);
@@ -61,6 +102,8 @@ public class WaitingListDAO {
 	        }
 	    }
 	}
+	
+
 	
 	//wrapper for insertNewWait for using multi DAO objects
 	public boolean insertNewWait(int reservationID,String status,int priority) throws SQLException{
@@ -90,25 +133,56 @@ public class WaitingListDAO {
 	    }
 	}
 	
-	public WaitingList updateWaitingStatus(Connection conn,int reservationID,String status)throws SQLException {
-		if(conn == null)throw new IllegalArgumentException("conn is null (updateWaitingStatus)");
-		try(PreparedStatement ps = conn.prepareStatement(UPDATE_WAITLIST_STATUS)){
-			ps.setString(1, status);
-			ps.setInt(2, reservationID);
-			
-			ResultSet rs = ps.executeQuery();
-									
-			if(rs.next()) {
-				WaitingList waitingList = new WaitingList(rs.getInt("waitID"), reservationID, status, rs.getInt("priority"),
-						rs.getTimestamp("createdAt").toLocalDateTime(), rs.getTimestamp("assignedAt").toLocalDateTime());
-				return waitingList;
-			}
-			return null;
-		}
+	public boolean updateWaitingStatus(Connection conn, int reservationID, String status) throws SQLException {
+	    if (conn == null) {
+	        throw new IllegalArgumentException("conn is null (updateWaitingStatus)");
+	    }
+
+	    try (PreparedStatement ps = conn.prepareStatement(UPDATE_WAITLIST_STATUS)) {
+	        ps.setString(1, status);
+	        ps.setInt(2, reservationID);
+
+	        int affected = ps.executeUpdate();
+	        return affected >= 1; // use == 1 if reservationID is guaranteed unique in waiting_list
+	    }
+	}
+	public WaitingList getWaitingListByReservationId(Connection conn, int reservationID) throws SQLException {
+	    if (conn == null) {
+	        throw new IllegalArgumentException("conn is null (getWaitingListByReservationId)");
+	    }
+
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_WAITINGLIST_BY_RESERVATION_ID)) {
+	        ps.setInt(1, reservationID);
+
+	        try (ResultSet rs = ps.executeQuery()) {
+	            if (!rs.next()) return null;
+
+	            return new WaitingList(
+	                    rs.getInt("waitID"),
+	                    rs.getInt("reservationID"),
+	                    rs.getString("status"),
+	                    rs.getInt("priority"),
+	                    rs.getTimestamp("createdAt") != null
+	                            ? rs.getTimestamp("createdAt").toLocalDateTime()
+	                            : null,
+	                    rs.getTimestamp("assignedAt") != null
+	                            ? rs.getTimestamp("assignedAt").toLocalDateTime()
+	                            : null
+	            );
+	        }
+	    }
 	}
 	
-	public boolean markAssigned(Connection conn, int waitId) throws SQLException {
-	    try (PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS_TO_ASSIGNED)) {
+	
+	public boolean markAssignedIfCalled(Connection conn, int reservationId) throws SQLException {
+	    try (PreparedStatement ps = conn.prepareStatement(UPDATE_WAITINGLIST_TO_ASSIGNED)) {
+	        ps.setInt(1, reservationId);
+	        return ps.executeUpdate() == 1;
+	    }
+	}
+	
+	public boolean markCalled(Connection conn, int waitId) throws SQLException {
+	    try (PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS_TO_CALLED)) {
 	        ps.setInt(1, waitId);
 	        return ps.executeUpdate() == 1;
 	    }
@@ -166,4 +240,25 @@ public class WaitingListDAO {
 
 	    return waitingList;
 	}
+	public List<WaitingList> fetchExpiredCalled(Connection conn) throws SQLException {
+	    List<WaitingList> out = new ArrayList<>();
+
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_EXPIRED_CALLED_WAITINGLIST);
+	         ResultSet rs = ps.executeQuery()) {
+
+	        while (rs.next()) {
+	            WaitingList w = new WaitingList(
+	                    rs.getInt("waitID"),
+	                    rs.getInt("reservationID"),
+	                    rs.getString("status"),
+	                    rs.getInt("priority"),
+	                    rs.getTimestamp("createdAt").toLocalDateTime(),
+	                    rs.getTimestamp("assignedAt").toLocalDateTime() // assignedAt is your "called time"
+	            );
+	            out.add(w);
+	        }
+	    }
+	    return out;
+	}
+
 }

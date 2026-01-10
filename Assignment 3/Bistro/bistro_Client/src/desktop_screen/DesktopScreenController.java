@@ -1,5 +1,6 @@
 package desktop_screen;
 
+
 import controllers.ClientController;
 import controllers.ClientControllerAware;
 import desktop_views.ReservationsViewController;
@@ -7,6 +8,7 @@ import responses.ReservationResponse;
 import responses.SeatingResponse;
 import desktop_views.EditReservationViewController;
 import desktop_views.HistoryViewController;
+import desktop_views.EditReservationViewController;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -15,8 +17,6 @@ import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.control.Alert;
-
 
 import java.io.IOException;
 import java.util.EnumMap;
@@ -73,6 +73,18 @@ public class DesktopScreenController implements controllers.ClientUIHandler {
     private EditReservationViewController editReservationVC;
     private HistoryViewController historyVC;
 
+    private EditReservationViewController editReservationVC;
+   
+    private TablesViewController tablesVC;
+    private EditTableScreenController editTableVC;
+    private UpdateOpeningHoursScreenController openingHoursVC;
+    private ShowDataScreenController showDataVC;
+    private AddSubscriberScreenController addSubscriberVC;
+    
+    @FXML private ToggleButton editTablesBtn;
+    @FXML private ToggleButton openingHoursBtn;
+    @FXML private ToggleButton managerDataBtn;
+    @FXML private ToggleButton addSubscriberBtn;
 
 
     private Role role = Role.GUEST;
@@ -85,9 +97,13 @@ public class DesktopScreenController implements controllers.ClientUIHandler {
         TABLES,
         HISTORY,
         EDIT_DETAILS,
+        ADD_SUBSCRIBER,
         REPORTS,
         ANALYTICS,
-        PAY
+        PAY,
+        EDIT_TABLES,
+        OPENING_HOURS,
+        MANAGER_DATA
     }
 
     // Role == allowed screens
@@ -119,13 +135,14 @@ public class DesktopScreenController implements controllers.ClientUIHandler {
 
         // MANAGER -> edit details, new reservations, pay, history, tables, analytics, reports
         ROLE_SCREENS.put(Role.MANAGER, EnumSet.of(
-                ScreenKey.EDIT_DETAILS,
-                ScreenKey.RESERVATIONS,
-                ScreenKey.PAY,
-                ScreenKey.HISTORY,
+                                             
+                ScreenKey.ADD_SUBSCRIBER,
                 ScreenKey.TABLES,
+                ScreenKey.EDIT_TABLES,
+                ScreenKey.MANAGER_DATA,
                 ScreenKey.ANALYTICS,
-                ScreenKey.REPORTS
+                ScreenKey.REPORTS,
+                ScreenKey.OPENING_HOURS
         ));
     }
 
@@ -173,6 +190,10 @@ public class DesktopScreenController implements controllers.ClientUIHandler {
         registerNavButton(reportsBtn,      ScreenKey.REPORTS);
         registerNavButton(analyticsBtn,    ScreenKey.ANALYTICS);
         registerNavButton(payBtn,          ScreenKey.PAY);
+        registerNavButton(editTablesBtn,   ScreenKey.EDIT_TABLES);
+        registerNavButton(openingHoursBtn, ScreenKey.OPENING_HOURS);
+        registerNavButton(managerDataBtn,  ScreenKey.MANAGER_DATA);
+        registerNavButton(addSubscriberBtn, ScreenKey.ADD_SUBSCRIBER);
 
         applyRoleVisibility();
 
@@ -295,7 +316,12 @@ public class DesktopScreenController implements controllers.ClientUIHandler {
 
             case TABLES ->
                     loadIntoContentHost("/desktop_views/TablesView.fxml");
-
+            case EDIT_TABLES ->
+            		loadIntoContentHost("/manager_screen/EditTableScreen.fxml");
+            case MANAGER_DATA ->
+            		loadIntoContentHost("/manager_screen/ShowDataScreen.fxml");    
+            case ADD_SUBSCRIBER ->
+            		loadIntoContentHost("/manager_screen/AddSubscriberScreen.fxml");
             case HISTORY ->
                     loadIntoContentHost("/desktop_views/HistoryView.fxml");
 
@@ -307,6 +333,8 @@ public class DesktopScreenController implements controllers.ClientUIHandler {
 
             case ANALYTICS ->
                     loadIntoContentHost("/desktop_views/AnalyticsView.fxml");
+            case OPENING_HOURS ->
+            		loadIntoContentHost("/manager_screen/UpdateOpeningHoursScreen.fxml");
 
             case PAY ->
                     loadIntoContentHost("/desktop_views/PayView.fxml");
@@ -324,8 +352,24 @@ public class DesktopScreenController implements controllers.ClientUIHandler {
                 reservationsVC = rvc;
             }
             
+            if (ctrl instanceof TablesViewController tvc) {
+                tablesVC = tvc;
+            }
+            if (ctrl instanceof EditTableScreenController etc) {
+                editTableVC = etc;
+            }
+            if (ctrl instanceof UpdateOpeningHoursScreenController uohc) {
+                openingHoursVC = uohc;
+            }
+            
             if (ctrl instanceof EditReservationViewController edvc) {
                 editReservationVC = edvc;
+            }
+            if (ctrl instanceof ShowDataScreenController sdc) {
+                showDataVC = sdc;
+            }
+            if (ctrl instanceof AddSubscriberScreenController asc) {
+                addSubscriberVC = asc;
             }
             
             if (ctrl instanceof ClientControllerAware aware) {
@@ -333,6 +377,18 @@ public class DesktopScreenController implements controllers.ClientUIHandler {
             }
             if (ctrl instanceof HistoryViewController hvc) {
                 historyVC = hvc;
+            }
+            if (ctrl instanceof EditTableScreenController etc) {
+                etc.requestInitialData();
+            }
+            if (ctrl instanceof ShowDataScreenController sdc) {
+                sdc.requestInitialData();
+            }
+            if (ctrl instanceof EditTableScreenController etc) {
+                etc.requestInitialData();
+            }
+            if (ctrl instanceof ShowDataScreenController sdc) {
+                sdc.requestInitialData();
             }
 
 
@@ -413,6 +469,26 @@ public class DesktopScreenController implements controllers.ClientUIHandler {
             a.setHeaderText(null);
             a.setContentText(msg == null ? "" : msg);
             a.showAndWait();
+        });
+    }
+    
+    public void onManagerResponse(ManagerResponse response) {
+        javafx.application.Platform.runLater(() -> {
+            if (tablesVC != null) {
+                tablesVC.handleManagerResponse(response);
+            }
+            if (editTableVC != null) {
+                editTableVC.handleManagerResponse(response);
+            }
+            if (openingHoursVC != null) {
+                openingHoursVC.handleManagerResponse(response);
+            }
+            if (showDataVC != null) {
+                showDataVC.handleManagerResponse(response);
+            }
+            if (addSubscriberVC != null) {
+                addSubscriberVC.handleManagerResponse(response);
+            }
         });
     }
     

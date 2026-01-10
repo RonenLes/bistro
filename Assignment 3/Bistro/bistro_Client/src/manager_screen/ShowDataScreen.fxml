@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="800.0" prefWidth="1280.0" styleClass="surface"
+            xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+    <top>
+        <HBox spacing="12.0" alignment="CENTER_LEFT" BorderPane.alignment="CENTER">
+            <children>
+                <VBox spacing="2.0">
+                    <children>
+                        <Label text="Manager Data" styleClass="h2"/>
+                        <Label text="View subscribers, waiting list, and seating (placeholder UI)" styleClass="muted"/>
+                    </children>
+                </VBox>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="Refresh" styleClass="ghost"/>
+            </children>
+            <BorderPane.margin>
+                <Insets top="14.0" right="14.0" bottom="10.0" left="14.0"/>
+            </BorderPane.margin>
+        </HBox>
+    </top>
+
+    <center>
+        <VBox spacing="14.0" BorderPane.alignment="CENTER">
+            <children>
+                <VBox spacing="10.0" styleClass="card">
+                    <children>
+                        <Label text="Subscribers" styleClass="subtle"/>
+                        <TableView prefHeight="220.0">
+                            <columns>
+                                <TableColumn text="User ID" prefWidth="160.0"/>
+                                <TableColumn text="Username" prefWidth="180.0"/>
+                                <TableColumn text="Phone" prefWidth="180.0"/>
+                                <TableColumn text="Email" prefWidth="240.0"/>
+                            </columns>
+                        </TableView>
+                    </children>
+                    <padding><Insets top="16.0" right="16.0" bottom="16.0" left="16.0"/></padding>
+                </VBox>
+
+                <HBox spacing="14.0">
+                    <children>
+                        <VBox prefWidth="620.0" spacing="10.0" styleClass="card">
+                            <children>
+                                <Label text="Waiting List" styleClass="subtle"/>
+                                <TableView prefHeight="260.0">
+                                    <columns>
+                                        <TableColumn text="Code" prefWidth="140.0"/>
+                                        <TableColumn text="Party" prefWidth="110.0"/>
+                                        <TableColumn text="Priority" prefWidth="120.0"/>
+                                        <TableColumn text="Status" prefWidth="160.0"/>
+                                    </columns>
+                                </TableView>
+                            </children>
+                            <padding><Insets top="16.0" right="16.0" bottom="16.0" left="16.0"/></padding>
+                        </VBox>
+
+                        <VBox prefWidth="620.0" spacing="10.0" styleClass="card">
+                            <children>
+                                <Label text="Current Seating" styleClass="subtle"/>
+                                <TableView prefHeight="260.0">
+                                    <columns>
+                                        <TableColumn text="Table" prefWidth="100.0"/>
+                                        <TableColumn text="Party" prefWidth="100.0"/>
+                                        <TableColumn text="Checked In" prefWidth="140.0"/>
+                                        <TableColumn text="Code" prefWidth="160.0"/>
+                                        <TableColumn text="Type" prefWidth="120.0"/>
+                                    </columns>
+                                </TableView>
+                            </children>
+                            <padding><Insets top="16.0" right="16.0" bottom="16.0" left="16.0"/></padding>
+                        </VBox>
+                    </children>
+                </HBox>
+            </children>
+            <BorderPane.margin>
+                <Insets top="0.0" right="14.0" bottom="14.0" left="14.0"/>
+            </BorderPane.margin>
+        </VBox>
+    </center>
+</BorderPane>

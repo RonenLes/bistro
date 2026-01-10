@@ -71,6 +71,8 @@ public class ReservationControl {
 
         try (Connection conn = DBManager.getConnection()) {
         	
+        	
+        	
             List<LocalTime> availableTimes =getAvailableTimes(conn, req.getReservationDate(), req.getPartySize());
             for(LocalTime t : availableTimes) {
             	System.out.println(t.toString());
@@ -222,7 +224,7 @@ public class ReservationControl {
                     return new Response<>(false, "Reservation not found", null);
                 }
                 if(existing.getReservationDate().isBefore(reservationDate)) return new Response<>(false, "Requested date already passed", null);
-                if(existing.getStatus().equals("CANCELLED")) return new Response<>(false, "Reservation status is cancelled", null);
+                
 
                 String userID = existing.getUserID();     // preserved
                 String status = existing.getStatus();     // preserved
@@ -349,7 +351,9 @@ public class ReservationControl {
 
         try (Connection conn = DBManager.getConnection()) {
             Reservation existing = reservationDAO.getReservationByConfirmationCode(conn, confirmationCode);
+                 
             if (existing == null) return new Response<>(false, "Reservation not found", null);
+            if(existing.getStatus().equals("CANCELLED")) return new Response<>(false, "Reservation status is cancelled", null);
             if(existing.getReservationDate().isBefore(LocalDate.now())) return new Response<>(false, "cant edit past reservations", null);
 
             String userID = existing.getUserID();

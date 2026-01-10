@@ -51,6 +51,7 @@
    <left>
       <VBox alignment="TOP_CENTER" prefHeight="589.0" prefWidth="127.0" spacing="8.0" BorderPane.alignment="CENTER">
          <children>
+<<<<<<< HEAD
             <ToggleButton fx:id="waitlistBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Waitlist" />
             <ToggleButton fx:id="tablesBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Tables" />
             <ToggleButton fx:id="payBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Pay" />
@@ -59,6 +60,36 @@
             <ToggleButton fx:id="analyticsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Analytics" />
             <ToggleButton fx:id="editReservationBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Edit" />
             <ToggleButton fx:id="reservationsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Reservations" />
+=======
+            <VBox fx:id="repGroup" spacing="8.0">
+               <children>
+                  <ToggleButton fx:id="waitlistBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Waitlist" />
+                  <ToggleButton fx:id="tablesBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Tables" />
+               </children>
+            </VBox>
+            <VBox fx:id="managerGroup" spacing="8.0">
+               <children>
+                  <ToggleButton fx:id="editTablesBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Edit Tables" />
+                  <ToggleButton fx:id="openingHoursBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Open Hours" />
+                  <ToggleButton fx:id="managerDataBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Manager Data" />
+                  <ToggleButton fx:id="addSubscriberBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Add Subscriber" />
+                  <ToggleButton fx:id="reportsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Reports" />
+                  <ToggleButton fx:id="analyticsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Analytics" />
+               </children>
+            </VBox>
+            <VBox fx:id="subscriberGroup" spacing="8.0">
+               <children>
+                  <ToggleButton fx:id="historyBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="My History" />
+               </children>
+            </VBox>
+            <VBox spacing="8.0">
+               <children>
+                  <ToggleButton fx:id="payBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Pay" />
+                  <ToggleButton fx:id="editDetailsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Edit Details" />
+                  <ToggleButton fx:id="reservationsBtn" mnemonicParsing="false" prefHeight="61.0" prefWidth="121.0" text="Reservations" />
+               </children>
+            </VBox>
+>>>>>>> refs/heads/ronen-database/entities
          </children>
          <BorderPane.margin>
             <Insets left="5.0" />

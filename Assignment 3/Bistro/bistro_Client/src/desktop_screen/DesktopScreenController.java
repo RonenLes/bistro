@@ -4,6 +4,7 @@ package desktop_screen;
 import controllers.ClientController;
 import controllers.ClientControllerAware;
 import desktop_views.ReservationsViewController;
+import desktop_views.TablesViewController;
 import responses.ReservationResponse;
 import responses.SeatingResponse;
 import desktop_views.EditReservationViewController;
@@ -12,11 +13,16 @@ import desktop_views.EditReservationViewController;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import manager_screen.AddSubscriberScreenController;
+import manager_screen.EditTableScreenController;
+import manager_screen.ShowDataScreenController;
+import manager_screen.UpdateOpeningHoursScreenController;
 
 import java.io.IOException;
 import java.util.EnumMap;
@@ -24,6 +30,9 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import responses.ManagerResponse;
+import responses.ReservationResponse;
+import responses.SeatingResponse;
 
 /**
  * Shell controller (top bar + left navigation + center content host)
@@ -73,8 +82,7 @@ public class DesktopScreenController implements controllers.ClientUIHandler {
     private EditReservationViewController editReservationVC;
     private HistoryViewController historyVC;
 
-    private EditReservationViewController editReservationVC;
-   
+ 
     private TablesViewController tablesVC;
     private EditTableScreenController editTableVC;
     private UpdateOpeningHoursScreenController openingHoursVC;
@@ -130,12 +138,16 @@ public class DesktopScreenController implements controllers.ClientUIHandler {
                 ScreenKey.RESERVATIONS,
                 ScreenKey.PAY,
                 ScreenKey.HISTORY,
+                ScreenKey.WAITLIST,
                 ScreenKey.TABLES
         ));
-
-        // MANAGER -> edit details, new reservations, pay, history, tables, analytics, reports
+// MANAGER -> edit details, new reservations, pay, history, tables, analytics, reports
         ROLE_SCREENS.put(Role.MANAGER, EnumSet.of(
-                                             
+
+                ScreenKey.EDIT_DETAILS,
+                ScreenKey.RESERVATIONS,
+                ScreenKey.PAY,
+
                 ScreenKey.ADD_SUBSCRIBER,
                 ScreenKey.TABLES,
                 ScreenKey.EDIT_TABLES,
@@ -144,7 +156,7 @@ public class DesktopScreenController implements controllers.ClientUIHandler {
                 ScreenKey.REPORTS,
                 ScreenKey.OPENING_HOURS
         ));
-    }
+}
 
     // Public API
     public void setClientController(ClientController controller, boolean connected) {

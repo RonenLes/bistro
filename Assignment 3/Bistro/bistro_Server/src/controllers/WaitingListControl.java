@@ -19,6 +19,9 @@ public class WaitingListControl {
 	private final ReservationDAO reservationDAO;
 	private final SeatingDAO seatingDAO;
 	private final SeatingControl seatingControl;
+	public WaitingListControl() {
+		this(new WaitingListDAO(),new ReservationDAO(),new SeatingDAO(),new SeatingControl());
+	}
 	public WaitingListControl(WaitingListDAO waitingListDAO, ReservationDAO reservationDAO,SeatingDAO seatingDAO,SeatingControl seatingControl) {
 		
 		this.waitingListDAO = waitingListDAO;

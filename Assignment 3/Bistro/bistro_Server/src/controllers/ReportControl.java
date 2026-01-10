@@ -140,7 +140,7 @@ public class ReportControl {
                 	payloadBeforeByte[i][1]=monthlyWaitingListCount[i];
                 }
                 byte[] payload = KryoUtil.serialize(payloadBeforeByte);
-                boolean saved = reportDAO.upsertReportBytes(conn, VISITOR_REPORT_TYPE,target.toString(), payload);
+                boolean saved = reportDAO.upsertReportBytes(conn, SUBSCRIBER_REPORT_TYPE,target.toString(), payload);
                 if (!saved) {
                     conn.rollback();
                     return false;

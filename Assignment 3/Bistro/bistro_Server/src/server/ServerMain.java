@@ -20,14 +20,13 @@ public class ServerMain extends Application {
 
         int port = 5555;
         BistroEchoServer server = new BistroEchoServer(port, controller);
-
-        // inject server into controller (Start button will call listen())
+        
         controller.setServer(server);
 
         stage.setTitle("Bistro Server");
         stage.setScene(scene);
 
-        // ✅ If user closes window via the X button, shutdown the server cleanly
+      
         stage.setOnCloseRequest(ev -> {
             try {
                 if (server != null) {

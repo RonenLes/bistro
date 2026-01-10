@@ -32,7 +32,8 @@ public class ManagerRequest {
 		EDIT_OPENING_HOURS,
 		VIEW_ALL_OPENING_HOURS,
 		VIEW_WAITING_LIST,
-		VIEW_SUBSCRIBERS
+		VIEW_SUBSCRIBERS,
+		VIEW_RESERVATIONS
 	}
 
 	public ManagerRequest() {}

@@ -72,6 +72,7 @@ public class ManagementControl {
 		case VIEW_ALL_OPENING_HOURS -> viewOpeningHoursNext30Days(req.getNewDate());
 		case VIEW_WAITING_LIST -> viewCurrentWaitingList();
 		case VIEW_SUBSCRIBERS -> viewAllSubscriber();
+		case VIEW_RESERVATIONS -> viewReservationByDate(req.getNewDate());
 		};
 	}
 	
@@ -485,7 +486,7 @@ public class ManagementControl {
 				ReservationResponse resResp = new ReservationResponse(contact, currR.getStartTime(), currR.getPartySize());
 				currRes.add(resResp);
 			}
-			ManagerResponse resp = new ManagerResponse(ManagerResponseCommand.CURRENT_WAITING_LIST_RESPONSE,currRes);
+			ManagerResponse resp = new ManagerResponse(ManagerResponseCommand.RESERVATION_BY_DATE_RESPONSE,currRes);
 			return new Response<>(true,"Current customer in the waiting list",resp);
 		}catch(Exception e) {
 			System.err.println("failed to view reservations hours in manager control");
@@ -502,7 +503,7 @@ public class ManagementControl {
 				LoginResponse log = new LoginResponse(u.getUserID(),u.getUsername(),u.getEmail(),u.getPhone());
 				subs.add(log);
 			}
-			ManagerResponse resp = new ManagerResponse(ManagerResponseCommand.CURRENT_WAITING_LIST_RESPONSE,subs);
+			ManagerResponse resp = new ManagerResponse(ManagerResponseCommand.ALL_SUBSCRIBERS_RESPONSE,subs);
 			return new Response<>(true,"Current customer in the waiting list",resp);
 			
 		}catch(Exception e) {

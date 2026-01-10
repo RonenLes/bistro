@@ -388,9 +388,9 @@ public class DesktopScreenController implements ClientUIHandler {
 
             if (contentHost != null) contentHost.getChildren().setAll(view);
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-            Label error = new Label("Failed to load screen:\n" + fxmlPath);
+            Label error = new Label("Failed to load screen:\n" + fxmlPath + "\n" + e.getMessage());
             error.getStyleClass().add("muted");
             if (contentHost != null) contentHost.getChildren().setAll(error);
         }

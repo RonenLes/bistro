@@ -14,7 +14,6 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 
-import javafx.util.StringConverter;
 import requests.ManagerRequest;
 import requests.ManagerRequest.ManagerCommand;
 import responses.CurrentOpeningHoursResponse;
@@ -24,7 +23,7 @@ import responses.ManagerResponse.ManagerResponseCommand;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
+
 import java.util.List;
 
 public class UpdateOpeningHoursScreenController implements ClientControllerAware {
@@ -57,10 +56,7 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
         if (colOpen != null) {
         	colOpen.setEditable(true);
             colOpen.setCellValueFactory(new PropertyValueFactory<>("open"));
-            colOpen.setCellFactory(ComboBoxTableCell.forTableColumn(
-                    new LocalTimeStringConverter(),
-                    FXCollections.observableArrayList(OPEN_TIMES)
-            ));
+            colOpen.setCellFactory(column -> createTimeAdjustCell(true));
             colOpen.setOnEditCommit(event -> {
                 OpeningHoursRow row = event.getRowValue();
                 if (row == null) return;
@@ -76,10 +72,7 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
         if (colClose != null) {
         	colClose.setEditable(true);
             colClose.setCellValueFactory(new PropertyValueFactory<>("close"));
-            colClose.setCellFactory(ComboBoxTableCell.forTableColumn(
-                    new LocalTimeStringConverter(),
-                    FXCollections.observableArrayList(CLOSE_TIMES)
-            ));
+            colClose.setCellFactory(column -> createTimeAdjustCell(false));
             colClose.setOnEditCommit(event -> {
                 OpeningHoursRow row = event.getRowValue();
                 if (row == null) return;
@@ -263,20 +256,46 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
         }
     }
 
-    private static class LocalTimeStringConverter extends StringConverter<LocalTime> {
-        @Override
-        public String toString(LocalTime time) {
-            return time == null ? "" : TIME_FMT.format(time);
-        }
+    private TableCell<OpeningHoursRow, LocalTime> createTimeAdjustCell(boolean isOpen) {
+        return new TableCell<>() {
+            private final Label timeLabel = new Label();
+            private final Button minus = new Button("-");
+            private final Button plus = new Button("+");
+            private final javafx.scene.layout.HBox box = new javafx.scene.layout.HBox(8, timeLabel, minus, plus);
 
-        @Override
-        public LocalTime fromString(String value) {
-            if (value == null || value.isBlank()) return null;
-            try {
-                return LocalTime.parse(value.trim(), TIME_FMT);
-            } catch (DateTimeParseException e) {
-                return null;
+            {
+                minus.getStyleClass().add("ghost");
+                plus.getStyleClass().add("ghost");
+                minus.setOnAction(event -> adjustTime(-1));
+                plus.setOnAction(event -> adjustTime(1));
             }
-        }
+
+            private void adjustTime(int deltaHours) {
+                OpeningHoursRow row = getTableRow() == null ? null : getTableRow().getItem();
+                if (row == null) return;
+                LocalTime current = isOpen ? row.getOpen() : row.getClose();
+                if (current == null) {
+                    current = LocalTime.of(0, 0);
+                }
+                LocalTime updated = current.plusHours(deltaHours);
+                if (isOpen) {
+                    row.setOpen(updated);
+                } else {
+                    row.setClose(updated);
+                }
+                updateItem(updated, false);
+            }
+
+            @Override
+            protected void updateItem(LocalTime item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    timeLabel.setText(item == null ? "" : TIME_FMT.format(item));
+                    setGraphic(box);
+                }
+            }
+        };
     }
 }

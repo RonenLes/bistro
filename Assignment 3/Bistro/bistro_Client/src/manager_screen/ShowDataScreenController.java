@@ -67,6 +67,7 @@ public class ShowDataScreenController implements ClientControllerAware {
         if (colSeatingCode != null) colSeatingCode.setCellValueFactory(new PropertyValueFactory<>("confirmationCode"));
         if (colSeatingType != null) colSeatingType.setCellValueFactory(new PropertyValueFactory<>("type"));
         if (seatingTable != null) seatingTable.setItems(seatingItems);
+        
 
         setInfo("Load manager data to view subscribers, waiting list, and seating.");
     }

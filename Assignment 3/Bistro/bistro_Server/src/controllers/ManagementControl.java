@@ -500,9 +500,11 @@ public class ManagementControl {
 		try(Connection conn = DBManager.getConnection()){
 			for(User u : userDAO.fetchAllUsers(conn)) {
 				if(u==null) return new Response<>(false, "Can't find reservation", null);
+				System.out.println(u.getUsername()+" ");
 				LoginResponse log = new LoginResponse(u.getUserID(),u.getUsername(),u.getEmail(),u.getPhone());
 				subs.add(log);
 			}
+			System.out.println(subs);
 			ManagerResponse resp = new ManagerResponse(ManagerResponseCommand.ALL_SUBSCRIBERS_RESPONSE,subs);
 			return new Response<>(true,"Current customer in the waiting list",resp);
 			

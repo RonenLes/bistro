@@ -367,8 +367,8 @@ public class ManagementControl {
 								
 				
 				if(isWaiting(r.getStatus())) {
-					WaitingList wL = waitingListDAO.updateWaitingStatus(conn, r.getReservationID(), "CANCELLED");
-					if(wL == null) safeRollback(conn, "No waiting list to cancel");
+					boolean  wL = waitingListDAO.updateWaitingStatus(conn, r.getReservationID(), "CANCELLED");
+					if(!wL) safeRollback(conn, "No waiting list to cancel");
 				}
 				
 				if(isSeated(r.getStatus())) {

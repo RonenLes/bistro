@@ -4,7 +4,6 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.RadioButton?>
-<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.layout.BorderPane?>
@@ -25,7 +24,7 @@
                 <VBox spacing="2.0">
                     <children>
                         <Label text="Pay bill" styleClass="h2"/>
-                        <Label text="Enter your confirmation code to view and pay your bill" styleClass="muted"/>
+                        <Label text="Enter your confirmation code to view your total and pay" styleClass="muted"/>
                     </children>
                 </VBox>
                 <Region HBox.hgrow="ALWAYS"/>
@@ -78,12 +77,12 @@
                             <VBox spacing="6.0" alignment="CENTER_LEFT">
                                 <children>
                                     <Button fx:id="showBillButton"
-                                            text="Show bill"
+                                            text="Show total"
                                             styleClass="ghost"
                                             onAction="#onShowBillClicked"
                                             prefWidth="120.0"/>
                                     <Button fx:id="payBillButton"
-                                            text="Pay bill"
+                                            text="Pay"
                                             styleClass="primary"
                                             onAction="#onPayBillClicked"
                                             prefWidth="120.0"/>
@@ -96,30 +95,59 @@
                 </children>
             </VBox>
 
-            <!-- Scrollable bill content -->
-            <ScrollPane fitToWidth="true"
-                        VBox.vgrow="ALWAYS"
-                        styleClass="edge-to-edge"
-                        style="-fx-background-color: transparent;">
-                <content>
-                    <VBox fx:id="billContainer"
-                          spacing="8.0"
-                          alignment="TOP_LEFT">
-                        <padding>
-                            <Insets top="10.0" right="10.0" bottom="20.0" left="10.0"/>
-                        </padding>
-                    </VBox>
-                </content>
-            </ScrollPane>
-
-            <!-- Summary / total area -->
-            <VBox spacing="4.0" maxWidth="720.0">
+            <!-- Summary card (for now only totals) -->
+            <VBox spacing="10.0" maxWidth="720.0" styleClass="card">
+                <padding>
+                    <Insets top="12.0" right="12.0" bottom="12.0" left="12.0"/>
+                </padding>
                 <children>
-                    <Label fx:id="billSummaryLabel"
-                           text=""
-                           styleClass="subtle"/>
+                    <Label text="Summary" styleClass="h3"/>
+
+                    <HBox spacing="12.0" alignment="CENTER_LEFT">
+                        <children>
+                            <Label text="payment" styleClass="subtle"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label fx:id="paymentMethodValueLabel" text="-" styleClass="body"/>
+                        </children>
+                    </HBox>
+
+                    <HBox spacing="12.0" alignment="CENTER_LEFT">
+                        <children>
+                            <Label text="total" styleClass="subtle"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label fx:id="baseTotalValueLabel" text="-" styleClass="body"/>
+                        </children>
+                    </HBox>
+
+                    <HBox spacing="12.0" alignment="CENTER_LEFT">
+                        <children>
+                            <Label text="discount" styleClass="subtle"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label fx:id="discountValueLabel" text="-" styleClass="body"/>
+                        </children>
+                    </HBox>
+
+                    <HBox spacing="12.0" alignment="CENTER_LEFT">
+                        <children>
+                            <Label text="to pay" styleClass="subtle"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label fx:id="totalToPayValueLabel" text="-" styleClass="h3"/>
+                        </children>
+                    </HBox>
                 </children>
             </VBox>
+
+            <!-- Placeholder for future detailed bill items -->
+            <VBox fx:id="billPlaceholderContainer" spacing="6.0" maxWidth="720.0" styleClass="card">
+                <padding>
+                    <Insets top="12.0" right="12.0" bottom="12.0" left="12.0"/>
+                </padding>
+                <children>
+                    <Label text="Bill items" styleClass="h3"/>
+                    <Label text="items will be shown here in a later version" styleClass="muted"/>
+                </children>
+            </VBox>
+
         </VBox>
     </center>
 </BorderPane>

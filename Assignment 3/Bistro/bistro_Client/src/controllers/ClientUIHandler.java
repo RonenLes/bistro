@@ -17,4 +17,8 @@ public interface ClientUIHandler {
     void onUserHistoryResponse(java.util.List<responses.UserHistoryResponse> rows);
     void onUserHistoryError(String message);
     void onManagerResponse(ManagerResponse response);
+    void onBillTotal(double baseTotal, boolean isCash);
+    void onBillPaid(Integer tableNumber);
+    void onBillError(String message);
+
 }

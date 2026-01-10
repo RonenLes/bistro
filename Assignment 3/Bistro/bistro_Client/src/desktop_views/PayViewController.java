@@ -8,12 +8,14 @@ import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
-import javafx.scene.layout.VBox;
-import requests.BillRequest;
 import requests.BillRequest.BillRequestType;
 
-import java.util.List;
-
+/**
+ * Pay bill flow:
+ * Step 1 enter confirmation code
+ * Step 2 show summary (total, discount, final amount) and pay
+ * Note: bill items are planned for later!!!
+ */
 public class PayViewController implements ClientControllerAware {
 
     @FXML private TextField confirmationCodeField;
@@ -25,20 +27,32 @@ public class PayViewController implements ClientControllerAware {
     @FXML private Button payBillButton;
 
     @FXML private Label statusLabel;
-    @FXML private Label billSummaryLabel;
 
-    @FXML private VBox billContainer;
+    // Summary labels (for now we only show totals)
+    @FXML private Label paymentMethodValueLabel;
+    @FXML private Label baseTotalValueLabel;
+    @FXML private Label discountValueLabel;
+    @FXML private Label totalToPayValueLabel;
+
+    @FXML private javafx.scene.layout.VBox billPlaceholderContainer;
 
     private ClientController clientController;
     private boolean connected;
 
+    private Double lastBaseTotal;
+
     @FXML
     private void initialize() {
-        if (statusLabel != null) {
-            statusLabel.setText("");
+        setStatus("", false);
+        clearSummary();
+
+        if (payBillButton != null) {
+            payBillButton.setDisable(true);
         }
-        if (billSummaryLabel != null) {
-            billSummaryLabel.setText("");
+
+        if (billPlaceholderContainer != null) {
+            billPlaceholderContainer.setManaged(true);
+            billPlaceholderContainer.setVisible(true);
         }
     }
 
@@ -59,16 +73,22 @@ public class PayViewController implements ClientControllerAware {
             return;
         }
 
-        clearBillView();
-        setStatus("Fetching bill...", false);
+        clearSummary();
+        lastBaseTotal = null;
+
+        if (payBillButton != null) {
+            payBillButton.setDisable(true);
+        }
 
         boolean isCash = isCashSelected();
+        setStatus("Fetching bill total...", false);
 
-        //clientController.requestBillAction(
-             //   BillRequestType.REQUEST_TO_SEE_BILL,
-               // code,
-              //  isCash
-        //);
+        // we keep REQUEST_TO_SEE_BILL for now, later it can return full bill items
+        clientController.requestBillAction(
+                BillRequestType.REQUEST_TO_SEE_BILL,
+                code,
+                isCash
+        );
     }
 
     @FXML
@@ -85,6 +105,10 @@ public class PayViewController implements ClientControllerAware {
         boolean isCash = isCashSelected();
         setStatus("Processing payment...", false);
 
+        if (payBillButton != null) {
+            payBillButton.setDisable(true);
+        }
+
         clientController.requestBillAction(
                 BillRequestType.PAY_BILL,
                 code,
@@ -92,23 +116,51 @@ public class PayViewController implements ClientControllerAware {
         );
     }
 
-    
     /**
-     * called by DesktopScreenController or ClientUI handler layer when a bill has been loaded
-     * renders bill lines and summary into the scrollable container
+     * called by DesktopScreenController when a bill total is returned
+     * client computes discount: guests no discount, subscribers 10%
      */
-    public void renderBill(List<String> billLines, String summaryText) {
-        clearBillView();
+    public void onBillTotalLoaded(double baseTotal, boolean isCashPayment, boolean isSubscriber) {
+        lastBaseTotal = baseTotal;
 
-        if (billLines != null) {
-            for (String line : billLines) {
-                Label row = new Label(line);
-                row.getStyleClass().add("body");
-                billContainer.getChildren().add(row);
-            }
+        double discountRate = isSubscriber ? 0.10 : 0.0;
+        double discountAmount = roundMoney(baseTotal * discountRate);
+        double finalTotal = roundMoney(baseTotal - discountAmount);
+
+        setSummary(isCashPayment, baseTotal, discountAmount, finalTotal);
+        setStatus("Bill ready.", false);
+
+        if (payBillButton != null) {
+            payBillButton.setDisable(false);
         }
-        if (billSummaryLabel != null) {
-            billSummaryLabel.setText(summaryText == null ? "" : summaryText);
+    }
+
+    /**
+     * called by DesktopScreenController when payment is confirmed
+     */
+    public void onBillPaid(Integer tableNumber) {
+        String msg = "Payment completed.";
+        if (tableNumber != null) {
+            msg += " Table " + tableNumber + " is now available.";
+        }
+        setStatus(msg, false);
+
+        lastBaseTotal = null;
+
+        if (payBillButton != null) {
+            payBillButton.setDisable(true);
+        }
+    }
+
+    /**
+     * called by DesktopScreenController when billing fails
+     */
+    public void onBillingError(String message) {
+        setStatus(message == null ? "Billing failed." : message, true);
+
+        if (payBillButton != null) {
+            // keep disabled unless we already have totals loaded
+            payBillButton.setDisable(lastBaseTotal == null);
         }
     }
 
@@ -142,13 +194,34 @@ public class PayViewController implements ClientControllerAware {
         return false;
     }
 
-    private void clearBillView() {
-        if (billContainer != null) {
-            billContainer.getChildren().clear();
+    private void clearSummary() {
+        if (paymentMethodValueLabel != null) paymentMethodValueLabel.setText("-");
+        if (baseTotalValueLabel != null) baseTotalValueLabel.setText("-");
+        if (discountValueLabel != null) discountValueLabel.setText("-");
+        if (totalToPayValueLabel != null) totalToPayValueLabel.setText("-");
+    }
+
+    private void setSummary(boolean isCashPayment, double baseTotal, double discountAmount, double finalTotal) {
+        if (paymentMethodValueLabel != null) {
+            paymentMethodValueLabel.setText(isCashPayment ? "cash" : "card");
         }
-        if (billSummaryLabel != null) {
-            billSummaryLabel.setText("");
+        if (baseTotalValueLabel != null) {
+            baseTotalValueLabel.setText(formatMoney(baseTotal));
         }
+        if (discountValueLabel != null) {
+            discountValueLabel.setText(discountAmount <= 0 ? "-" : ("-" + formatMoney(discountAmount)));
+        }
+        if (totalToPayValueLabel != null) {
+            totalToPayValueLabel.setText(formatMoney(finalTotal));
+        }
+    }
+
+    private String formatMoney(double value) {
+        return String.format("%.2f", value);
+    }
+
+    private double roundMoney(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 
     private void setStatus(String message, boolean error) {

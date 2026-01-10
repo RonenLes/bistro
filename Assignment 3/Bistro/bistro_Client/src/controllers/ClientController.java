@@ -6,6 +6,8 @@ import java.time.LocalTime;
 import client.BistroEchoClient;
 import desktop_screen.DesktopScreenController;
 import kryo.KryoUtil;
+import java.util.HashMap;
+import java.util.Map;
 //requests
 import requests.ManagerRequest;
 import requests.BillRequest;
@@ -19,6 +21,7 @@ import requests.SeatingRequest;
 import requests.SeatingRequest.SeatingRequestType;
 //responses
 import responses.ManagerResponse;
+import responses.BillResponse;
 import responses.SeatingResponse;
 import responses.LoginResponse;
 import responses.ReservationResponse;
@@ -127,7 +130,7 @@ public class ClientController {
                 }
             }
 
-            if (responseData instanceof LoginResponse loginResponse) {
+            else if (responseData instanceof LoginResponse loginResponse) {
                 switch (loginResponse.getResponseCommand()) {
                     case LOGIN_RESPONSE -> {
                         DesktopScreenController.Role uiRole =
@@ -213,7 +216,10 @@ public class ClientController {
                     uiPayload(managerResponse);
                 }
             }
-            
+            // billing payloads are handled using reflection to avoid tight coupling
+            if (responseData instanceof BillResponse billResponse) {
+                handleBillResponse(billResponse);
+            }
 
             // handle other response types here (Reservations, etc)
 
@@ -240,7 +246,7 @@ public class ClientController {
         Request<LoginRequest> req = new Request<LoginRequest>(Request.Command.USER_REQUEST,loginRequest);
         sendRequest(req);
     }
-
+    // User history request
     public void requestUserHistory() {
         if (!connected) {
             safeUiWarning("History", "Not connected to server.");
@@ -261,7 +267,7 @@ public class ClientController {
         Request<LoginRequest> req = new Request<>(Request.Command.USER_REQUEST, payload);
         sendRequest(req);
     }
-    
+    // Manager request
     public void requestManagerAction(ManagerRequest request) {
         if (!connected) {
             safeUiWarning("Manager", "Not connected to server.");
@@ -275,6 +281,37 @@ public class ClientController {
         Request<ManagerRequest> req =
                 new Request<>(Request.Command.MANAGER_REQUEST, request);
         sendRequest(req);
+    }
+    // Billing helpers
+    /**
+     * Request billing actions (See total or Pay)
+     */
+    public void requestBillAction(BillRequestType type, int confirmationCode, boolean isCash) {
+        if (!connected) {
+            safeUiWarning("Billing", "Not connected to server.");
+            return;
+        }
+
+        // Wrap the request in the generic Request envelope
+        BillRequest payload = new BillRequest(type, confirmationCode, isCash);
+        Request<BillRequest> req = new Request<>(Request.Command.BILLING_REQUEST, payload);
+        
+        sendRequest(req);
+    }
+    
+    private void handleBillResponse(BillResponse response) {
+        if (ui == null) return;
+
+        switch (response.getType()) {
+            case ANSWER_TO_REQUEST_TO_SEE_BILL -> {
+                // BillResponse uses getBill() to return the double value [cite: 1]
+                ui.onBillTotal(response.getBill(), false); 
+            }
+            case ANSWER_TO_PAY_BILL -> {
+                // Signals the UI that payment was successful 
+                ui.onBillPaid(null); 
+            }
+        }
     }
     
     public void logout() {
@@ -304,24 +341,7 @@ public class ClientController {
         }
     }
 
-    public void requestBillAction(
-            BillRequestType type,
-            int confirmationCode,
-            boolean isCashPayment
-    ) {
-        if (!connected) {
-            safeUiWarning("Billing", "Not connected to server.");
-            return;
-        }
 
-        BillRequest payload = new BillRequest(type, confirmationCode, isCashPayment);
-
-        Request<BillRequest> req =
-                new Request<>(Request.Command.BILLING_REQUEST, payload);
-
-        sendRequest(req);
-    }
-    
     public void requestSeatingCheckInByConfirmationCode(int confirmationCode) {
         if (!connected) {
             safeUiWarning("Check-in", "Not connected to server.");

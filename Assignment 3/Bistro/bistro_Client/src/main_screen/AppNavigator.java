@@ -6,12 +6,13 @@ import desktop_screen.DesktopScreenController;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.stage.Stage;
+import responses.ManagerResponse;
 import terminal_screen.TerminalScreenController;
 
 /**
  * Central UI router that swaps between the two client applications:
- * desktop app and terminal app.
- * Keeps MainScreenController lightweight.
+ * desktop app and terminal app
+ * Keeps MainScreenController lightweight
  */
 public class AppNavigator {
 	private static final double APP_W = 1280;
@@ -209,6 +210,30 @@ public class AppNavigator {
         public void onUserHistoryError(String message) {
             showError("History", message);
         }
+
+		@Override
+		public void onManagerResponse(ManagerResponse response) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void onBillTotal(double baseTotal, boolean isCash) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void onBillPaid(Integer tableNumber) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void onBillError(String message) {
+			// TODO Auto-generated method stub
+			
+		}
     }
     
 
@@ -264,5 +289,30 @@ public class AppNavigator {
         public void onUserHistoryError(String message) {
             showError("History", message);
         }
+
+		@Override
+		public void onManagerResponse(ManagerResponse response) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void onBillTotal(double baseTotal, boolean isCash) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void onBillPaid(Integer tableNumber) {
+			// TODO Auto-generated method stub
+			
+			
+		}
+
+		@Override
+		public void onBillError(String message) {
+			// TODO Auto-generated method stub
+			
+		}
     }
 }

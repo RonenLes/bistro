@@ -7,7 +7,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import requests.ManagerRequest;
 import requests.ManagerRequest.ManagerCommand;
-
 import responses.ManagerResponse;
 import responses.ManagerResponse.ManagerResponseCommand;
 
@@ -49,26 +48,34 @@ public class AddSubscriberScreenController implements ClientControllerAware {
                 phone,
                 email
         );
+
         clientController.requestManagerAction(request);
         setInfo("Submitting new subscriber...");
     }
 
     @FXML
     private void onClear() {
-        if (usernameField != null) usernameField.clear();
-        if (passwordField != null) passwordField.clear();
-        if (phoneField != null) phoneField.clear();
-        if (emailField != null) emailField.clear();
+        clearFields();
         setInfo("");
     }
 
     public void handleManagerResponse(ManagerResponse response) {
         if (response == null || response.getResponseCommand() == null) return;
+
         if (response.getResponseCommand() == ManagerResponseCommand.NEW_USER_RESPONSE) {
             String newId = response.getUserID();
             setInfo(newId == null ? "Subscriber added." : "Subscriber added. ID: " + newId);
-            onClear();
+
+            // clear input fields but keep success message visible
+            clearFields();
         }
+    }
+
+    private void clearFields() {
+        if (usernameField != null) usernameField.clear();
+        if (passwordField != null) passwordField.clear();
+        if (phoneField != null) phoneField.clear();
+        if (emailField != null) emailField.clear();
     }
 
     private String getValue(TextField field) {

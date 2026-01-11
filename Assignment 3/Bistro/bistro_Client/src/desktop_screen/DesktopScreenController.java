@@ -5,6 +5,7 @@ import controllers.ClientControllerAware;
 import controllers.ClientUIHandler;
 import desktop_views.EditReservationViewController;
 import desktop_views.HistoryViewController;
+import desktop_views.PayViewController;
 import desktop_views.ReservationsViewController;
 import desktop_views.TablesViewController;
 import javafx.fxml.FXML;
@@ -22,6 +23,7 @@ import manager_screen.ManagerReservationsScreenController;
 import manager_screen.ShowDataScreenController;
 import manager_screen.UpdateOpeningHoursScreenController;
 import manager_screen.SubscribersScreenController;
+import subscriber_screen.*;
 import responses.ManagerResponse;
 import responses.ReservationResponse;
 import responses.SeatingResponse;
@@ -67,6 +69,7 @@ public class DesktopScreenController implements ClientUIHandler {
 
     @FXML private ToggleButton historyBtn;
     @FXML private ToggleButton editReservationBtn;
+    @FXML private ToggleButton subscriberHomeBtn;
 
     @FXML private ToggleButton reportsBtn;
     @FXML private ToggleButton analyticsBtn;
@@ -90,6 +93,7 @@ public class DesktopScreenController implements ClientUIHandler {
     private ReservationsViewController reservationsVC;
     private EditReservationViewController editReservationVC;
     private HistoryViewController historyVC;
+    private PayViewController payVC;
 
     private TablesViewController tablesVC;
     private EditTableScreenController editTableVC;
@@ -98,12 +102,14 @@ public class DesktopScreenController implements ClientUIHandler {
     private ShowDataScreenController showDataVC;
     private AddSubscriberScreenController addSubscriberVC;
     private SubscribersScreenController subscribersVC;
+    private SubscriberMainScreenController subscriberMainVC;
 
     private Role role = Role.GUEST;
     private Runnable onLogout;
 
     // Screens
     private enum ScreenKey {
+    	SUBSCRIBER_HOME,
         RESERVATIONS,
         WAITLIST,
         TABLES,
@@ -132,6 +138,7 @@ public class DesktopScreenController implements ClientUIHandler {
 
         // SUBSCRIBER -> edit details, new reservations, pay, history
         ROLE_SCREENS.put(Role.SUBSCRIBER, EnumSet.of(
+        		 ScreenKey.SUBSCRIBER_HOME,
                 ScreenKey.EDIT_DETAILS,
                 ScreenKey.RESERVATIONS,
                 ScreenKey.PAY,
@@ -180,6 +187,9 @@ public class DesktopScreenController implements ClientUIHandler {
         applyRoleVisibility();
         navToggleGroup.selectToggle(null); // clear selection
         selectDefaultForRole(); // pick default screen for this role
+        if (this.role == Role.SUBSCRIBER && clientController != null) {
+            clientController.requestUpcomingReservations();
+        }
     }
 
     public void setWelcomeName(String name) {
@@ -209,6 +219,7 @@ public class DesktopScreenController implements ClientUIHandler {
 
         registerNavButton(historyBtn,      ScreenKey.HISTORY);
         registerNavButton(editReservationBtn,  ScreenKey.EDIT_DETAILS);
+        registerNavButton(subscriberHomeBtn, ScreenKey.SUBSCRIBER_HOME);
 
         registerNavButton(reportsBtn,      ScreenKey.REPORTS);
         registerNavButton(analyticsBtn,    ScreenKey.ANALYTICS);
@@ -276,7 +287,7 @@ public class DesktopScreenController implements ClientUIHandler {
         switch (role) {
             case MANAGER -> selectIfVisible(reportsBtn);       // manager default
             case REP     -> selectIfVisible(reservationsBtn);  // rep default
-            case SUBSCRIBER -> selectIfVisible(reservationsBtn);    // subscriber default
+            case SUBSCRIBER -> selectIfVisible(subscriberHomeBtn);    // subscriber default
             case GUEST   -> selectIfVisible(reservationsBtn);  // guest default
             default      -> selectFirstAvailable();
         }
@@ -335,6 +346,8 @@ public class DesktopScreenController implements ClientUIHandler {
     // Navigation (REAL SCREEN LOADING)
     private void navigate(ScreenKey key) {
         switch (key) {
+        case SUBSCRIBER_HOME ->
+        			loadIntoContentHost("/subscriber_screen/SubscriberMainScreen.fxml");
             case RESERVATIONS ->
                     loadIntoContentHost("/desktop_views/ReservationsView.fxml");
 
@@ -397,6 +410,11 @@ public class DesktopScreenController implements ClientUIHandler {
             if (ctrl instanceof ShowDataScreenController sdc) showDataVC = sdc;
             if (ctrl instanceof AddSubscriberScreenController asc) addSubscriberVC = asc;
             if (ctrl instanceof SubscribersScreenController ssc) subscribersVC = ssc;
+            if (ctrl instanceof SubscriberMainScreenController smc) {
+                subscriberMainVC = smc;
+                subscriberMainVC.setOnEditReservation(this::openEditReservation);
+            }
+            if (ctrl instanceof PayViewController pvc) payVC = pvc;
 
             // inject controller reference into screens that need it
             if (ctrl instanceof ClientControllerAware aware) {
@@ -426,11 +444,11 @@ public class DesktopScreenController implements ClientUIHandler {
     public void onReservationResponse(ReservationResponse response) {
         javafx.application.Platform.runLater(() -> {
             if (reservationsVC != null) {
-                // your ReservationsViewController currently expects handleServerResponse
+                
                 reservationsVC.handleServerResponse(response);
             }
             if (editReservationVC != null) {
-                // your EditReservationViewController currently expects onReservationResponse
+                
                 editReservationVC.onReservationResponse(response);
             }
         });
@@ -473,12 +491,20 @@ public class DesktopScreenController implements ClientUIHandler {
     }
     @Override
     public void onUpcomingReservationsResponse(java.util.List<ReservationResponse> rows) {
-        // subscriber main screen handles this; desktop does not display upcoming list
+    	javafx.application.Platform.runLater(() -> {
+            if (subscriberMainVC != null) {
+                subscriberMainVC.onUpcomingReservationsResponse(rows);
+            }
+        });
     }
 
     @Override
     public void onUpcomingReservationsError(String message) {
-        // subscriber main screen handles this; desktop does not display upcoming list
+    	javafx.application.Platform.runLater(() -> {
+            if (subscriberMainVC != null) {
+                subscriberMainVC.onUpcomingReservationsError(message);
+            }
+        });
     }
 
     @Override
@@ -511,17 +537,36 @@ public class DesktopScreenController implements ClientUIHandler {
     // bill callbacks are required by ClientUIHandler, even if pay screen is not fully wired yet
     @Override
     public void onBillTotal(double baseTotal, boolean isCash) {
-        showInfo("Billing", "Bill total received: " + String.format("%.2f", baseTotal));
+    	javafx.application.Platform.runLater(() -> {
+            if (payVC != null) {
+                boolean isSubscriber = role == Role.SUBSCRIBER;
+                payVC.onBillTotalLoaded(baseTotal, isCash, isSubscriber);
+                return;
+            }
+            showInfo("Billing", "Bill total received: " + String.format("%.2f", baseTotal));
+        });
     }
 
     @Override
     public void onBillPaid(Integer tableNumber) {
-        showInfo("Billing", "Payment completed.");
+    	javafx.application.Platform.runLater(() -> {
+            if (payVC != null) {
+                payVC.onBillPaid(tableNumber);
+                return;
+            }
+            showInfo("Billing", "Payment completed.");
+        });
     }
 
     @Override
     public void onBillError(String message) {
-        showError("Billing", message == null ? "Billing failed." : message);
+    	javafx.application.Platform.runLater(() -> {
+            if (payVC != null) {
+                payVC.onBillingError(message);
+                return;
+            }
+            showError("Billing", message == null ? "Billing failed." : message);
+        });
     }
 
     @Override
@@ -557,5 +602,17 @@ public class DesktopScreenController implements ClientUIHandler {
             a.setContentText(msg == null ? "" : msg);
             a.showAndWait();
         });
+    }
+    private void openEditReservation(ReservationResponse reservation) {
+        if (reservation == null) return;
+        Integer code = reservation.getConfirmationCode();
+        if (code == null || code <= 0) {
+            showWarning("Reservation", "Missing confirmation code.");
+            return;
+        }
+        selectIfVisible(editReservationBtn);
+        if (editReservationVC != null) {
+            editReservationVC.loadReservationByCode(code);
+        }
     }
 }

@@ -2,6 +2,7 @@ package controllers;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 import database.DBManager;
@@ -144,7 +145,22 @@ public class UserControl {
     			return new Response<>(false, "User not found", null);
     		}
     		List<UserHistoryResponse> upcoming = reservationDAO.fetchUpcomingReservationsByUser(conn, user.getUserID());
-    		LoginResponse resp = new LoginResponse(UserReponseCommand.UPCOMING_RESERVATIONS_RESPONSE,upcoming);
+    		List<ReservationResponse> upcomingReservations = new ArrayList<>();
+            if (upcoming != null) {
+                for (UserHistoryResponse row : upcoming) {
+                    if (row == null) continue;
+                    upcomingReservations.add(new ReservationResponse(
+                            row.getReservationDate(),
+                            row.getPartySize(),
+                            row.getCheckInTime(),
+                            row.getConfirmationCode(),
+                            user.getUserID(),
+                            null,
+                            ReservationResponse.ReservationResponseType.SHOW_RESERVATION
+                    ));
+                }
+            }
+    		LoginResponse resp = new LoginResponse(UserReponseCommand.UPCOMING_RESERVATIONS_RESPONSE, upcomingReservations, true);
     		return new Response<>(true, "Upcoming reservations", resp);
     	}catch(SQLException e) {
     		System.err.println("upcoming reservations DB ERROR: " + e.getMessage());

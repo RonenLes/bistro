@@ -10,19 +10,21 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import responses.ManagerResponse;
 import responses.ReservationResponse;
 import responses.SeatingResponse;
+import requests.ReservationRequest.ReservationRequestType;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class SubscriberMainScreenController implements ClientControllerAware, ClientUIHandler {
 
@@ -31,9 +33,10 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
     @FXML private TableColumn<ReservationResponse, String> colStartTime;
     @FXML private TableColumn<ReservationResponse, String> colPartySize;
     @FXML private TableColumn<ReservationResponse, String> colConfirmationCode;
+    @FXML private TableColumn<ReservationResponse, Void> colEdit;
+    @FXML private TableColumn<ReservationResponse, Void> colCancel;
     @FXML private Label infoLabel;
-    @FXML private StackPane contentHost;
-    @FXML private VBox upcomingPane;
+   
 
     private final ObservableList<ReservationResponse> reservations = FXCollections.observableArrayList();
 
@@ -42,6 +45,7 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
     private Runnable onLogout;
     private boolean requested;
     private ReservationsViewController reservationsViewController;
+    private Consumer<ReservationResponse> onEditReservation;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
@@ -68,12 +72,66 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
                     formatInt(cd.getValue() == null ? 0 : cd.getValue().getConfirmationCode())
             ));
         }
+        if (colEdit != null) {
+            colEdit.setCellFactory(col -> new TableCell<>() {
+                private final Button editButton = buildActionButton("Edit");
+
+                @Override
+                protected void updateItem(Void item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setGraphic(empty ? null : editButton);
+                }
+
+                private Button buildActionButton(String label) {
+                    Button button = new Button(label);
+                    button.getStyleClass().add("ghost");
+                    button.setOnAction(event -> {
+                        ReservationResponse row = getRowReservation();
+                        if (row == null) return;
+                        handleEditReservation(row);
+                    });
+                    return button;
+                }
+
+                private ReservationResponse getRowReservation() {
+                    int index = getIndex();
+                    if (index < 0 || index >= getTableView().getItems().size()) return null;
+                    return getTableView().getItems().get(index);
+                }
+            });
+        }
+        if (colCancel != null) {
+            colCancel.setCellFactory(col -> new TableCell<>() {
+                private final Button cancelButton = buildCancelButton();
+
+                @Override
+                protected void updateItem(Void item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setGraphic(empty ? null : cancelButton);
+                }
+
+                private Button buildCancelButton() {
+                    Button button = new Button("Cancel");
+                    button.getStyleClass().add("ghost");
+                    button.setOnAction(event -> {
+                        ReservationResponse row = getRowReservation();
+                        if (row == null) return;
+                        handleCancelReservation(row);
+                    });
+                    return button;
+                }
+
+                private ReservationResponse getRowReservation() {
+                    int index = getIndex();
+                    if (index < 0 || index >= getTableView().getItems().size()) return null;
+                    return getTableView().getItems().get(index);
+                }
+            });
+        }
         if (reservationsTable != null) {
             reservationsTable.setItems(reservations);
         }
-        if (contentHost != null && upcomingPane != null) {
-            contentHost.getChildren().setAll(upcomingPane);
-        }
+        
         setInfo("Loading upcoming reservations...");
     }
 
@@ -91,23 +149,17 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
         this.onLogout = onLogout;
     }
 
+    public void setOnEditReservation(Consumer<ReservationResponse> onEditReservation) {
+        this.onEditReservation = onEditReservation;
+    }
+
     @FXML
     private void onRefresh() {
         requestUpcomingReservations();
     }
 
-    @FXML
-    private void onShowUpcoming() {
-        if (contentHost != null && upcomingPane != null) {
-            contentHost.getChildren().setAll(upcomingPane);
-        }
-        requestUpcomingReservations();
-    }
 
-    @FXML
-    private void onShowReservations() {
-        loadReservationsView();
-    }
+    
 
     @FXML
     private void onLogout() {
@@ -129,10 +181,10 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
     }
 
     private void loadReservationsView() {
-        if (contentHost == null) return;
+        
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/desktop_views/ReservationsView.fxml"));
-            contentHost.getChildren().setAll(loader.load());
+            loader.load();
             Object ctrl = loader.getController();
             if (ctrl instanceof ReservationsViewController rvc) {
                 reservationsViewController = rvc;
@@ -173,6 +225,9 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
     public void onReservationResponse(ReservationResponse response) {
         if (reservationsViewController != null) {
             reservationsViewController.handleServerResponse(response);
+        }
+        if (response != null) {
+            handleReservationResponse(response);
         }
     }
 
@@ -240,5 +295,58 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
 
     private void setInfo(String msg) {
         if (infoLabel != null) infoLabel.setText(msg == null ? "" : msg);
+    }
+    
+    private void handleEditReservation(ReservationResponse row) {
+        if (row == null) return;
+        if (onEditReservation != null) {
+            onEditReservation.accept(row);
+        } else {
+            setInfo("Edit screen unavailable.");
+        }
+    }
+
+    private void handleCancelReservation(ReservationResponse row) {
+        if (row == null) return;
+        if (clientController == null || !connected) {
+            setInfo("Not connected to server.");
+            return;
+        }
+        Integer confirmationCode = row.getConfirmationCode();
+        if (confirmationCode == null || confirmationCode <= 0) {
+            setInfo("Missing confirmation code.");
+            return;
+        }
+        setInfo("Cancelling reservation " + confirmationCode + "...");
+        clientController.requestNewReservation(
+                ReservationRequestType.CANCEL_RESERVATION,
+                null,
+                null,
+                0,
+                null,
+                null,
+                confirmationCode
+        );
+    }
+
+    public void handleReservationResponse(ReservationResponse response) {
+        if (response == null) return;
+        ReservationResponse.ReservationResponseType type = response.getType();
+        if (type == null) return;
+        switch (type) {
+            case CANCEL_RESERVATION -> {
+                Integer code = response.getConfirmationCode();
+                if (code != null) {
+                    reservations.removeIf(row -> code.equals(row.getConfirmationCode()));
+                }
+                setInfo("Reservation cancelled.");
+            }
+            case EDIT_RESERVATION -> {
+                setInfo("Reservation updated.");
+                requestUpcomingReservations();
+            }
+            default -> {
+            }
+        }
     }
 }

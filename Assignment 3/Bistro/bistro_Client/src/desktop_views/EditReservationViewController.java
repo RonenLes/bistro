@@ -158,9 +158,13 @@ public class EditReservationViewController implements ClientControllerAware {
             updateConfirmEnabled();
         });
     }
-
     @FXML
     private void onLoadReservation() {
+        loadReservationByCode(parseConfirmationCode());
+    }
+
+    
+    public void loadReservationByCode(Integer confirmationCode) {
         clearMessages();
 
         if (cancelledLock) {
@@ -175,12 +179,13 @@ public class EditReservationViewController implements ClientControllerAware {
             setStatus("Not connected to server.", true);
             return;
         }
+        if (confirmationCode == null) return;
 
-        Integer code = parseConfirmationCode();
-        if (code == null) return;
-
-        currentConfirmationCode = code;
+        currentConfirmationCode = confirmationCode;
         setStatus("Loading reservation...", false);
+        if (confirmationCodeField != null) {
+            confirmationCodeField.setText(String.valueOf(confirmationCode));
+        }
 
         clientController.requestNewReservation(
                 ReservationRequestType.SHOW_RESERVATION,

@@ -12,13 +12,13 @@
 
 <BorderPane prefHeight="800.0" prefWidth="1280.0" styleClass="surface"
             xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="desktop_views.SubscriberMainViewController">
+             fx:controller="subscriber_screen.SubscriberMainScreenController">
     <top>
         <HBox spacing="12.0" alignment="CENTER_LEFT" BorderPane.alignment="CENTER">
             <children>
                 <VBox spacing="2.0">
                     <children>
-                        <Label text="Subscriber Main Screen" styleClass="h2"/>
+                        <Label text="Subscriber Home" styleClass="h2"/>
                         <Label text="Your upcoming reservations" styleClass="muted"/>
                     </children>
                 </VBox>
@@ -39,7 +39,9 @@
                         <TableColumn fx:id="colDate" text="Date" prefWidth="220.0"/>
                         <TableColumn fx:id="colStartTime" text="Start Time" prefWidth="220.0"/>
                         <TableColumn fx:id="colPartySize" text="Party Size" prefWidth="180.0"/>
-                        <TableColumn fx:id="colConfirmationCode" text="Confirmation Code" prefWidth="220.0"/>
+                        <TableColumn fx:id="colConfirmationCode" text="Confirmation Code" prefWidth="200.0"/>
+                        <TableColumn fx:id="colEdit" text="Edit" prefWidth="120.0"/>
+                        <TableColumn fx:id="colCancel" text="Cancel" prefWidth="120.0"/>
                     </columns>
                 </TableView>
 

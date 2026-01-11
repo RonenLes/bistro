@@ -16,7 +16,7 @@ public interface ClientUIHandler {
     void onSeatingResponse(SeatingResponse response);
     void onUserHistoryResponse(java.util.List<responses.UserHistoryResponse> rows);
     void onUserHistoryError(String message);
-    void onUpcomingReservationsResponse(java.util.List<responses.UserHistoryResponse> rows);
+    void onUpcomingReservationsResponse(java.util.List<responses.ReservationResponse> rows);
     void onUpcomingReservationsError(String message);
     void onManagerResponse(ManagerResponse response);
     void onBillTotal(double baseTotal, boolean isCash);

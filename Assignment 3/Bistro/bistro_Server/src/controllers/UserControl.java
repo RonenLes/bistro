@@ -144,7 +144,7 @@ public class UserControl {
     			return new Response<>(false, "User not found", null);
     		}
     		List<UserHistoryResponse> upcoming = reservationDAO.fetchUpcomingReservationsByUser(conn, user.getUserID());
-    		LoginResponse resp = new LoginResponse(UserReponseCommand.UPCOMING_RESERVATION_REQUEST,upcoming);
+    		LoginResponse resp = new LoginResponse(UserReponseCommand.UPCOMING_RESERVATIONS_RESPONSE,upcoming);
     		return new Response<>(true, "Upcoming reservations", resp);
     	}catch(SQLException e) {
     		System.err.println("upcoming reservations DB ERROR: " + e.getMessage());

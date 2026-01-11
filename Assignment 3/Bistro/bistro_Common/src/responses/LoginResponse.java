@@ -13,6 +13,7 @@ public class LoginResponse {
 	private String phone;
 	
 	List<UserHistoryResponse> userHistory;
+	private List<ReservationResponse> upcomingReservations;
 	
 	private UserReponseCommand responseCommand;
 	
@@ -21,10 +22,15 @@ public class LoginResponse {
 		SHOW_DETAIL_RESPONSE,
 		HISTORY_RESPONSE,
 		EDIT_RESPONSE,
-		UPCOMING_RESERVATION_REQUEST
+		UPCOMING_RESERVATIONS_RESPONSE
 	}
 	
 	public LoginResponse() {}
+	
+	public LoginResponse(UserReponseCommand urc, List<ReservationResponse> upcomingReservations, boolean forUpcoming) {
+		this.responseCommand = urc;
+		this.upcomingReservations = upcomingReservations;
+	}
 	
 	public LoginResponse(UserReponseCommand urc,List<UserHistoryResponse> userHistory) {
 		this.responseCommand =urc;
@@ -75,7 +81,13 @@ public class LoginResponse {
 		return phone;
 	}
 
-	
+	public List<UserHistoryResponse> getUserHistory() {
+		return userHistory;
+	}
+
+	public List<ReservationResponse> getUpcomingReservations() {
+		return upcomingReservations;
+	}
 	
 	
 }

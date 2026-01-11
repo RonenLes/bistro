@@ -472,7 +472,7 @@ public class DesktopScreenController implements ClientUIHandler {
         });
     }
     @Override
-    public void onUpcomingReservationsResponse(java.util.List<UserHistoryResponse> rows) {
+    public void onUpcomingReservationsResponse(java.util.List<ReservationResponse> rows) {
         // subscriber main screen handles this; desktop does not display upcoming list
     }
 

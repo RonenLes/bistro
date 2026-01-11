@@ -98,10 +98,7 @@ public class AppNavigator {
     public void showDesktop(DesktopScreenController.Role role, String welcomeName) {
         runOnFx(() -> {
             try {
-            	if (role == DesktopScreenController.Role.SUBSCRIBER) {
-                    showSubscriberMain(welcomeName);
-                    return;
-                }
+            	
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/desktop_screen/DesktopScreen.fxml"));
                 Parent desktopRoot = loader.load();
 
@@ -130,33 +127,7 @@ public class AppNavigator {
         });
     }
     
-    public void showSubscriberMain(String welcomeName) {
-        runOnFx(() -> {
-            try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/subscriber_screen/SubscriberMainScreen.fxml"));
-                Parent subscriberRoot = loader.load();
-
-                subscriberController = loader.getController();
-                subscriberController.setClientController(clientController, connected);
-                subscriberController.setOnLogout(() -> {
-                    subscriberController = null;
-                    showLogin();
-                });
-
-                stage.getScene().setRoot(subscriberRoot);
-                stage.setTitle("Subscriber");
-                stage.sizeToScene();
-                stage.centerOnScreen();
-
-                clientController.setUIHandler(subscriberController);
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                navigationHandler.showError("Navigation Error", "Failed to open Subscriber screen.\n" + e.getMessage());
-            }
-        });
-    }
-
+   
     
     private void runOnFx(Runnable r) {
         if (javafx.application.Platform.isFxApplicationThread()) {
@@ -248,7 +219,7 @@ public class AppNavigator {
             showError("History", message);
         }
         @Override
-        public void onUpcomingReservationsResponse(java.util.List<UserHistoryResponse> rows) {
+        public void onUpcomingReservationsResponse(java.util.List<responses.ReservationResponse> rows) {
             // ignore here
         }
 
@@ -331,7 +302,7 @@ public class AppNavigator {
             // terminal does not handle history
         }
         @Override
-        public void onUpcomingReservationsResponse(java.util.List<UserHistoryResponse> rows) {
+        public void onUpcomingReservationsResponse(java.util.List<responses.ReservationResponse> rows) {
             // terminal does not handle upcoming reservations
         }
 

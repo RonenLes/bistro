@@ -4,17 +4,20 @@ import controllers.ClientController;
 import controllers.ClientControllerAware;
 import controllers.ClientUIHandler;
 import desktop_screen.DesktopScreenController;
+import desktop_views.ReservationsViewController;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import responses.ManagerResponse;
 import responses.ReservationResponse;
 import responses.SeatingResponse;
-import responses.UserHistoryResponse;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -23,19 +26,22 @@ import java.util.List;
 
 public class SubscriberMainScreenController implements ClientControllerAware, ClientUIHandler {
 
-    @FXML private TableView<UserHistoryResponse> reservationsTable;
-    @FXML private TableColumn<UserHistoryResponse, String> colDate;
-    @FXML private TableColumn<UserHistoryResponse, String> colStartTime;
-    @FXML private TableColumn<UserHistoryResponse, String> colPartySize;
-    @FXML private TableColumn<UserHistoryResponse, String> colConfirmationCode;
+    @FXML private TableView<ReservationResponse> reservationsTable;
+    @FXML private TableColumn<ReservationResponse, String> colDate;
+    @FXML private TableColumn<ReservationResponse, String> colStartTime;
+    @FXML private TableColumn<ReservationResponse, String> colPartySize;
+    @FXML private TableColumn<ReservationResponse, String> colConfirmationCode;
     @FXML private Label infoLabel;
+    @FXML private StackPane contentHost;
+    @FXML private VBox upcomingPane;
 
-    private final ObservableList<UserHistoryResponse> reservations = FXCollections.observableArrayList();
+    private final ObservableList<ReservationResponse> reservations = FXCollections.observableArrayList();
 
     private ClientController clientController;
     private boolean connected;
     private Runnable onLogout;
     private boolean requested;
+    private ReservationsViewController reservationsViewController;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
@@ -44,17 +50,17 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
     private void initialize() {
         if (colDate != null) {
             colDate.setCellValueFactory(cd -> new ReadOnlyStringWrapper(
-                    formatDate(cd.getValue() == null ? null : cd.getValue().getReservationDate())
+                    formatDate(cd.getValue() == null ? null : cd.getValue().getNewDate())
             ));
         }
         if (colStartTime != null) {
             colStartTime.setCellValueFactory(cd -> new ReadOnlyStringWrapper(
-                    formatTime(cd.getValue() == null ? null : cd.getValue().getCheckInTime())
+                    formatTime(cd.getValue() == null ? null : cd.getValue().getNewTime())
             ));
         }
         if (colPartySize != null) {
             colPartySize.setCellValueFactory(cd -> new ReadOnlyStringWrapper(
-                    formatInt(cd.getValue() == null ? 0 : cd.getValue().getPartySize())
+                    formatInt(cd.getValue() == null ? 0 : cd.getValue().getNewPartySize())
             ));
         }
         if (colConfirmationCode != null) {
@@ -64,6 +70,9 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
         }
         if (reservationsTable != null) {
             reservationsTable.setItems(reservations);
+        }
+        if (contentHost != null && upcomingPane != null) {
+            contentHost.getChildren().setAll(upcomingPane);
         }
         setInfo("Loading upcoming reservations...");
     }
@@ -88,6 +97,19 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
     }
 
     @FXML
+    private void onShowUpcoming() {
+        if (contentHost != null && upcomingPane != null) {
+            contentHost.getChildren().setAll(upcomingPane);
+        }
+        requestUpcomingReservations();
+    }
+
+    @FXML
+    private void onShowReservations() {
+        loadReservationsView();
+    }
+
+    @FXML
     private void onLogout() {
         if (clientController != null) {
             clientController.logout();
@@ -104,6 +126,22 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
         }
         setInfo("Loading upcoming reservations...");
         clientController.requestUpcomingReservations();
+    }
+
+    private void loadReservationsView() {
+        if (contentHost == null) return;
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/desktop_views/ReservationsView.fxml"));
+            contentHost.getChildren().setAll(loader.load());
+            Object ctrl = loader.getController();
+            if (ctrl instanceof ReservationsViewController rvc) {
+                reservationsViewController = rvc;
+                reservationsViewController.setClientController(clientController, connected);
+            }
+        } catch (Exception e) {
+            setInfo("Failed to load reservations screen.");
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -133,7 +171,9 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
 
     @Override
     public void onReservationResponse(ReservationResponse response) {
-        // not used here
+        if (reservationsViewController != null) {
+            reservationsViewController.handleServerResponse(response);
+        }
     }
 
     @Override
@@ -152,7 +192,7 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
     }
 
     @Override
-    public void onUpcomingReservationsResponse(List<UserHistoryResponse> rows) {
+    public void onUpcomingReservationsResponse(List<ReservationResponse> rows) {
         reservations.clear();
         if (rows != null) {
             reservations.addAll(rows);

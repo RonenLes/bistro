@@ -11,7 +11,7 @@ import responses.CurrentSeatingResponse;
 public class SeatingDAO {
     // INSERT
     private static final String INSERT_SEATING =
-            "INSERT INTO seating (tableID, reservationID, checkInTime, checkOutTime) " +
+            "INSERT INTO seating (tableID, reservationID, checkInTime, checkOutTime,billSent) " +
             "VALUES (?, ?, NOW(), NULL,0)";
     private static final String INSERT_HELD_SEATING =
     	    "INSERT INTO seating (tableID, reservationID, checkInTime, checkOutTime) " +

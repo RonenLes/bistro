@@ -158,10 +158,10 @@ public class BillingControl {
 	private boolean sendConfirmationToCorrectContact(Connection conn, Reservation r) throws SQLException {
 		if(r.getGuestContact()==null ||r.getGuestContact().isBlank()) {
 			User user= userDAO.getUserByUserID(conn, r.getUserID());
-			return notificationControl.sendBillConfirmationToUser(user,"Sending confrifmation to user ...");
+			return notificationControl.sendBillConfirmationToUser(user,"Sending bill to user ...");
 		}
 		else {
-			return notificationControl.sendBillConfirmationToGuest(r.getGuestContact(),"Sending Confirmation to guest...");
+			return notificationControl.sendBillConfirmationToGuest(r.getGuestContact(),"Sending bill to guest...");
 		}
 	}
 
@@ -208,13 +208,13 @@ public class BillingControl {
                 boolean sentOk = sendBillToCorrectContact(conn, guestContact, userId, billMessage,bill);
                 if (!sentOk) {
                     seatingDAO.updateBillSent(conn, seatingId,0); // 2->0 so it can retry
-                    conn.commit();
+                    conn.rollback();
                     return false;
                 }
                 boolean marked = seatingDAO.updateBillSent(conn, seatingId,1);
                 if (!marked) {
                     seatingDAO.updateBillSent(conn, seatingId,0);
-                    conn.commit();
+                    conn.rollback();
                     return false;
                 }
                 conn.commit();

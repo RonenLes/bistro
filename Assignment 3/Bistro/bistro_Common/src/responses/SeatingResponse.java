@@ -20,13 +20,13 @@ public class SeatingResponse {
 		this.checkInTime = checkInTime;
 		this.type=type;
 	}
-	public int getTableNumberl() {
+	public Integer getTableNumberl() {
 		return tableNumberl;
 	}
 	public void setTableNumberl(Integer tableNumberl) {
 		this.tableNumberl = tableNumberl;
 	}
-	public int getTableCapacity() {
+	public Integer getTableCapacity() {
 		return tableCapacity;
 	}
 	public void setTableCapacity(Integer tableCapacity) {

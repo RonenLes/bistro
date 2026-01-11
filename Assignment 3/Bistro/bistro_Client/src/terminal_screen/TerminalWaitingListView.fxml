@@ -25,7 +25,7 @@
                     <Label text="Take a seat">
                         <font><Font size="30.0" /></font>
                     </Label>
-                    <Label text="We will notify you when a table is ready."
+                    <Label text="We will try to find you a table"
                            wrapText="true" maxWidth="640.0" alignment="CENTER" textAlignment="CENTER"/>
                 </children>
             </VBox>
@@ -34,11 +34,11 @@
 
             <VBox alignment="CENTER" spacing="12.0" maxWidth="640.0">
                 <children>
-                    <Label text="Name" />
-                    <TextField fx:id="nameField" prefHeight="56.0" maxWidth="520.0" promptText="Full name" />
+                     <Label text="Subscriber ID (optional)" />
+                    <TextField fx:id="userIdField" prefHeight="56.0" maxWidth="520.0" promptText="Enter your user ID" />
 
-                    <Label text="Phone" />
-                    <TextField fx:id="phoneField" prefHeight="56.0" maxWidth="520.0" promptText="e.g. 052-1234567" />
+                    <Label text="Guest contact (optional)" />
+                    <TextField fx:id="guestContactField" prefHeight="56.0" maxWidth="520.0" promptText="Phone or email for guests" />
 
                     <Label text="Party size" />
                     <Spinner fx:id="partySizeField" prefHeight="56.0" maxWidth="220.0" />

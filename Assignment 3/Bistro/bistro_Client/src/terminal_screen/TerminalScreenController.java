@@ -115,6 +115,7 @@ public class TerminalScreenController {
             }else if (currentContentController instanceof terminal_screen.TerminalWaitingListController waitingListController) {
                 waitingListController.handleSeatingResponse(response);
             }
+            returnToMain();
             
         });
     }
@@ -131,6 +132,7 @@ public class TerminalScreenController {
             if (currentContentController instanceof TerminalPayBillController payBillCtrl) {
                 payBillCtrl.onBillPaid();
             }
+            returnToMain();
         });
     }
 
@@ -165,6 +167,12 @@ public class TerminalScreenController {
 
     private boolean isOnline() {
         return connected && clientController != null;
+    }
+    
+    private void returnToMain() {
+        if (onBackToMain != null) {
+            onBackToMain.run();
+        }
     }
 
     private void reinjectActiveController() {

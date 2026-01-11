@@ -10,8 +10,8 @@ import javafx.scene.control.TextField;
 
 public class TerminalWaitingListController implements ClientControllerAware {
 
-    @FXML private TextField nameField;
-    @FXML private TextField phoneField;
+	@FXML private TextField userIdField;
+    @FXML private TextField guestContactField;
     @FXML private Spinner<Integer> partySizeField; // spinner
     @FXML private Label statusLabel;
 
@@ -37,11 +37,13 @@ public class TerminalWaitingListController implements ClientControllerAware {
 
     @FXML
     private void onJoin() {
-        String name = nameField == null ? "" : nameField.getText().trim();
-        String phone = phoneField == null ? "" : phoneField.getText().trim();
+    	String userId = userIdField == null ? "" : userIdField.getText().trim();
+        String guestContact = guestContactField == null ? "" : guestContactField.getText().trim();
 
-        if (name.isEmpty()) { setStatus("Enter name."); return; }
-        if (phone.isEmpty()) { setStatus("Enter phone."); return; }
+        if (userId.isEmpty() && guestContact.isEmpty()) {
+            setStatus("Enter a subscriber ID or guest contact.");
+            return;
+        }
 
         Integer sizeObj = (partySizeField == null) ? null : partySizeField.getValue();
         int size = (sizeObj == null) ? -1 : sizeObj;
@@ -49,19 +51,20 @@ public class TerminalWaitingListController implements ClientControllerAware {
         if (size < 1 || size > 20) { setStatus("Party size must be 1-20."); return; }
 
         if (!connected || clientController == null) {
-            setStatus("Demo: added " + name + " (party of " + size + ") to waiting list.");
-            return;
+        	String contactLabel = userId.isEmpty() ? guestContact : userId;
+            setStatus("Demo: added " + contactLabel + " (party of " + size + ") to waiting list.");
         }
 
         // Later:
         // clientController.sendRequest(new JoinWaitingListRequest(name, phone, size));
-        setStatus("Sent waiting list request (placeholder).");
+        clientController.requestWalkInSeating(userId, guestContact, size);
+        setStatus("Requesting a table...");
     }
 
     @FXML
     private void onClear() {
-        if (nameField != null) nameField.clear();
-        if (phoneField != null) phoneField.clear();
+    	if (userIdField != null) userIdField.clear();
+        if (guestContactField != null) guestContactField.clear();
         if (partySizeField != null) partySizeField.getValueFactory().setValue(2);
         setStatus("");
     }

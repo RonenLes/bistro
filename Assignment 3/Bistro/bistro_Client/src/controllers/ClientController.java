@@ -277,30 +277,34 @@ public class ClientController {
             e.printStackTrace();
         }
     }
-    public void requestWalkInSeating(String guestContact, int partySize) {
+    public void requestWalkInSeating(String userId, String guestContact, int partySize) {
         if (!connected) {
             safeUiWarning("Take a seat", "Not connected to server.");
             return;
         }
 
+        String trimmedUserId = userId == null ? "" : userId.trim();
+        String trimmedGuestContact = guestContact == null ? "" : guestContact.trim();
+
+        if (trimmedUserId.isEmpty() && trimmedGuestContact.isEmpty()) {
+            safeUiWarning("Take a seat", "Subscriber ID or guest contact is required.");
+            return;
+        }
+
         ReservationRequest reservationRequest = new ReservationRequest(
                 null,
-                null,
-                null,
+                LocalDate.now(),
+                LocalTime.now(),
                 partySize,
-                null,
-                guestContact,
+                trimmedUserId.isEmpty() ? null : trimmedUserId,
+                trimmedGuestContact.isEmpty() ? null : trimmedGuestContact,
                 0
         );
 
-        SeatingRequest payload = new SeatingRequest(
-                SeatingRequestType.BY_RESERVATION,
-                0,
-                reservationRequest
-        );
+        SeatingRequest payload = new SeatingRequest(SeatingRequestType.BY_RESERVATION,0,reservationRequest);
 
-        Request<SeatingRequest> req =
-                new Request<>(Request.Command.SEATING_REQUEST, payload);
+        Request<SeatingRequest> req =new Request<>(Request.Command.SEATING_REQUEST, payload);
+                
 
         sendRequest(req);
     }

@@ -71,7 +71,7 @@ public class ReservationDAO {
 	        "GROUP BY slots.reservationDate, slots.startTime " +
 	        "HAVING booked > ? " +
 	        "ORDER BY slots.reservationDate ASC, slots.startTime ASC";
-
+	private final String SELECT_CODE_BY_CONTACT ="SELECT confirmationCode FROM reservation WHERE guestContact = ?";
 	private static final String SELECT_RESERVATIONS_DUE_FOR_NO_SHOW_PARAM ="SELECT reservationID FROM reservation WHERE reservationDate = ? AND status IN ('NEW','CONFIRMED') AND startTime <= ?";
 	private static final String SELECT_reservationByConfirmationCode = "SELECT * FROM `reservation` WHERE confirmationCode = ?";
 	private static final String SELECT_reservationByReservationId = "SELECT * FROM `reservation` WHERE reservationID = ?";
@@ -678,6 +678,15 @@ public class ReservationDAO {
 	}
 
 
+	
+	public int fetchConfirmationCodeByGuestContact(Connection conn,String contact)throws SQLException{
+		try(PreparedStatement ps = conn.prepareStatement(SELECT_CODE_BY_CONTACT)){
+			ps.setString(1, contact);
+			ResultSet rs = ps.executeQuery();
+			if(rs.next()) return rs.getInt("confirmationCode");
+			return -1;
+		}
+	}
 	}
 	
 	

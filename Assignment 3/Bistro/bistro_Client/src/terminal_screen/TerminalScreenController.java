@@ -115,6 +115,29 @@ public class TerminalScreenController {
             }
         });
     }
+    public void onBillTotal(double baseTotal) {
+        javafx.application.Platform.runLater(() -> {
+            if (currentContentController instanceof TerminalPayBillController payBillCtrl) {
+                payBillCtrl.onBillTotalLoaded(baseTotal);
+            }
+        });
+    }
+
+    public void onBillPaid() {
+        javafx.application.Platform.runLater(() -> {
+            if (currentContentController instanceof TerminalPayBillController payBillCtrl) {
+                payBillCtrl.onBillPaid();
+            }
+        });
+    }
+
+    public void onBillError(String message) {
+        javafx.application.Platform.runLater(() -> {
+            if (currentContentController instanceof TerminalPayBillController payBillCtrl) {
+                payBillCtrl.onBillingError(message);
+            }
+        });
+    }
 
     private void show(View view) {
         if (!isOnline()) {

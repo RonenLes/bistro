@@ -236,19 +236,19 @@ public class AppNavigator {
 
 		@Override
 		public void onBillTotal(double baseTotal, boolean isCash) {
-			// TODO Auto-generated method stub
+			terminalController.onBillTotal(baseTotal);
 			
 		}
 
 		@Override
 		public void onBillPaid(Integer tableNumber) {
-			// TODO Auto-generated method stub
+			  terminalController.onBillPaid();
 			
 		}
 
 		@Override
 		public void onBillError(String message) {
-			// TODO Auto-generated method stub
+			terminalController.onBillError(message);
 			
 		}
     }

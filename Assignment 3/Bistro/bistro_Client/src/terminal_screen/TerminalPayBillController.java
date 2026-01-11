@@ -7,34 +7,42 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
+import javafx.scene.control.Button;
+import javafx.scene.control.ListView;
+import requests.BillRequest.BillRequestType;
 
 public class TerminalPayBillController implements ClientControllerAware {
 
-    @FXML private TextField reservationNumberField;
-    @FXML private TextArea billArea;
+	@FXML private TextField reservationOrTableField;
+    @FXML private ListView<String> billItemsList;
+    @FXML private Button fetchBillBtn;
+    @FXML private Button payBtn;
     @FXML private Label statusLabel;
 
     private ClientController clientController;
     private boolean connected;
 
     private boolean billLoaded = false;
-    private double demoTotal = 0;
+    private Double lastBaseTotal;
+    private Integer lastConfirmationCode;
 
     @FXML
     private void initialize() {
-        if (reservationNumberField != null) {
-            reservationNumberField.setTextFormatter(new TextFormatter<String>(change -> {
+    	if (reservationOrTableField != null) {
+            reservationOrTableField.setTextFormatter(new TextFormatter<String>(change -> { 
                 String newText = change.getControlNewText();
                 if (!newText.matches("\\d*")) return null;
                 if (newText.length() > 10) return null;
                 return change;
             }));
         }
-        if (billArea != null) {
-            billArea.setEditable(false);
-            billArea.setText("Bill will appear here...");
+    	if (billItemsList != null) {
+            billItemsList.getItems().setAll("Bill will appear here...");
         }
-        setStatus("");
+        if (payBtn != null) {
+            payBtn.setDisable(true);
+        }
+        setStatus("",false);
     }
 
     @Override
@@ -45,61 +53,124 @@ public class TerminalPayBillController implements ClientControllerAware {
 
     @FXML
     private void onFetchBill() {
-        String txt = reservationNumberField == null ? "" : reservationNumberField.getText().trim();
-        if (txt.isEmpty()) { setStatus("Enter reservation number."); return; }
-
-        int reservationNumber = Integer.parseInt(txt);
-
-        // Placeholder bill
-        demoTotal = 142.50;
-        billLoaded = true;
-
-        if (billArea != null) {
-            billArea.setText(
-                "Reservation: " + reservationNumber + "\n" +
-                "-------------------------\n" +
-                "2x Pasta           78.00\n" +
-                "1x Salad           29.50\n" +
-                "1x Cola            12.00\n" +
-                "Service            23.00\n" +
-                "-------------------------\n" +
-                "TOTAL:            " + demoTotal + "\n"
-            );
-        }
-        //END PLACEHOLDER
-
+    	Integer code = parseConfirmationCode();
+        if (code == null) return;
         if (!connected || clientController == null) {
-            setStatus("Demo: bill loaded (offline).");
-            return;
+        	setStatus("Terminal is offline.", true);
+        	return;
         }
+        billLoaded = false;
+        lastBaseTotal = null;
+        lastConfirmationCode = code;
+        if (payBtn != null) {
+            payBtn.setDisable(true);
+        }
+        if (billItemsList != null) {
+            billItemsList.getItems().setAll("Fetching bill...");
+        }
+        setStatus("Fetching bill total...", false);
 
-        // Later:
-        // clientController.sendRequest(new FetchBillRequest(reservationNumber));
-        setStatus("Sent fetch bill request (placeholder).");
+        clientController.requestBillAction( BillRequestType.REQUEST_TO_SEE_BILL,code,true );
+                                                     
+        
     }
 
     @FXML
     private void onPay() {
-        if (!billLoaded) { setStatus("Load the bill first."); return; }
+    	Integer code = lastConfirmationCode != null ? lastConfirmationCode : parseConfirmationCode();
+        if (code == null) return;
+        if (!billLoaded) {
+            setStatus("Load the bill first.", true);
+            return;
+        }
+        if (!connected || clientController == null) {
+            setStatus("Terminal is offline.", true);
+            return;
+        }
 
-        billLoaded = false;
-        if (billArea != null) billArea.setText("Payment completed. תודה! ✅");
-        setStatus("Demo: payment succeeded (total: " + demoTotal + ").");
-
-        // Later:
-        // clientController.sendRequest(new PayBillRequest(...));
+        if (payBtn != null)  payBtn.setDisable(true);                  
+        setStatus("Processing payment...", false);
+        
+        clientController.requestBillAction(BillRequestType.PAY_BILL,code, true);                                                      
     }
 
     @FXML
     private void onClear() {
-        if (reservationNumberField != null) reservationNumberField.clear();
-        if (billArea != null) billArea.setText("Bill will appear here...");
+    	if (reservationOrTableField != null) reservationOrTableField.clear();
+        if (billItemsList != null) billItemsList.getItems().setAll("Bill will appear here...");
         billLoaded = false;
-        demoTotal = 0;
-        setStatus("");
+        lastBaseTotal = null;
+        lastConfirmationCode = null;
+        if (payBtn != null) {
+            payBtn.setDisable(true);
+        }
+        setStatus("",false);
     }
 
-    private void setStatus(String msg) {
-        if (statusLabel != null) statusLabel.setText(msg == null ? "" : msg);
+    public void onBillTotalLoaded(double baseTotal) {
+        lastBaseTotal = baseTotal;
+        billLoaded = true;
+        if (billItemsList != null) {
+            billItemsList.getItems().setAll("Total due: " + formatMoney(baseTotal));
+        }
+        if (payBtn != null) {
+            payBtn.setDisable(false);
+        }
+        setStatus("Bill ready.", false);
+    }
+
+    public void onBillPaid() {
+        billLoaded = false;
+        lastBaseTotal = null;
+        if (billItemsList != null) {
+            billItemsList.getItems().setAll("Payment completed. תודה! ✅");
+        }
+        if (payBtn != null) {
+            payBtn.setDisable(true);
+        }
+        setStatus("Payment completed.", false);
+    }
+
+    public void onBillingError(String message) {
+        billLoaded = false;
+        if (payBtn != null) {
+            payBtn.setDisable(true);
+        }
+        setStatus(message == null ? "Billing failed." : message, true);
+    }
+
+    private Integer parseConfirmationCode() {
+        String txt = reservationOrTableField == null ? "" : reservationOrTableField.getText().trim();
+        if (txt.isEmpty()) {
+            setStatus("Enter confirmation code.", true);
+            return null;
+        }
+        if (!txt.matches("\\d{1,10}")) {
+            setStatus("Confirmation code must be numeric.", true);
+            return null;
+        }
+        try {
+            int code = Integer.parseInt(txt);
+            if (code <= 0) {
+                setStatus("Confirmation code must be positive.", true);
+                return null;
+            }
+            return code;
+        } catch (NumberFormatException ex) {
+            setStatus("Confirmation code must be numeric.", true);
+            return null;
+        }
+    }
+
+    private String formatMoney(double value) {
+        return String.format("%.2f", value);
+    }
+
+    private void setStatus(String msg, boolean error) {
+        if (statusLabel == null) return;
+        statusLabel.setText(msg == null ? "" : msg);
+        statusLabel.setStyle(error
+                ? "-fx-text-fill: #EF4444; -fx-font-weight: 800;"
+                : "-fx-text-fill: #2E9B5F; -fx-font-weight: 800;");
     }
 }

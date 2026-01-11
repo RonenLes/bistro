@@ -217,6 +217,10 @@ public class BistroEchoServer extends AbstractServer {
 	                	loggedUsers.get(client).setUsername(guestReq.getContact());
 	                	response = new Response<>(true,"Welcome to McDickies",null);
 	                }
+	                case LOST_CODE-> {
+	                	String contact = (String)request.getData();
+	                	response = reservationControl.retrieveConfirmationCode(contact);
+	                }
 	                	                
 	                default -> response = new Response<>(false, "Unknown command", null);
 	            }

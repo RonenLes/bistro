@@ -478,7 +478,7 @@ public class ReservationControl {
         // Controller owns the connection -> pass conn
         return tableDAO.getMinimalTableSize(conn, partySize);
     }
-
+    /*
     /**
      * Notification AFTER commit.
      * Here we send based on userID/guestContact fields (your design).
@@ -505,6 +505,16 @@ public class ReservationControl {
         }
     }
     
+    
+    public Response<Integer> retrieveConfirmationCode(String contact) {
+    	try(Connection conn = DBManager.getConnection()){
+    		int code= reservationDAO.fetchConfirmationCodeByGuestContact(conn, contact);
+    		sendConfirmationNotification(null, contact, code);
+    		return new Response<>(true,"here is your code",code);
+    	}catch(Exception e) {
+    		return new Response<>(false, "Failed to fetch code by contact", null);
+    	}
+    }
     
     /**
      * helper method to round up time for searching available times when doing a reservation

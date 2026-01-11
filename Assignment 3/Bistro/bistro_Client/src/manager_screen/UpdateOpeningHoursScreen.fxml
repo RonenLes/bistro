@@ -18,7 +18,7 @@
                 <VBox spacing="2.0">
                     <children>
                         <Label styleClass="h2" text="Update Opening Hours" />
-                        <Label styleClass="muted" text="Select a date and edit opening hours (placeholder UI)" />
+                        <Label styleClass="muted" text="Select a date and edit opening hours" />
                     </children>
                 </VBox>
                 <Region HBox.hgrow="ALWAYS" />

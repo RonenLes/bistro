@@ -378,7 +378,7 @@ public class ClientController {
         }
 
         // Wrap the request in the generic Request envelope
-        BillRequest payload = new BillRequest(type, confirmationCode, isCash);
+        BillRequest payload = new BillRequest(type,confirmationCode);
         Request<BillRequest> req = new Request<>(Request.Command.BILLING_REQUEST, payload);
         
         sendRequest(req);

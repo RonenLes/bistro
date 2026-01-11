@@ -22,7 +22,7 @@ public class BillDAO {
 	        "WHERE seatingID = ? AND paidAt IS NULL";
 	
 
-	public int insertNewBill(Connection conn,int seatingID,double totalPrice,LocalDateTime createdAt,LocalDateTime paidAt) throws SQLException {
+	public int insertNewBill(Connection conn,int seatingID,double totalPrice,LocalDateTime createdAt) throws SQLException {
 		if (conn == null) throw new IllegalArgumentException("conn is null");
 		try (PreparedStatement pstmt =conn.prepareStatement(INSERT_NEW_BILL, Statement.RETURN_GENERATED_KEYS)) {
 
@@ -30,7 +30,7 @@ public class BillDAO {
 			pstmt.setDouble(2, totalPrice);
 			pstmt.setString(3, "OPEN");
 			pstmt.setTimestamp(4, Timestamp.valueOf(createdAt));
-			pstmt.setTimestamp(5, Timestamp.valueOf(paidAt)); 
+			pstmt.setTimestamp(5, null); 
 
 			int isInserted = pstmt.executeUpdate();
 			if (isInserted != 1) return -1;

@@ -222,11 +222,10 @@ public class SeatingControl {
             if (validationMsg!=null) {
             	
             	return handleValidationFailure(conn, r, confirmationCode, validationMsg);
-            }
-                                         
+            }                      
             Table table = tableDAO.findAvailableTable(conn, r.getAllocatedCapacity());
             if (table != null) {
-            	
+            	System.out.println("Found table,seating the customer now.");
             	return seatNow(conn, r, confirmationCode, table);           	
             }
             
@@ -390,9 +389,8 @@ public class SeatingControl {
     public Response<SeatingResponse> handleValidationFailure(
             Connection conn, Reservation r, int confirmationCode, String msg) throws SQLException{
     	if ("EARLY".equals(msg) && r != null && !"WAITING".equalsIgnoreCase(r.getStatus())) {
-            return moveToWaiting(conn, r, confirmationCode, 1, "Arrived early - added to waiting list");
+            return moveToWaiting(conn, r.getReservationID(), confirmationCode, 1, "Arrived early - added to waiting list");
         }
-    	
     	rollback(conn);
     	return new Response<>(false,msg,null);
     }
@@ -413,8 +411,7 @@ public class SeatingControl {
             rollback(conn);
             return new Response<>(false, "Still no available table", null);
         }
-
-        return moveToWaiting(conn, r, confirmationCode,1, "No table right now - added to waiting list");
+        return moveToWaiting(conn, r.getReservationID(), confirmationCode,1, "No table right now - added to waiting list");
     }
     
     /**
@@ -444,8 +441,7 @@ public class SeatingControl {
         }
 
         conn.commit();
-        SeatingResponse seatingResponse =
-                new SeatingResponse(table.getTableNumber(), table.getCapacity(), LocalTime.now(),SeatingResponseType.CUSTOMER_CHECKED_IN);
+        SeatingResponse seatingResponse =new SeatingResponse(table.getTableNumber(), table.getCapacity(), LocalTime.now(),SeatingResponseType.CUSTOMER_CHECKED_IN);
 
         return new Response<>(true,
                 "Bon apetite your table number: " + table.getTableNumber(),
@@ -465,48 +461,7 @@ public class SeatingControl {
      * @return
      * @throws SQLException
      */
-    private Response<SeatingResponse> moveToWaiting(
-            Connection conn, Reservation r, int confirmationCode, int priority, String msg) throws SQLException {
-
-        if (r == null) {
-            rollback(conn);
-            return new Response<>(false, "Reservation not found", null);
-        }
-
-        boolean waitInserted = waitingListDAO.insertNewWait(conn, r.getReservationID(), "WAITING", priority);
-        if (!waitInserted) {
-            rollback(conn);
-            return new Response<>(false, "Failed to add to waiting list", null);
-        }
-
-        boolean statusUpdated = reservationDAO.updateStatus(conn, confirmationCode, "WAITING");
-        if (!statusUpdated) {
-            rollback(conn);
-            return new Response<>(false, "Failed to update reservation status", null);
-        }
-        if(r.getGuestContact()==null ||r.getGuestContact().isBlank()) {
-        	User user=userDAO.getUserByUserID(conn, r.getUserID());
-        	if(user==null) {
-        		rollback(conn);
-                return new Response<>(false, "failed to get user details", null);
-        	}
-        	boolean sendToUser=notificationControl.sendNotificationEnteringWaitingList(user.getEmail(),user.getPhone(),"Hello,you have entered the waiting list! your confirmation code is: "+confirmationCode);
-        	if(!sendToUser) {
-        		rollback(conn);
-                return new Response<>(false, "failed to send user details", null);
-        	}
-        }
-        else {
-        	boolean sendToGuest=notificationControl.sendNotificationEnteringWaitingList(r.getGuestContact(), "Hello,you have entered the waiting list! your confirmation code is: "+confirmationCode);
-        	if(!sendToGuest) {
-        		rollback(conn);
-                return new Response<>(false, "failed to send user details", null);
-        	}
-        }
-        conn.commit();
-        SeatingResponse seatingResponse=new SeatingResponse(null,null,null,SeatingResponseType.CUSTOMER_IN_WAITINGLIST);
-        return new Response<>(true, msg, seatingResponse);
-    }
+    
     
     private Response<SeatingResponse> moveToWaiting(
             Connection conn, int reservationId, int confirmationCode, int priority, String msg) throws SQLException {

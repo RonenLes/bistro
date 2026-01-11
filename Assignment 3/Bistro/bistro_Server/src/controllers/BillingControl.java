@@ -68,11 +68,11 @@ public class BillingControl {
 		        Double finalBill;
 		        int billId;
 		        if(r.getGuestContact()!=null && !r.getGuestContact().isBlank()) {
-		        	 billId = billDAO.insertNewBill(conn, seatingId,bill, LocalDateTime.now(), null);
+		        	 billId = billDAO.insertNewBill(conn, seatingId,bill, LocalDateTime.now());
 		        	 finalBill=bill;
 		        }
 		        else {
-		        	billId = billDAO.insertNewBill(conn, seatingId,bill*0.9, LocalDateTime.now(), null);
+		        	billId = billDAO.insertNewBill(conn, seatingId,bill*0.9, LocalDateTime.now());
 		        	finalBill=0.9*bill;
 		        }
 		        if (billId == -1) {
@@ -125,6 +125,11 @@ public class BillingControl {
 	                conn.rollback();
 	                return failResponse("failed to update Bill status in the DB");
 	            }
+	            boolean hasStatusBeenUpdatedToRes=reservationDAO.updateStatus(conn, req.getConfirmationCode(),"COMPLETED");
+		        if(!hasStatusBeenUpdatedToRes) {
+		        	conn.rollback();
+		            return failResponse("Failed to update reservation status");
+		        }
 	            boolean notificationSent = sendConfirmationToCorrectContact(conn,r);
 	            if(!notificationSent) {
 	            	conn.rollback();
@@ -158,10 +163,10 @@ public class BillingControl {
 	private boolean sendConfirmationToCorrectContact(Connection conn, Reservation r) throws SQLException {
 		if(r.getGuestContact()==null ||r.getGuestContact().isBlank()) {
 			User user= userDAO.getUserByUserID(conn, r.getUserID());
-			return notificationControl.sendBillConfirmationToUser(user,"Sending confrifmation to user ...");
+			return notificationControl.sendBillConfirmationToUser(user,"Sending bill to user ...");
 		}
 		else {
-			return notificationControl.sendBillConfirmationToGuest(r.getGuestContact(),"Sending Confirmation to guest...");
+			return notificationControl.sendBillConfirmationToGuest(r.getGuestContact(),"Sending bill to guest...");
 		}
 	}
 
@@ -208,13 +213,13 @@ public class BillingControl {
                 boolean sentOk = sendBillToCorrectContact(conn, guestContact, userId, billMessage,bill);
                 if (!sentOk) {
                     seatingDAO.updateBillSent(conn, seatingId,0); // 2->0 so it can retry
-                    conn.commit();
+                    conn.rollback();
                     return false;
                 }
                 boolean marked = seatingDAO.updateBillSent(conn, seatingId,1);
                 if (!marked) {
                     seatingDAO.updateBillSent(conn, seatingId,0);
-                    conn.commit();
+                    conn.rollback();
                     return false;
                 }
                 conn.commit();

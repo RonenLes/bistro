@@ -175,7 +175,10 @@ public class ReservationDAO {
      */
 	public boolean updateReservation(Connection conn,LocalDate reservationDate,String status,int partySize,int confirmationCode,
 	        String guestContact,String userID, LocalTime startTime,int allocatedCapacity) throws SQLException {
-	        	       
+		if (reservationDate == null) {
+            System.err.println("DB error: reservationDate is null for confirmationCode=" + confirmationCode);
+            return false;
+        }	       
 	    try (
 	         PreparedStatement ps = conn.prepareStatement(UPDATE_RESERVATION_BY_CONFIRMATION_CODE)) {
 
@@ -315,14 +318,7 @@ public class ReservationDAO {
 	}
 
 	
-	// 1) Convenience wrapper (NO conn)
-	public int insertNewReservation(LocalDate reservationDate,int numberOfGuests,int allocatedCapacity,int confirmationCode,	                                	                                	                                
-	                                String userID, LocalTime startTime,String status,String guest) throws SQLException {	                               	                                	                                
-	    try (Connection conn = DBManager.getConnection()) {
-	        return insertNewReservation(conn, reservationDate, numberOfGuests, allocatedCapacity,
-	                                    confirmationCode, userID, startTime, status, guest);
-	    }
-	}
+	
 
 	
 	/**
@@ -338,7 +334,10 @@ public class ReservationDAO {
 	 */
 	public int insertNewReservation(Connection conn,LocalDate reservationDate,int numberOfGuests,int allocatedCapacity,
 			int confirmationCode,String userID,LocalTime startTime,String status,String guest) throws SQLException {
-
+		if (reservationDate == null) {
+            System.err.println("DB error: reservationDate is null for confirmationCode=" + confirmationCode);
+            return -1;
+        }
 	    java.sql.Date sqlReservationDate = java.sql.Date.valueOf(reservationDate);
 	    if (conn == null) throw new IllegalArgumentException("conn is null");
 	    try (PreparedStatement pstmt = conn.prepareStatement(INSERT_newReservation,Statement.RETURN_GENERATED_KEYS)) {

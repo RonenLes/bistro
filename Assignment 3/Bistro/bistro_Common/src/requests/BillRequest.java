@@ -4,7 +4,7 @@ public class BillRequest {
 	
 	private BillRequestType type;
 	private int confirmationCode;
-	private boolean isCashPayment;
+	
 	
 	public enum BillRequestType{
 		REQUEST_TO_SEE_BILL,
@@ -18,11 +18,10 @@ public class BillRequest {
 		this.type=type;
 	}
 	
-	public BillRequest(BillRequestType type, int confirmationCode, boolean isCashPayment) {
-		super();
+	public BillRequest(BillRequestType type, int confirmationCode) {
+
 		this.type = type;
-		this.confirmationCode = confirmationCode;
-		this.isCashPayment = isCashPayment;
+		this.confirmationCode = confirmationCode;	
 	}
 	
 	public int getConfirmationCode() {
@@ -31,8 +30,6 @@ public class BillRequest {
 	public BillRequestType getType() {
 		return this.type;
 	}
-	public boolean getIsCashPayment() {
-		return this.isCashPayment;
-	}
+	
 
 }

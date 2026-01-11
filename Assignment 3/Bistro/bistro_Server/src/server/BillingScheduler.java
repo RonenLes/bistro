@@ -143,7 +143,7 @@ public class BillingScheduler {
                 }
                 ok=reportControl.createMonthlyReservationWaitingListReportIfMissing();
                 if (!ok) {
-                    System.err.println("Monthly visitor report creation failed");
+                    System.err.println("Monthly reservation report creation failed");
                 } else {
                     System.out.println("Monthly visitor report created/exists (for previous month)");
                 }

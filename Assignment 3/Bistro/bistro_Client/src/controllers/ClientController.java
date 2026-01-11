@@ -261,6 +261,10 @@ public class ClientController {
                     uiPayload(managerResponse);
                 }
             }
+            else if (responseData instanceof Integer confirmationCode) {
+                String message = "Confirmation code: " + confirmationCode;
+                safeUiInfo("Lost code", message);
+            }
             // billing payloads are handled using reflection to avoid tight coupling
             if (responseData instanceof BillResponse billResponse) {
                 handleBillResponse(billResponse);
@@ -272,6 +276,48 @@ public class ClientController {
             safeUiError("Client Error", "Error handling server response:\n" + e.getMessage());
             e.printStackTrace();
         }
+    }
+    public void requestWalkInSeating(String guestContact, int partySize) {
+        if (!connected) {
+            safeUiWarning("Take a seat", "Not connected to server.");
+            return;
+        }
+
+        ReservationRequest reservationRequest = new ReservationRequest(
+                null,
+                null,
+                null,
+                partySize,
+                null,
+                guestContact,
+                0
+        );
+
+        SeatingRequest payload = new SeatingRequest(
+                SeatingRequestType.BY_RESERVATION,
+                0,
+                reservationRequest
+        );
+
+        Request<SeatingRequest> req =
+                new Request<>(Request.Command.SEATING_REQUEST, payload);
+
+        sendRequest(req);
+    }
+
+    public void requestLostCode(String contact) {
+        if (!connected) {
+            safeUiWarning("Lost code", "Not connected to server.");
+            return;
+        }
+        if (contact == null || contact.isBlank()) {
+            safeUiWarning("Lost code", "Contact is required.");
+            return;
+        }
+
+        String trimmedContact = contact.trim();
+        Request<String> req = new Request<>(Request.Command.LOST_CODE, trimmedContact);
+        sendRequest(req);
     }
     
     // Login and information verification

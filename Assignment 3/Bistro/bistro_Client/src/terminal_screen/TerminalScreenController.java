@@ -112,7 +112,10 @@ public class TerminalScreenController {
             // Route server responses only to the currently displayed view
             if (currentContentController instanceof terminal_screen.TerminalCheckInController checkInCtrl) {
                 checkInCtrl.handleSeatingResponse(response);
+            }else if (currentContentController instanceof terminal_screen.TerminalWaitingListController waitingListController) {
+                waitingListController.handleSeatingResponse(response);
             }
+            
         });
     }
     public void onBillTotal(double baseTotal) {

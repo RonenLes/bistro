@@ -69,4 +69,15 @@ public class TerminalWaitingListController implements ClientControllerAware {
     private void setStatus(String msg) {
         if (statusLabel != null) statusLabel.setText(msg == null ? "" : msg);
     }
+    
+    public void handleSeatingResponse(responses.SeatingResponse response) {
+        if (response == null) return;
+        switch (response.getType()) {
+            case CUSTOMER_CHECKED_IN -> {
+                Integer table = response.getTableNumberl();
+                setStatus("Table ready! You're seated" + (table != null ? " at table " + table + "." : "."));
+            }
+            case CUSTOMER_IN_WAITINGLIST -> setStatus("You're on the take-a-seat list. We'll notify you soon.");
+        }
+    }
 }

@@ -56,9 +56,9 @@ public class TerminalLostCodeController implements ClientControllerAware {
             return;
         }
 
-        // Later:
-        // clientController.sendRequest(new LostCodeRequest(contact));
-        setStatus("Sent recovery request (placeholder).");
+        clientController.requestLostCode(contact);
+        setStatus("Requesting your code...");
+      
     }
 
     @FXML

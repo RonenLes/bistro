@@ -22,7 +22,7 @@
 
             <VBox alignment="CENTER" spacing="6.0">
                 <children>
-                    <Label text="Join waiting list">
+                    <Label text="Take a seat">
                         <font><Font size="30.0" /></font>
                     </Label>
                     <Label text="We will notify you when a table is ready."
@@ -45,7 +45,7 @@
                 </children>
             </VBox>
 
-            <Button text="Join"
+            <Button text="Take a seat"
                     prefHeight="54.0"
                     prefWidth="220.0"
                     onAction="#onJoin"

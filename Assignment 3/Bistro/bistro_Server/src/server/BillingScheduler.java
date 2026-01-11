@@ -293,7 +293,7 @@ public class BillingScheduler {
         List<Integer> reservationIds = reservationDAO.getReservationsDueForNoShow(conn, today, cutoff);
 
         for (int reservationId : reservationIds) {
-            reservationDAO.updateStatusByReservationID(conn, reservationId, "NO SHOW");
+            reservationDAO.updateStatusByReservationID(conn, reservationId, "NO_SHOW");
         }
     }
 

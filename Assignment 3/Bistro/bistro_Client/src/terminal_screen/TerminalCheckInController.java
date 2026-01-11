@@ -47,7 +47,7 @@ public class TerminalCheckInController implements ClientControllerAware {
         }
 
         setStatus("Checking in...");
-
+        
         clientController.requestSeatingCheckInByConfirmationCode(confirmationCode);
     }
     

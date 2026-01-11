@@ -18,7 +18,7 @@ public class BillRequest {
 		this.type=type;
 	}
 	
-	public BillRequest(BillRequestType type, int confirmationCode,) {
+	public BillRequest(BillRequestType type, int confirmationCode) {
 
 		this.type = type;
 		this.confirmationCode = confirmationCode;	

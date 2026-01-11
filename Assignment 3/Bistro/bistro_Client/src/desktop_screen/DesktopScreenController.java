@@ -21,9 +21,11 @@ import manager_screen.EditTableScreenController;
 import manager_screen.ManagerReservationsScreenController;
 import manager_screen.ShowDataScreenController;
 import manager_screen.UpdateOpeningHoursScreenController;
+import manager_screen.SubscribersScreenController;
 import responses.ManagerResponse;
 import responses.ReservationResponse;
 import responses.SeatingResponse;
+import responses.UserHistoryResponse;
 
 import java.io.IOException;
 import java.util.EnumMap;
@@ -75,6 +77,7 @@ public class DesktopScreenController implements ClientUIHandler {
     @FXML private ToggleButton managerReservationsBtn;
     @FXML private ToggleButton managerDataBtn;
     @FXML private ToggleButton addSubscriberBtn;
+    @FXML private ToggleButton viewSubscribersBtn;
 
     private boolean connected;
 
@@ -94,6 +97,7 @@ public class DesktopScreenController implements ClientUIHandler {
     private ManagerReservationsScreenController managerReservationsVC;
     private ShowDataScreenController showDataVC;
     private AddSubscriberScreenController addSubscriberVC;
+    private SubscribersScreenController subscribersVC;
 
     private Role role = Role.GUEST;
     private Runnable onLogout;
@@ -106,6 +110,7 @@ public class DesktopScreenController implements ClientUIHandler {
         HISTORY,
         EDIT_DETAILS,
         ADD_SUBSCRIBER,
+        SUBSCRIBERS,
         REPORTS,
         ANALYTICS,
         PAY,
@@ -142,7 +147,8 @@ public class DesktopScreenController implements ClientUIHandler {
                 ScreenKey.EDIT_TABLES,
                 ScreenKey.MANAGER_DATA,
                 ScreenKey.MANAGER_RESERVATIONS,
-                ScreenKey.ADD_SUBSCRIBER
+                ScreenKey.ADD_SUBSCRIBER,
+                ScreenKey.SUBSCRIBERS
                 //ScreenKey.TABLES
         ));
 
@@ -152,6 +158,7 @@ public class DesktopScreenController implements ClientUIHandler {
                 ScreenKey.RESERVATIONS,
                 //ScreenKey.PAY,    maybe later
                 ScreenKey.ADD_SUBSCRIBER,
+                ScreenKey.SUBSCRIBERS,
                //ScreenKey.TABLES, 
                 ScreenKey.EDIT_TABLES,
                 ScreenKey.MANAGER_DATA,
@@ -212,6 +219,8 @@ public class DesktopScreenController implements ClientUIHandler {
         registerNavButton(managerReservationsBtn, ScreenKey.MANAGER_RESERVATIONS);
         registerNavButton(managerDataBtn,  ScreenKey.MANAGER_DATA);
         registerNavButton(addSubscriberBtn, ScreenKey.ADD_SUBSCRIBER);
+        registerNavButton(viewSubscribersBtn, ScreenKey.SUBSCRIBERS);
+
 
         applyRoleVisibility();
 
@@ -343,6 +352,9 @@ public class DesktopScreenController implements ClientUIHandler {
 
             case ADD_SUBSCRIBER ->
                     loadIntoContentHost("/manager_screen/AddSubscriberScreen.fxml");
+            case SUBSCRIBERS ->
+            		loadIntoContentHost("/manager_screen/SubscribersScreen.fxml");
+
 
             case HISTORY ->
                     loadIntoContentHost("/desktop_views/HistoryView.fxml");
@@ -384,6 +396,7 @@ public class DesktopScreenController implements ClientUIHandler {
             if (ctrl instanceof ManagerReservationsScreenController mrc) managerReservationsVC = mrc;
             if (ctrl instanceof ShowDataScreenController sdc) showDataVC = sdc;
             if (ctrl instanceof AddSubscriberScreenController asc) addSubscriberVC = asc;
+            if (ctrl instanceof SubscribersScreenController ssc) subscribersVC = ssc;
 
             // inject controller reference into screens that need it
             if (ctrl instanceof ClientControllerAware aware) {
@@ -434,18 +447,38 @@ public class DesktopScreenController implements ClientUIHandler {
             if (historyVC != null) {
                 historyVC.renderHistory(rows);
             }
+            if (subscribersVC != null) {
+                subscribersVC.renderHistory(rows);
+            }
         });
     }
 
     @Override
     public void onUserHistoryError(String message) {
+    	
         javafx.application.Platform.runLater(() -> {
+        	 boolean handled = false;
             if (historyVC != null) {
                 historyVC.showHistoryError(message);
-            } else {
-                showError("History", message);
+                handled = true;
+            }
+            if (subscribersVC != null) {
+                subscribersVC.showHistoryError(message);
+                handled = true;
+            }
+            if(!handled) {
+            	showError("History", message);
             }
         });
+    }
+    @Override
+    public void onUpcomingReservationsResponse(java.util.List<UserHistoryResponse> rows) {
+        // subscriber main screen handles this; desktop does not display upcoming list
+    }
+
+    @Override
+    public void onUpcomingReservationsError(String message) {
+        // subscriber main screen handles this; desktop does not display upcoming list
     }
 
     @Override
@@ -465,6 +498,9 @@ public class DesktopScreenController implements ClientUIHandler {
             }
             if (showDataVC != null) {
                 showDataVC.handleManagerResponse(response);
+            }
+            if (subscribersVC != null) {
+                subscribersVC.handleManagerResponse(response);
             }
             if (addSubscriberVC != null) {
                 addSubscriberVC.handleManagerResponse(response);

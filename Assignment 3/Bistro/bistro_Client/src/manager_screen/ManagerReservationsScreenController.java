@@ -26,6 +26,7 @@ public class ManagerReservationsScreenController implements ClientControllerAwar
     @FXML private TableColumn<ReservationResponse, String> colContact;
     @FXML private TableColumn<ReservationResponse, LocalTime> colTime;
     @FXML private TableColumn<ReservationResponse, Integer> colParty;
+    @FXML private TableColumn<ReservationResponse, Integer> colCode;
     @FXML private Label infoLabel;
 
     private ClientController clientController;
@@ -35,15 +36,14 @@ public class ManagerReservationsScreenController implements ClientControllerAwar
 
     @FXML
     private void initialize() {
-        if (colContact != null) {
-            colContact.setCellValueFactory(new PropertyValueFactory<>("newGuestContact"));
-        }
-        if (colTime != null) {
-            colTime.setCellValueFactory(new PropertyValueFactory<>("newTime"));
-        }
-        if (colParty != null) {
-            colParty.setCellValueFactory(new PropertyValueFactory<>("newPartySize"));
-        }
+        if (colContact != null) colContact.setCellValueFactory(new PropertyValueFactory<>("newGuestContact"));
+                    
+        if (colTime != null) colTime.setCellValueFactory(new PropertyValueFactory<>("newTime"));
+                 
+        if (colParty != null) colParty.setCellValueFactory(new PropertyValueFactory<>("newPartySize"));
+                    
+        if (colCode !=null) colCode.setCellValueFactory(new PropertyValueFactory<>("confirmationCode"));
+        
         if (reservationsTable != null) {
             reservationsTable.setItems(reservations);
         }
@@ -79,8 +79,7 @@ public class ManagerReservationsScreenController implements ClientControllerAwar
                     reservations.add(reservation);
                 }
             }
-        }
-        setInfo("Reservations updated.");
+        }        
     }
 
     private boolean readyForServer() {

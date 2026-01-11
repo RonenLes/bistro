@@ -1,6 +1,9 @@
 package database;
 
 import entities.Reservation;
+import responses.ReservationResponse;
+import responses.UserHistoryResponse;
+
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -30,6 +33,13 @@ public class ReservationDAO {
 															
 	
 	//SELECT statements	
+	private static final String SELECT_UPCOMING_RESERVATIONS_BY_USER =
+	        "SELECT reservationDate, startTime, partySize, confirmationCode " +
+	        "FROM reservation " +
+	        "WHERE userID = ? " +
+	        "AND status IN ('NEW','CONFIRMED') " +
+	        "AND reservationDate >= CURDATE() " +
+	        "ORDER BY reservationDate ASC, startTime ASC";
 	
 	private final String SELECT_RESERVATIONS_OVERLAPING_WITH_CLOSE_HOURS="SELECT r.reservationID FROM reservation r "+
 																		 "WHERE r.reservationDate = ? "+
@@ -636,6 +646,35 @@ public class ReservationDAO {
 	        }
 	    }
 	    return false;
+	}
+	
+	/**
+	 * fetching future reservations for a specific user 
+	 * @param conn
+	 * @param userId
+	 * @return
+	 * @throws SQLException
+	 */
+	public List<UserHistoryResponse> fetchUpcomingReservationsByUser(Connection conn, String userId) throws SQLException {
+	    List<UserHistoryResponse> reservations = new ArrayList<>();
+	    if (userId == null || userId.isBlank()) {
+	        return reservations;
+	    }
+
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_UPCOMING_RESERVATIONS_BY_USER)) {
+	        ps.setString(1, userId);
+	        try (ResultSet rs = ps.executeQuery()) {
+	            while (rs.next()) {
+	                reservations.add(new UserHistoryResponse(
+	                        rs.getDate("reservationDate").toLocalDate(),
+	                        rs.getInt("partySize"),
+	                        rs.getTime("startTime").toLocalTime(),
+	                        rs.getInt("confirmationCode")));	                        	                
+	            }
+	        }
+	    }
+
+	    return reservations;
 	}
 
 

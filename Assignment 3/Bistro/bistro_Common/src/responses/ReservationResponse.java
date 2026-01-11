@@ -51,7 +51,8 @@ public class ReservationResponse  {
     }
     
     //constructor for manager to use
-    public ReservationResponse(String guestContact,LocalTime startTime,int partySize) {
+    public ReservationResponse(String guestContact,LocalTime startTime,int partySize,int confirmationCode) {
+    	this.confirmationCode=confirmationCode;
     	this.guestContact=guestContact;
     	this.time = startTime;
     	this.partySize = partySize;

@@ -20,7 +20,8 @@ public class LoginResponse {
 		LOGIN_RESPONSE,
 		SHOW_DETAIL_RESPONSE,
 		HISTORY_RESPONSE,
-		EDIT_RESPONSE
+		EDIT_RESPONSE,
+		UPCOMING_RESERVATION_REQUEST
 	}
 	
 	public LoginResponse() {}

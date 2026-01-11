@@ -481,9 +481,9 @@ public class ManagementControl {
 				Reservation currR = reservationDAO.getReservationByReservationID(conn, r.getReservationID());
 				
 				if(r.getUserID()==null) contact = currR.getGuestContact();
-				else contact = userDAO.getUserByUserID(conn, currR.getUserID()).getEmail();	
+				else contact = userDAO.getUserByUserID(conn, currR.getUserID()).getUsername();	
 				
-				ReservationResponse resResp = new ReservationResponse(contact, currR.getStartTime(), currR.getPartySize());
+				ReservationResponse resResp = new ReservationResponse(contact, currR.getStartTime(), currR.getPartySize(),currR.getConfirmationCode());
 				currRes.add(resResp);
 			}
 			ManagerResponse resp = new ManagerResponse(ManagerResponseCommand.RESERVATION_BY_DATE_RESPONSE,currRes);

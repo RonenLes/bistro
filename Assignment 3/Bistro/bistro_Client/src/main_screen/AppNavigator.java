@@ -7,7 +7,9 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.stage.Stage;
 import responses.ManagerResponse;
+import responses.UserHistoryResponse;
 import terminal_screen.TerminalScreenController;
+import subscriber_screen.SubscriberMainScreenController;
 
 /**
  * Central UI router that swaps between the two client applications:
@@ -26,6 +28,8 @@ public class AppNavigator {
 
     private DesktopScreenController desktopController;
     private TerminalScreenController terminalController;
+    private SubscriberMainScreenController subscriberController;
+
 
     private final ClientUIHandler navigationHandler = new NavigationUIHandler();
 
@@ -60,6 +64,7 @@ public class AppNavigator {
 
     public void showLogin() {
         runOnFx(() -> {
+        	
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/main_screen/LoginScreen.fxml"));
                 Parent loginRoot = loader.load();
@@ -93,6 +98,10 @@ public class AppNavigator {
     public void showDesktop(DesktopScreenController.Role role, String welcomeName) {
         runOnFx(() -> {
             try {
+            	if (role == DesktopScreenController.Role.SUBSCRIBER) {
+                    showSubscriberMain(welcomeName);
+                    return;
+                }
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/desktop_screen/DesktopScreen.fxml"));
                 Parent desktopRoot = loader.load();
 
@@ -117,6 +126,33 @@ public class AppNavigator {
             } catch (Exception e) {
                 e.printStackTrace();
                 navigationHandler.showError("Navigation Error", "Failed to open DesktopScreen.\n" + e.getMessage());
+            }
+        });
+    }
+    
+    public void showSubscriberMain(String welcomeName) {
+        runOnFx(() -> {
+            try {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/subscriber_screen/SubscriberMainScreen.fxml"));
+                Parent subscriberRoot = loader.load();
+
+                subscriberController = loader.getController();
+                subscriberController.setClientController(clientController, connected);
+                subscriberController.setOnLogout(() -> {
+                    subscriberController = null;
+                    showLogin();
+                });
+
+                stage.getScene().setRoot(subscriberRoot);
+                stage.setTitle("Subscriber");
+                stage.sizeToScene();
+                stage.centerOnScreen();
+
+                clientController.setUIHandler(subscriberController);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                navigationHandler.showError("Navigation Error", "Failed to open Subscriber screen.\n" + e.getMessage());
             }
         });
     }
@@ -205,10 +241,20 @@ public class AppNavigator {
         public void onUserHistoryResponse(java.util.List<responses.UserHistoryResponse> rows) {
             // ignore here
         }
+        
 
         @Override
         public void onUserHistoryError(String message) {
             showError("History", message);
+        }
+        @Override
+        public void onUpcomingReservationsResponse(java.util.List<UserHistoryResponse> rows) {
+            // ignore here
+        }
+
+        @Override
+        public void onUpcomingReservationsError(String message) {
+            showError("Upcoming Reservations", message);
         }
 
 		@Override
@@ -283,6 +329,15 @@ public class AppNavigator {
         @Override
         public void onUserHistoryResponse(java.util.List<responses.UserHistoryResponse> rows) {
             // terminal does not handle history
+        }
+        @Override
+        public void onUpcomingReservationsResponse(java.util.List<UserHistoryResponse> rows) {
+            // terminal does not handle upcoming reservations
+        }
+
+        @Override
+        public void onUpcomingReservationsError(String message) {
+            showError("Upcoming Reservations", message);
         }
 
         @Override

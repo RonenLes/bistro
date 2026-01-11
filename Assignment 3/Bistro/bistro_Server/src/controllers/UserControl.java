@@ -5,20 +5,23 @@ import java.sql.SQLException;
 import java.util.List;
 
 import database.DBManager;
+import database.ReservationDAO;
 import database.UserDAO;
 import entities.User;
 import responses.LoginResponse;
 import responses.LoginResponse.UserReponseCommand;
+import responses.ReservationResponse;
 import responses.Response;
 import responses.UserHistoryResponse;
 import requests.LoginRequest;
 
 public class UserControl {
 	private final UserDAO userDAO;
+	private final ReservationDAO reservationDAO;
 	
-	public UserControl(UserDAO userDAO) {this.userDAO=userDAO;} //constructor for tests
+	public UserControl(UserDAO userDAO,ReservationDAO reservationDAO) {this.userDAO=userDAO; this.reservationDAO = reservationDAO;} //constructor for tests
 			
-	public UserControl() {this(new UserDAO());} //constructors for server use
+	public UserControl() {this(new UserDAO(),new ReservationDAO());} //constructors for server use
 	
 	public Response<LoginResponse> handleUserRequest(LoginRequest req){
 		if(req==null) return new Response<>(false, "LoginRequest is missing", null);
@@ -30,6 +33,7 @@ public class UserControl {
 		case SHOW_DETAILS_REQUEST->viewUserDetails(req);
 		case EDIT_DETAIL_REQUEST -> editDetail(req);
 		case HISTORY_REQUEST-> getHistory(req);
+		case UPCOMING_RESERVATIONS_REQUEST -> getUpcomingReservations(req);
 		};
 	}
 
@@ -110,6 +114,11 @@ public class UserControl {
         }
     }
     
+    /**
+     * method for users to changed his email and phone
+     * @param req with details to change to
+     * @return the same details youve changed
+     */
     public Response<LoginResponse> viewUserDetails(LoginRequest req){
     	try(Connection conn = DBManager.getConnection()){
     		User user = userDAO.fetchUserByUsername(conn, req.getUsername());
@@ -119,6 +128,32 @@ public class UserControl {
     		System.err.println("user DB ERROR: " + e.getMessage());
     		e.printStackTrace();
     		return new Response<>(false, "user details server error", null);
+    	}
+    }
+    
+    
+    /**
+     * method to 
+     * @param req
+     * @return
+     */
+    public Response<LoginResponse> getUpcomingReservations(LoginRequest req){
+    	try(Connection conn = DBManager.getConnection()){
+    		User user = userDAO.fetchUserByUsername(conn, req.getUsername());
+    		if (user == null) {
+    			return new Response<>(false, "User not found", null);
+    		}
+    		List<UserHistoryResponse> upcoming = reservationDAO.fetchUpcomingReservationsByUser(conn, user.getUserID());
+    		LoginResponse resp = new LoginResponse(UserReponseCommand.UPCOMING_RESERVATION_REQUEST,upcoming);
+    		return new Response<>(true, "Upcoming reservations", resp);
+    	}catch(SQLException e) {
+    		System.err.println("upcoming reservations DB ERROR: " + e.getMessage());
+    		e.printStackTrace();
+    		return new Response<>(false, "upcoming reservations db error", null);
+    	}catch(Exception e) {
+    		System.err.println("upcoming reservations ERROR: " + e.getMessage());
+    		e.printStackTrace();
+    		return new Response<>(false, "upcoming reservations server error", null);
     	}
     }
     

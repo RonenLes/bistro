@@ -11,25 +11,23 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane prefHeight="800.0" prefWidth="1280.0" styleClass="surface"
-            xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="manager_screen.UpdateOpeningHoursScreenController">
+<BorderPane prefHeight="800.0" prefWidth="1280.0" styleClass="surface" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="manager_screen.UpdateOpeningHoursScreenController">
     <top>
-        <HBox spacing="12.0" alignment="CENTER_LEFT" BorderPane.alignment="CENTER">
+        <HBox alignment="CENTER_LEFT" spacing="12.0" BorderPane.alignment="CENTER">
             <children>
                 <VBox spacing="2.0">
                     <children>
-                        <Label text="Update Opening Hours" styleClass="h2"/>
-                        <Label text="Select a date and edit opening hours (placeholder UI)" styleClass="muted"/>
+                        <Label styleClass="h2" text="Update Opening Hours" />
+                        <Label styleClass="muted" text="Select a date and edit opening hours (placeholder UI)" />
                     </children>
                 </VBox>
-                <Region HBox.hgrow="ALWAYS"/>
-                <DatePicker fx:id="datePicker" promptText="Select date"/>
-                <Button text="Load" styleClass="ghost" onAction="#onLoad"/>
-                <Button text="Save All" styleClass="primary" onAction="#onSaveAll"/>
+                <Region HBox.hgrow="ALWAYS" />
+                <DatePicker fx:id="datePicker" promptText="Select date" />
+                <Button onAction="#onLoad" styleClass="ghost" text="Load" />
+                <Button onAction="#onSaveAll" styleClass="primary" text="Save All" />
             </children>
             <BorderPane.margin>
-                <Insets top="14.0" right="14.0" bottom="10.0" left="14.0"/>
+                <Insets bottom="10.0" left="14.0" right="14.0" top="14.0" />
             </BorderPane.margin>
         </HBox>
     </top>
@@ -37,20 +35,20 @@
     <center>
         <VBox spacing="14.0" BorderPane.alignment="CENTER">
             <children>
-                <TableView fx:id="hoursTable" prefHeight="420.0" editable="true">
+                <TableView fx:id="hoursTable" editable="true" prefHeight="420.0">
                     <columns>
-                        <TableColumn fx:id="colDate" text="Date" prefWidth="160.0"/>
-                        <TableColumn fx:id="colOpen" text="Open Time" prefWidth="140.0"/>
-                        <TableColumn fx:id="colClose" text="Close Time" prefWidth="140.0"/>
-                        <TableColumn fx:id="colOccasion" text="Occasion" prefWidth="220.0"/>
-                        <TableColumn fx:id="colSave" text="Save" prefWidth="120.0"/>
+                        <TableColumn fx:id="colDate" prefWidth="160.0" text="Date" />
+                        <TableColumn fx:id="colOpen" prefWidth="215.0" text="Open Time" />
+                        <TableColumn fx:id="colClose" prefWidth="191.0" text="Close Time" />
+                        <TableColumn fx:id="colOccasion" prefWidth="135.0" text="Occasion" />
+                        <TableColumn fx:id="colSave" prefWidth="128.0" text="Save" />
                     </columns>
                 </TableView>
 
-                <Label fx:id="infoLabel" text="" styleClass="muted"/>
+                <Label fx:id="infoLabel" styleClass="muted" text="" />
             </children>
             <BorderPane.margin>
-                <Insets top="0.0" right="14.0" bottom="14.0" left="14.0"/>
+                <Insets bottom="14.0" left="14.0" right="14.0" top="0.0" />
             </BorderPane.margin>
         </VBox>
     </center>

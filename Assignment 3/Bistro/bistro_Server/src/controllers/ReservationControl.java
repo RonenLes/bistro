@@ -73,10 +73,7 @@ public class ReservationControl {
         	
         	
         	
-            List<LocalTime> availableTimes =getAvailableTimes(conn, req.getReservationDate(), req.getPartySize());
-            for(LocalTime t : availableTimes) {
-            	System.out.println(t.toString());
-            }
+            List<LocalTime> availableTimes =getAvailableTimes(conn, req.getReservationDate(), req.getPartySize());            
 
             if (availableTimes != null && !availableTimes.isEmpty()) {
                 ReservationResponse rr = new ReservationResponse(ReservationResponseType.FIRST_PHASE_SHOW_AVAILABILITY,availableTimes,
@@ -223,7 +220,7 @@ public class ReservationControl {
                     conn.rollback();
                     return new Response<>(false, "Reservation not found", null);
                 }
-                if(existing.getReservationDate().isBefore(reservationDate)) return new Response<>(false, "Requested date already passed", null);
+                if (reservationDate.isBefore(LocalDate.now())) return new Response<>(false, "Requested date already passed", null);
                 
 
                 String userID = existing.getUserID();     // preserved
@@ -408,7 +405,15 @@ public class ReservationControl {
         LocalTime open = openHour.getOpenTime();
         LocalTime close = openHour.getCloseTime();
         if (open == null || close == null) return new ArrayList<>();
-
+        
+        
+        if (LocalDate.now().equals(date) && open.isBefore(LocalTime.now())) {
+        	LocalTime minStart = LocalTime.now().plusHours(1);
+        	minStart = ceilToStep(minStart, TIME_SLOT_STEP_MIN);
+        	 open = open.isAfter(minStart) ? open : minStart;
+        }
+        
+        open = ceilToStep(open, TIME_SLOT_STEP_MIN);
         int cap = roundToCapacity(conn, partySize);
 
         List<LocalTime> available = new ArrayList<>();
@@ -498,5 +503,30 @@ public class ReservationControl {
         } catch (SQLException e) {
             System.err.println("[NOTIFY] Failed while notifying: " + e.getMessage());
         }
+    }
+    
+    
+    /**
+     * helper method to round up time for searching available times when doing a reservation
+     * @param t the now time 
+     * @param stepMinutes the 30 min step
+     * @return round up to hh:00 or hh:30 format
+     */
+    private static LocalTime ceilToStep(LocalTime t, int stepMinutes) {
+        int stepSeconds = stepMinutes * 60;
+
+        
+        int totalSeconds = t.toSecondOfDay() + (t.getNano() > 0 ? 1 : 0);
+
+        int remainder = totalSeconds % stepSeconds;
+        if (remainder != 0) {
+            totalSeconds += (stepSeconds - remainder);
+        }
+
+        
+        int maxSeconds = 24 * 60 * 60 - 1;
+        totalSeconds = Math.min(totalSeconds, maxSeconds);
+
+        return LocalTime.ofSecondOfDay(totalSeconds);
     }
 }

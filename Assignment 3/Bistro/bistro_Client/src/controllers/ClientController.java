@@ -51,6 +51,7 @@ public class ClientController {
     private String lastLoginUsername;
     private String currentEmail;
     private String currentPhone;
+    private UserCommand lastUserCommand;
 
     public ClientController(BistroEchoClient client) {
         this.client = client;
@@ -116,7 +117,7 @@ public class ClientController {
             Object responseData = response.getData();
 
             // user history payload: Response<List<UserHistoryResponse>>
-            if (responseData instanceof java.util.List<?> list) {
+            if (responseData instanceof java.util.List<?> list ) {
                 if (list.isEmpty() || list.get(0) instanceof UserHistoryResponse) {
                     @SuppressWarnings("unchecked")
                     java.util.List<UserHistoryResponse> rows = (java.util.List<UserHistoryResponse>) list;
@@ -255,6 +256,28 @@ public class ClientController {
 
         String username = guestSession ? guestContact : currentUsername;
         username = username == null ? null : username.trim();
+
+        System.out.println("[HISTORY_REQUEST] sending username='" + username + "'");
+
+        if (username == null || username.isEmpty()) {
+            safeUiWarning("History", "No active user session.");
+            return;
+        }
+
+        LoginRequest payload = new LoginRequest(username, null, UserCommand.HISTORY_REQUEST);
+        Request<LoginRequest> req = new Request<>(Request.Command.USER_REQUEST, payload);
+        lastUserCommand = UserCommand.HISTORY_REQUEST;
+        sendRequest(req);
+    }
+    
+    //for manager use
+    public void requestUserHistoryForSubscriber(String usernameRaw) {
+        if (!connected) {
+            safeUiWarning("History", "Not connected to server.");
+            return;
+        }
+
+        String username = usernameRaw == null ? null : usernameRaw.trim();
 
         System.out.println("[HISTORY_REQUEST] sending username='" + username + "'");
 

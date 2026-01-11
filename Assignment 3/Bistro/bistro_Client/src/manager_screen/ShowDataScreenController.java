@@ -21,11 +21,7 @@ import java.time.LocalDateTime;
 
 public class ShowDataScreenController implements ClientControllerAware {
 
-    @FXML private TableView<LoginResponse> subscribersTable;
-    @FXML private TableColumn<LoginResponse, String> colSubscriberId;
-    @FXML private TableColumn<LoginResponse, String> colSubscriberName;
-    @FXML private TableColumn<LoginResponse, String> colSubscriberPhone;
-    @FXML private TableColumn<LoginResponse, String> colSubscriberEmail;
+    
 
     @FXML private TableView<WaitingListResponse> waitingTable;
     @FXML private TableColumn<WaitingListResponse, String> colWaitingPriority;
@@ -44,18 +40,12 @@ public class ShowDataScreenController implements ClientControllerAware {
     private ClientController clientController;
     private boolean connected;
 
-    private final ObservableList<LoginResponse> subscriberItems = FXCollections.observableArrayList();
-    private final ObservableList<WaitingListResponse> waitingItems = FXCollections.observableArrayList();
-    private final ObservableList<SeatingRow> seatingItems = FXCollections.observableArrayList();
+    private final javafx.collections.ObservableList<WaitingListResponse> waitingItems = javafx.collections.FXCollections.observableArrayList();
+    private final javafx.collections.ObservableList<SeatingRow> seatingItems = javafx.collections.FXCollections.observableArrayList();
 
     @FXML
     private void initialize() {
-        if (colSubscriberId != null) colSubscriberId.setCellValueFactory(new PropertyValueFactory<>("userID"));
-        if (colSubscriberName != null) colSubscriberName.setCellValueFactory(new PropertyValueFactory<>("username"));
-        if (colSubscriberPhone != null) colSubscriberPhone.setCellValueFactory(new PropertyValueFactory<>("phone"));
-        if (colSubscriberEmail != null) colSubscriberEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
-        if (subscribersTable != null) subscribersTable.setItems(subscriberItems);
-
+       
         if (colWaitingPriority != null) colWaitingPriority.setCellValueFactory(new PropertyValueFactory<>("priority"));
         if (colWaitingTime != null) colWaitingTime.setCellValueFactory(new PropertyValueFactory<>("dateTime"));
         if (colWaitingContact != null) colWaitingContact.setCellValueFactory(new PropertyValueFactory<>("contact"));
@@ -69,7 +59,7 @@ public class ShowDataScreenController implements ClientControllerAware {
         if (seatingTable != null) seatingTable.setItems(seatingItems);
         
 
-        setInfo("Load manager data to view subscribers, waiting list, and seating.");
+        setInfo("Load manager data to view waiting list and seating.");
     }
 
     @Override
@@ -92,19 +82,7 @@ public class ShowDataScreenController implements ClientControllerAware {
 
         ManagerResponseCommand command = response.getResponseCommand();
 
-        if (command == ManagerResponseCommand.ALL_SUBSCRIBERS_RESPONSE) {
-            subscriberItems.clear();
-            if (response.getTables() != null) {
-                for (Object item : response.getTables()) {
-                    if (item instanceof LoginResponse subscriber) {
-                        subscriberItems.add(subscriber);
-                    }
-                }
-            }
-            setInfo("Subscribers updated.");
-        }
-
-        else if (command == ManagerResponseCommand.CURRENT_WAITING_LIST_RESPONSE) {
+        if (command == ManagerResponseCommand.CURRENT_WAITING_LIST_RESPONSE) {
             waitingItems.clear();
             if (response.getTables() != null) {
                 for (Object item : response.getTables()) {
@@ -132,7 +110,7 @@ public class ShowDataScreenController implements ClientControllerAware {
     private void requestAll() {
         if (!readyForServer()) return;
 
-        clientController.requestManagerAction(new ManagerRequest(ManagerCommand.VIEW_SUBSCRIBERS));
+        
         clientController.requestManagerAction(new ManagerRequest(ManagerCommand.VIEW_WAITING_LIST));
         clientController.requestManagerAction(new ManagerRequest(ManagerCommand.VIEW_CURRENT_SEATING));
 

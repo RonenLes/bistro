@@ -13,7 +13,16 @@ public class UserHistoryResponse {
 	private Double totalPrice;
 	private int partySize;
 	
+	private int confirmationCode;
+	
 	public UserHistoryResponse() {}
+	
+	public UserHistoryResponse(LocalDate resDate, int partySize,LocalTime startTime,int confirmationCode){
+		this.reservationDate =resDate;
+		this.partySize = partySize;
+		this.checkInTime = startTime;
+		this.confirmationCode=confirmationCode;
+	}
 	
 	public UserHistoryResponse(LocalDate reservationDate, LocalTime reservedForTime, LocalTime checkInTime,
 			LocalTime checkOutTime, int tableNumber, double totalPrice,int partySize) {
@@ -46,6 +55,10 @@ public class UserHistoryResponse {
 
 	public int getPartySize() {
 		return partySize;
+	}
+
+	public int getConfirmationCode() {
+		return confirmationCode;
 	}
 	
 					

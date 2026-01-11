@@ -236,7 +236,7 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
             private final Label timeLabel = new Label();
             private final Button minus = new Button("-");
             private final Button plus = new Button("+");
-            private final javafx.scene.layout.HBox box = new javafx.scene.layout.HBox(8, timeLabel, minus, plus);
+            private final javafx.scene.layout.HBox box = new javafx.scene.layout.HBox(8, minus, timeLabel, plus);
 
             {
                 minus.getStyleClass().add("ghost");
@@ -249,24 +249,21 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
                 OpeningHoursRow row = getTableRow() == null ? null : getTableRow().getItem();
                 if (row == null) return;
                 LocalTime current = isOpen ? row.getOpen() : row.getClose();
-                if (current == null) {
-                    current = LocalTime.of(0, 0);
-                }
+                if (current == null) current = LocalTime.of(0, 0);
+                                                  
                 LocalTime updated = current.plusHours(deltaHours);
-                if (isOpen) {
-                    row.setOpen(updated);
-                } else {
-                    row.setClose(updated);
-                }
+                if (isOpen)  row.setOpen(updated);                  
+                else row.setClose(updated);
+                    
+                
                 updateItem(updated, false);
             }
 
             @Override
             protected void updateItem(LocalTime item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty) {
-                    setGraphic(null);
-                } else {
+                if (empty) setGraphic(null);                    
+                 else {
                     timeLabel.setText(item == null ? "" : TIME_FMT.format(item));
                     setGraphic(box);
                 }

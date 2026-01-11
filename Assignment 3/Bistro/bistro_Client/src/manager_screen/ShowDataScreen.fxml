@@ -19,7 +19,7 @@
                 <VBox spacing="2.0">
                     <children>
                         <Label text="Manager Data" styleClass="h2"/>
-                        <Label text="View subscribers, waiting list, and seating (placeholder UI)" styleClass="muted"/>
+                         <Label text="View waiting list and seating" styleClass="muted"/>
                     </children>
                 </VBox>
                 <Region HBox.hgrow="ALWAYS"/>
@@ -33,22 +33,7 @@
 
     <center>
         <VBox spacing="14.0" BorderPane.alignment="CENTER">
-            <children>
-                <VBox spacing="10.0" styleClass="card">
-                    <children>
-                        <Label text="Subscribers" styleClass="subtle"/>
-                        <TableView fx:id="subscribersTable" prefHeight="220.0">
-                            <columns>
-                                <TableColumn fx:id="colSubscriberId" text="User ID" prefWidth="160.0"/>
-                                <TableColumn fx:id="colSubscriberName" text="Username" prefWidth="180.0"/>
-                                <TableColumn fx:id="colSubscriberPhone" text="Phone" prefWidth="180.0"/>
-                                <TableColumn fx:id="colSubscriberEmail" text="Email" prefWidth="240.0"/>
-                            </columns>
-                        </TableView>
-                    </children>
-                    <padding><Insets top="16.0" right="16.0" bottom="16.0" left="16.0"/></padding>
-                </VBox>
-
+            <children>                
                 <HBox spacing="14.0">
                     <children>
                         <VBox prefWidth="620.0" spacing="10.0" styleClass="card">

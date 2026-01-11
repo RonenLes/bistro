@@ -11,24 +11,22 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane prefHeight="800.0" prefWidth="1280.0" styleClass="surface"
-            xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="manager_screen.ManagerReservationsScreenController">
+<BorderPane prefHeight="800.0" prefWidth="1280.0" styleClass="surface" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="manager_screen.ManagerReservationsScreenController">
     <top>
-        <HBox spacing="12.0" alignment="CENTER_LEFT" BorderPane.alignment="CENTER">
+        <HBox alignment="CENTER_LEFT" spacing="12.0" BorderPane.alignment="CENTER">
             <children>
                 <VBox spacing="2.0">
                     <children>
-                        <Label text="Reservations by Date" styleClass="h2"/>
-                        <Label text="Pick a date to view reservations." styleClass="muted"/>
+                        <Label styleClass="h2" text="Reservations by Date" />
+                        <Label styleClass="muted" text="Pick a date to view reservations." />
                     </children>
                 </VBox>
-                <Region HBox.hgrow="ALWAYS"/>
-                <DatePicker fx:id="datePicker" promptText="Select date"/>
-                <Button text="Load" styleClass="ghost" onAction="#onLoad"/>
+                <Region HBox.hgrow="ALWAYS" />
+                <DatePicker fx:id="datePicker" promptText="Select date" />
+                <Button onAction="#onLoad" styleClass="ghost" text="Load" />
             </children>
             <BorderPane.margin>
-                <Insets top="14.0" right="14.0" bottom="10.0" left="14.0"/>
+                <Insets bottom="10.0" left="14.0" right="14.0" top="14.0" />
             </BorderPane.margin>
         </HBox>
     </top>
@@ -38,16 +36,17 @@
             <children>
                 <TableView fx:id="reservationsTable" prefHeight="420.0">
                     <columns>
-                        <TableColumn fx:id="colContact" text="Contact" prefWidth="280.0"/>
-                        <TableColumn fx:id="colTime" text="Time" prefWidth="140.0"/>
-                        <TableColumn fx:id="colParty" text="Party Size" prefWidth="140.0"/>
+                        <TableColumn fx:id="colContact" prefWidth="317.0" text="Contact" />
+                        <TableColumn fx:id="colTime" prefWidth="143.0" text="Time" />
+                        <TableColumn fx:id="colParty" prefWidth="139.0" text="Party Size" />
+                        <TableColumn fx:id="colCode" prefWidth="259.0" text="Confirmation Code" />
                     </columns>
                 </TableView>
 
-                <Label fx:id="infoLabel" text="" styleClass="muted"/>
+                <Label fx:id="infoLabel" styleClass="muted" text="" />
             </children>
             <BorderPane.margin>
-                <Insets top="0.0" right="14.0" bottom="14.0" left="14.0"/>
+                <Insets bottom="14.0" left="14.0" right="14.0" top="0.0" />
             </BorderPane.margin>
         </VBox>
     </center>

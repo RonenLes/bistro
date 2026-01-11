@@ -5,6 +5,7 @@ import controllers.ClientControllerAware;
 import controllers.ClientUIHandler;
 import desktop_views.EditReservationViewController;
 import desktop_views.HistoryViewController;
+import desktop_views.PayViewController;
 import desktop_views.ReservationsViewController;
 import desktop_views.TablesViewController;
 import javafx.fxml.FXML;
@@ -18,11 +19,15 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import manager_screen.AddSubscriberScreenController;
 import manager_screen.EditTableScreenController;
+import manager_screen.ManagerReservationsScreenController;
 import manager_screen.ShowDataScreenController;
 import manager_screen.UpdateOpeningHoursScreenController;
+import manager_screen.SubscribersScreenController;
+import subscriber_screen.*;
 import responses.ManagerResponse;
 import responses.ReservationResponse;
 import responses.SeatingResponse;
+import responses.UserHistoryResponse;
 
 import java.io.IOException;
 import java.util.EnumMap;
@@ -64,6 +69,7 @@ public class DesktopScreenController implements ClientUIHandler {
 
     @FXML private ToggleButton historyBtn;
     @FXML private ToggleButton editReservationBtn;
+    @FXML private ToggleButton subscriberHomeBtn;
 
     @FXML private ToggleButton reportsBtn;
     @FXML private ToggleButton analyticsBtn;
@@ -71,8 +77,10 @@ public class DesktopScreenController implements ClientUIHandler {
 
     @FXML private ToggleButton editTablesBtn;
     @FXML private ToggleButton openingHoursBtn;
+    @FXML private ToggleButton managerReservationsBtn;
     @FXML private ToggleButton managerDataBtn;
     @FXML private ToggleButton addSubscriberBtn;
+    @FXML private ToggleButton viewSubscribersBtn;
 
     private boolean connected;
 
@@ -85,28 +93,35 @@ public class DesktopScreenController implements ClientUIHandler {
     private ReservationsViewController reservationsVC;
     private EditReservationViewController editReservationVC;
     private HistoryViewController historyVC;
+    private PayViewController payVC;
 
     private TablesViewController tablesVC;
     private EditTableScreenController editTableVC;
     private UpdateOpeningHoursScreenController openingHoursVC;
+    private ManagerReservationsScreenController managerReservationsVC;
     private ShowDataScreenController showDataVC;
     private AddSubscriberScreenController addSubscriberVC;
+    private SubscribersScreenController subscribersVC;
+    private SubscriberMainScreenController subscriberMainVC;
 
     private Role role = Role.GUEST;
     private Runnable onLogout;
 
     // Screens
     private enum ScreenKey {
+    	SUBSCRIBER_HOME,
         RESERVATIONS,
         WAITLIST,
         TABLES,
         HISTORY,
         EDIT_DETAILS,
         ADD_SUBSCRIBER,
+        SUBSCRIBERS,
         REPORTS,
         ANALYTICS,
         PAY,
         EDIT_TABLES,
+        MANAGER_RESERVATIONS,
         OPENING_HOURS,
         MANAGER_DATA
     }
@@ -123,6 +138,7 @@ public class DesktopScreenController implements ClientUIHandler {
 
         // SUBSCRIBER -> edit details, new reservations, pay, history
         ROLE_SCREENS.put(Role.SUBSCRIBER, EnumSet.of(
+        		 ScreenKey.SUBSCRIBER_HOME,
                 ScreenKey.EDIT_DETAILS,
                 ScreenKey.RESERVATIONS,
                 ScreenKey.PAY,
@@ -133,22 +149,28 @@ public class DesktopScreenController implements ClientUIHandler {
         ROLE_SCREENS.put(Role.REP, EnumSet.of(
                 ScreenKey.EDIT_DETAILS,
                 ScreenKey.RESERVATIONS,
-                ScreenKey.PAY,
-                ScreenKey.HISTORY,
+                //ScreenKey.PAY,                
                 ScreenKey.WAITLIST,
-                ScreenKey.TABLES
+                ScreenKey.EDIT_TABLES,
+                ScreenKey.MANAGER_DATA,
+                ScreenKey.MANAGER_RESERVATIONS,
+                ScreenKey.ADD_SUBSCRIBER,
+                ScreenKey.SUBSCRIBERS
+                //ScreenKey.TABLES
         ));
 
         // MANAGER -> manager screens
         ROLE_SCREENS.put(Role.MANAGER, EnumSet.of(
                 ScreenKey.EDIT_DETAILS,
                 ScreenKey.RESERVATIONS,
-                ScreenKey.PAY,
+                //ScreenKey.PAY,    maybe later
                 ScreenKey.ADD_SUBSCRIBER,
-                ScreenKey.TABLES,
+                ScreenKey.SUBSCRIBERS,
+               //ScreenKey.TABLES, 
                 ScreenKey.EDIT_TABLES,
                 ScreenKey.MANAGER_DATA,
                 ScreenKey.ANALYTICS,
+                ScreenKey.MANAGER_RESERVATIONS,
                 ScreenKey.REPORTS,
                 ScreenKey.OPENING_HOURS
         ));
@@ -165,6 +187,9 @@ public class DesktopScreenController implements ClientUIHandler {
         applyRoleVisibility();
         navToggleGroup.selectToggle(null); // clear selection
         selectDefaultForRole(); // pick default screen for this role
+        if (this.role == Role.SUBSCRIBER && clientController != null) {
+            clientController.requestUpcomingReservations();
+        }
     }
 
     public void setWelcomeName(String name) {
@@ -194,6 +219,7 @@ public class DesktopScreenController implements ClientUIHandler {
 
         registerNavButton(historyBtn,      ScreenKey.HISTORY);
         registerNavButton(editReservationBtn,  ScreenKey.EDIT_DETAILS);
+        registerNavButton(subscriberHomeBtn, ScreenKey.SUBSCRIBER_HOME);
 
         registerNavButton(reportsBtn,      ScreenKey.REPORTS);
         registerNavButton(analyticsBtn,    ScreenKey.ANALYTICS);
@@ -201,8 +227,11 @@ public class DesktopScreenController implements ClientUIHandler {
 
         registerNavButton(editTablesBtn,   ScreenKey.EDIT_TABLES);
         registerNavButton(openingHoursBtn, ScreenKey.OPENING_HOURS);
+        registerNavButton(managerReservationsBtn, ScreenKey.MANAGER_RESERVATIONS);
         registerNavButton(managerDataBtn,  ScreenKey.MANAGER_DATA);
         registerNavButton(addSubscriberBtn, ScreenKey.ADD_SUBSCRIBER);
+        registerNavButton(viewSubscribersBtn, ScreenKey.SUBSCRIBERS);
+
 
         applyRoleVisibility();
 
@@ -258,7 +287,7 @@ public class DesktopScreenController implements ClientUIHandler {
         switch (role) {
             case MANAGER -> selectIfVisible(reportsBtn);       // manager default
             case REP     -> selectIfVisible(reservationsBtn);  // rep default
-            case SUBSCRIBER -> selectIfVisible(reservationsBtn);    // subscriber default
+            case SUBSCRIBER -> selectIfVisible(subscriberHomeBtn);    // subscriber default
             case GUEST   -> selectIfVisible(reservationsBtn);  // guest default
             default      -> selectFirstAvailable();
         }
@@ -317,6 +346,8 @@ public class DesktopScreenController implements ClientUIHandler {
     // Navigation (REAL SCREEN LOADING)
     private void navigate(ScreenKey key) {
         switch (key) {
+        case SUBSCRIBER_HOME ->
+        			loadIntoContentHost("/subscriber_screen/SubscriberMainScreen.fxml");
             case RESERVATIONS ->
                     loadIntoContentHost("/desktop_views/ReservationsView.fxml");
 
@@ -334,6 +365,9 @@ public class DesktopScreenController implements ClientUIHandler {
 
             case ADD_SUBSCRIBER ->
                     loadIntoContentHost("/manager_screen/AddSubscriberScreen.fxml");
+            case SUBSCRIBERS ->
+            		loadIntoContentHost("/manager_screen/SubscribersScreen.fxml");
+
 
             case HISTORY ->
                     loadIntoContentHost("/desktop_views/HistoryView.fxml");
@@ -349,6 +383,8 @@ public class DesktopScreenController implements ClientUIHandler {
 
             case OPENING_HOURS ->
                     loadIntoContentHost("/manager_screen/UpdateOpeningHoursScreen.fxml");
+            case MANAGER_RESERVATIONS ->
+            		loadIntoContentHost("/manager_screen/ManagerReservationsScreen.fxml");
 
             case PAY ->
                     loadIntoContentHost("/desktop_views/PayView.fxml");
@@ -370,8 +406,15 @@ public class DesktopScreenController implements ClientUIHandler {
             if (ctrl instanceof TablesViewController tvc) tablesVC = tvc;
             if (ctrl instanceof EditTableScreenController etc) editTableVC = etc;
             if (ctrl instanceof UpdateOpeningHoursScreenController uohc) openingHoursVC = uohc;
+            if (ctrl instanceof ManagerReservationsScreenController mrc) managerReservationsVC = mrc;
             if (ctrl instanceof ShowDataScreenController sdc) showDataVC = sdc;
             if (ctrl instanceof AddSubscriberScreenController asc) addSubscriberVC = asc;
+            if (ctrl instanceof SubscribersScreenController ssc) subscribersVC = ssc;
+            if (ctrl instanceof SubscriberMainScreenController smc) {
+                subscriberMainVC = smc;
+                subscriberMainVC.setOnEditReservation(this::openEditReservation);
+            }
+            if (ctrl instanceof PayViewController pvc) payVC = pvc;
 
             // inject controller reference into screens that need it
             if (ctrl instanceof ClientControllerAware aware) {
@@ -388,9 +431,9 @@ public class DesktopScreenController implements ClientUIHandler {
 
             if (contentHost != null) contentHost.getChildren().setAll(view);
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-            Label error = new Label("Failed to load screen:\n" + fxmlPath);
+            Label error = new Label("Failed to load screen:\n" + fxmlPath + "\n" + e.getMessage());
             error.getStyleClass().add("muted");
             if (contentHost != null) contentHost.getChildren().setAll(error);
         }
@@ -401,11 +444,11 @@ public class DesktopScreenController implements ClientUIHandler {
     public void onReservationResponse(ReservationResponse response) {
         javafx.application.Platform.runLater(() -> {
             if (reservationsVC != null) {
-                // your ReservationsViewController currently expects handleServerResponse
+                
                 reservationsVC.handleServerResponse(response);
             }
             if (editReservationVC != null) {
-                // your EditReservationViewController currently expects onReservationResponse
+                
                 editReservationVC.onReservationResponse(response);
             }
         });
@@ -422,16 +465,44 @@ public class DesktopScreenController implements ClientUIHandler {
             if (historyVC != null) {
                 historyVC.renderHistory(rows);
             }
+            if (subscribersVC != null) {
+                subscribersVC.renderHistory(rows);
+            }
         });
     }
 
     @Override
     public void onUserHistoryError(String message) {
+    	
         javafx.application.Platform.runLater(() -> {
+        	 boolean handled = false;
             if (historyVC != null) {
                 historyVC.showHistoryError(message);
-            } else {
-                showError("History", message);
+                handled = true;
+            }
+            if (subscribersVC != null) {
+                subscribersVC.showHistoryError(message);
+                handled = true;
+            }
+            if(!handled) {
+            	showError("History", message);
+            }
+        });
+    }
+    @Override
+    public void onUpcomingReservationsResponse(java.util.List<ReservationResponse> rows) {
+    	javafx.application.Platform.runLater(() -> {
+            if (subscriberMainVC != null) {
+                subscriberMainVC.onUpcomingReservationsResponse(rows);
+            }
+        });
+    }
+
+    @Override
+    public void onUpcomingReservationsError(String message) {
+    	javafx.application.Platform.runLater(() -> {
+            if (subscriberMainVC != null) {
+                subscriberMainVC.onUpcomingReservationsError(message);
             }
         });
     }
@@ -448,8 +519,14 @@ public class DesktopScreenController implements ClientUIHandler {
             if (openingHoursVC != null) {
                 openingHoursVC.handleManagerResponse(response);
             }
+            if (managerReservationsVC != null) {
+                managerReservationsVC.handleManagerResponse(response);
+            }
             if (showDataVC != null) {
                 showDataVC.handleManagerResponse(response);
+            }
+            if (subscribersVC != null) {
+                subscribersVC.handleManagerResponse(response);
             }
             if (addSubscriberVC != null) {
                 addSubscriberVC.handleManagerResponse(response);
@@ -460,17 +537,36 @@ public class DesktopScreenController implements ClientUIHandler {
     // bill callbacks are required by ClientUIHandler, even if pay screen is not fully wired yet
     @Override
     public void onBillTotal(double baseTotal, boolean isCash) {
-        showInfo("Billing", "Bill total received: " + String.format("%.2f", baseTotal));
+    	javafx.application.Platform.runLater(() -> {
+            if (payVC != null) {
+                boolean isSubscriber = role == Role.SUBSCRIBER;
+                payVC.onBillTotalLoaded(baseTotal, isCash, isSubscriber);
+                return;
+            }
+            showInfo("Billing", "Bill total received: " + String.format("%.2f", baseTotal));
+        });
     }
 
     @Override
     public void onBillPaid(Integer tableNumber) {
-        showInfo("Billing", "Payment completed.");
+    	javafx.application.Platform.runLater(() -> {
+            if (payVC != null) {
+                payVC.onBillPaid(tableNumber);
+                return;
+            }
+            showInfo("Billing", "Payment completed.");
+        });
     }
 
     @Override
     public void onBillError(String message) {
-        showError("Billing", message == null ? "Billing failed." : message);
+    	javafx.application.Platform.runLater(() -> {
+            if (payVC != null) {
+                payVC.onBillingError(message);
+                return;
+            }
+            showError("Billing", message == null ? "Billing failed." : message);
+        });
     }
 
     @Override
@@ -506,5 +602,17 @@ public class DesktopScreenController implements ClientUIHandler {
             a.setContentText(msg == null ? "" : msg);
             a.showAndWait();
         });
+    }
+    private void openEditReservation(ReservationResponse reservation) {
+        if (reservation == null) return;
+        Integer code = reservation.getConfirmationCode();
+        if (code == null || code <= 0) {
+            showWarning("Reservation", "Missing confirmation code.");
+            return;
+        }
+        selectIfVisible(editReservationBtn);
+        if (editReservationVC != null) {
+            editReservationVC.loadReservationByCode(code);
+        }
     }
 }

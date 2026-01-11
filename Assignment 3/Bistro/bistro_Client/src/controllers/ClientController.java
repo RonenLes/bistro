@@ -51,6 +51,7 @@ public class ClientController {
     private String lastLoginUsername;
     private String currentEmail;
     private String currentPhone;
+    private UserCommand lastUserCommand;
 
     public ClientController(BistroEchoClient client) {
         this.client = client;
@@ -116,8 +117,36 @@ public class ClientController {
             Object responseData = response.getData();
 
             // user history payload: Response<List<UserHistoryResponse>>
-            if (responseData instanceof java.util.List<?> list) {
-                if (list.isEmpty() || list.get(0) instanceof UserHistoryResponse) {
+            if (responseData instanceof java.util.List<?> list ) {
+            	if (list.isEmpty()) {
+                    if (lastUserCommand == UserCommand.UPCOMING_RESERVATIONS_REQUEST) {
+                        if (ui != null) {
+                            ui.onUpcomingReservationsResponse(java.util.List.of());
+                        } else {
+                            safeUiInfo("Upcoming Reservations", "Upcoming reservations received. Rows: 0");
+                        }
+                        return;
+                    }
+                    if (lastUserCommand == UserCommand.HISTORY_REQUEST) {
+                        if (ui != null) {
+                            ui.onUserHistoryResponse(java.util.List.of());
+                        } else {
+                            safeUiInfo("History", "History response received. Rows: 0");
+                        }
+                        return;
+                    }
+                    if (list.get(0) instanceof ReservationResponse) {
+                        @SuppressWarnings("unchecked")
+                        java.util.List<ReservationResponse> rows = (java.util.List<ReservationResponse>) list;
+                        if (ui != null) {
+                            ui.onUpcomingReservationsResponse(rows);
+                        } else {
+                            safeUiInfo("Upcoming Reservations", "Upcoming reservations received. Rows: " + rows.size());
+                        }
+                        return;
+                    }
+                }
+                if (list.get(0) instanceof UserHistoryResponse) {
                     @SuppressWarnings("unchecked")
                     java.util.List<UserHistoryResponse> rows = (java.util.List<UserHistoryResponse>) list;
 
@@ -170,6 +199,22 @@ public class ClientController {
                         this.currentEmail = loginResponse.getEmail();
                         this.currentPhone = loginResponse.getPhone();
                         safeUiInfo("Subscriber Details", "Details updated successfully");
+                    }
+                    case HISTORY_RESPONSE -> {
+                        java.util.List<UserHistoryResponse> rows = loginResponse.getUserHistory();
+                        if (ui != null) {
+                            ui.onUserHistoryResponse(rows == null ? java.util.List.of() : rows);
+                        } else {
+                            safeUiInfo("History", "History response received. Rows: " + (rows == null ? 0 : rows.size()));
+                        }
+                    }
+                    case UPCOMING_RESERVATIONS_RESPONSE -> {
+                        java.util.List<ReservationResponse> rows = loginResponse.getUpcomingReservations();
+                        if (ui != null) {
+                            ui.onUpcomingReservationsResponse(rows == null ? java.util.List.of() : rows);
+                        } else {
+                            safeUiInfo("Upcoming Reservations", "Upcoming reservations received. Rows: " + (rows == null ? 0 : rows.size()));
+                        }
                     }
                 }
             }
@@ -265,6 +310,46 @@ public class ClientController {
 
         LoginRequest payload = new LoginRequest(username, null, UserCommand.HISTORY_REQUEST);
         Request<LoginRequest> req = new Request<>(Request.Command.USER_REQUEST, payload);
+        lastUserCommand = UserCommand.HISTORY_REQUEST;
+        sendRequest(req);
+    }
+    public void requestUpcomingReservations() {
+        if (!connected) {
+            safeUiWarning("Upcoming Reservations", "Not connected to server.");
+            return;
+        }
+
+        String username = currentUsername == null ? null : currentUsername.trim();
+        if (username == null || username.isEmpty()) {
+            safeUiWarning("Upcoming Reservations", "No active user session.");
+            return;
+        }
+
+        LoginRequest payload = new LoginRequest(username, null, UserCommand.UPCOMING_RESERVATIONS_REQUEST);
+        Request<LoginRequest> req = new Request<>(Request.Command.USER_REQUEST, payload);
+        lastUserCommand = UserCommand.UPCOMING_RESERVATIONS_REQUEST;
+        sendRequest(req);
+    }
+    
+    //for manager use
+    public void requestUserHistoryForSubscriber(String usernameRaw) {
+        if (!connected) {
+            safeUiWarning("History", "Not connected to server.");
+            return;
+        }
+
+        String username = usernameRaw == null ? null : usernameRaw.trim();
+
+        System.out.println("[HISTORY_REQUEST] sending username='" + username + "'");
+
+        if (username == null || username.isEmpty()) {
+            safeUiWarning("History", "No active user session.");
+            return;
+        }
+
+        LoginRequest payload = new LoginRequest(username, null, UserCommand.HISTORY_REQUEST);
+        Request<LoginRequest> req = new Request<>(Request.Command.USER_REQUEST, payload);
+        lastUserCommand = UserCommand.HISTORY_REQUEST;
         sendRequest(req);
     }
     // Manager request

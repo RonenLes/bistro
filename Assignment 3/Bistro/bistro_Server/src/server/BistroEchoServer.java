@@ -162,11 +162,19 @@ public class BistroEchoServer extends AbstractServer {
 	            switch (request.getCommand()) {
 
 	                case USER_REQUEST -> {
-	                    LoginRequest loginReq = (LoginRequest) request.getData();	                    
+	                	LoginRequest loginReq = (LoginRequest) request.getData();
 	                    Response<LoginResponse> loginResp = userControl.handleUserRequest(loginReq);
 	                    response = loginResp;
 	                    handleLoginSuccess(client, loginReq, loginResp);
-	                    System.out.println(session != null ? session.getUserId() : "session=null");
+	                    if (loginReq != null && loginReq.getUserCommand() == LoginRequest.UserCommand.LOGIN_REQUEST) {
+	                        if (session == null) {
+	                            System.out.println("session=null");
+	                        } else if (session.getUserId() == null || session.getUserId().isBlank()) {
+	                            System.out.println("session userId=<unset>");
+	                        } else {
+	                            System.out.println("session userId=" + session.getUserId());
+	                        }
+	                    }
 	                    
 	                }
 	                case RESERVATION_REQUEST->{

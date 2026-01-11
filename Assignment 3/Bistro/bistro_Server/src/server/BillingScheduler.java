@@ -85,7 +85,7 @@ public class BillingScheduler {
         scheduler.scheduleAtFixedRate(() -> {
             try (Connection conn = DBManager.getConnection()) {
                 if (conn == null) {
-                    System.err.println("tick failed: conn is null");
+                    System.err.println("tick failed: conn is null(1)");
                     return;
                 }
                 conn.setAutoCommit(false);
@@ -96,7 +96,7 @@ public class BillingScheduler {
                     conn.commit();
                 } catch (Exception ex) {
                     try { conn.rollback(); } catch (Exception ignore) {}
-                    System.err.println("tick failed (rolled back): " + ex.getMessage());
+                    System.err.println("tick failed (rolled back(2)): " + ex.getMessage());
                 }
 
             } catch (Exception e) {
@@ -107,7 +107,7 @@ public class BillingScheduler {
         reminderScheduler.scheduleAtFixedRate(() -> {
             try (Connection conn = DBManager.getConnection()) {
                 if (conn == null) {
-                    System.err.println("reminder tick failed: conn is null");
+                    System.err.println("reminder tick failed: conn is null(3)");
                     return;
                 }
 
@@ -118,18 +118,18 @@ public class BillingScheduler {
                     conn.commit();
                 } catch (Exception ex) {
                     try { conn.rollback(); } catch (Exception ignore) {}
-                    System.err.println("findPrior2HourReservation failed: " + ex.getMessage());
+                    System.err.println("findPrior2HourReservation failed(4): " + ex.getMessage());
                 }
 
             } catch (Exception e) {
-                System.err.println("reminder tick failed: " + e.getMessage());
+                System.err.println("reminder tick failed(5): " + e.getMessage());
             }
         }, 0, 30, TimeUnit.MINUTES);
         
         monthlyReportScheduler.scheduleAtFixedRate(() -> {
             try {
                 if (reportControl == null) {
-                    System.err.println("Monthly report skipped: reportControl is null");
+                    System.err.println("Monthly report skipped: reportControl is null(6)");
                     return;
                 }
 

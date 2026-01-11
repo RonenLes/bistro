@@ -11,18 +11,19 @@
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane prefHeight="800.0" prefWidth="1280.0" styleClass="surface"
-            xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+            xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="manager_screen.ShowDataScreenController">
     <top>
         <HBox spacing="12.0" alignment="CENTER_LEFT" BorderPane.alignment="CENTER">
             <children>
                 <VBox spacing="2.0">
                     <children>
                         <Label text="Manager Data" styleClass="h2"/>
-                        <Label text="View subscribers, waiting list, and seating (placeholder UI)" styleClass="muted"/>
+                         <Label text="View waiting list and seating" styleClass="muted"/>
                     </children>
                 </VBox>
                 <Region HBox.hgrow="ALWAYS"/>
-                <Button text="Refresh" styleClass="ghost"/>
+                <Button text="Refresh" styleClass="ghost" onAction="#onRefresh"/>
             </children>
             <BorderPane.margin>
                 <Insets top="14.0" right="14.0" bottom="10.0" left="14.0"/>
@@ -32,33 +33,17 @@
 
     <center>
         <VBox spacing="14.0" BorderPane.alignment="CENTER">
-            <children>
-                <VBox spacing="10.0" styleClass="card">
-                    <children>
-                        <Label text="Subscribers" styleClass="subtle"/>
-                        <TableView prefHeight="220.0">
-                            <columns>
-                                <TableColumn text="User ID" prefWidth="160.0"/>
-                                <TableColumn text="Username" prefWidth="180.0"/>
-                                <TableColumn text="Phone" prefWidth="180.0"/>
-                                <TableColumn text="Email" prefWidth="240.0"/>
-                            </columns>
-                        </TableView>
-                    </children>
-                    <padding><Insets top="16.0" right="16.0" bottom="16.0" left="16.0"/></padding>
-                </VBox>
-
+            <children>                
                 <HBox spacing="14.0">
                     <children>
                         <VBox prefWidth="620.0" spacing="10.0" styleClass="card">
                             <children>
                                 <Label text="Waiting List" styleClass="subtle"/>
-                                <TableView prefHeight="260.0">
+                                <TableView fx:id="waitingTable" prefHeight="260.0">
                                     <columns>
-                                        <TableColumn text="Code" prefWidth="140.0"/>
-                                        <TableColumn text="Party" prefWidth="110.0"/>
-                                        <TableColumn text="Priority" prefWidth="120.0"/>
-                                        <TableColumn text="Status" prefWidth="160.0"/>
+                                        <TableColumn fx:id="colWaitingPriority" text="Priority" prefWidth="140.0"/>
+                                        <TableColumn fx:id="colWaitingTime" text="Requested At" prefWidth="190.0"/>
+                                        <TableColumn fx:id="colWaitingContact" text="Contact" prefWidth="220.0"/>
                                     </columns>
                                 </TableView>
                             </children>
@@ -68,13 +53,13 @@
                         <VBox prefWidth="620.0" spacing="10.0" styleClass="card">
                             <children>
                                 <Label text="Current Seating" styleClass="subtle"/>
-                                <TableView prefHeight="260.0">
+                                <TableView fx:id="seatingTable" prefHeight="260.0">
                                     <columns>
-                                        <TableColumn text="Table" prefWidth="100.0"/>
-                                        <TableColumn text="Party" prefWidth="100.0"/>
-                                        <TableColumn text="Checked In" prefWidth="140.0"/>
-                                        <TableColumn text="Code" prefWidth="160.0"/>
-                                        <TableColumn text="Type" prefWidth="120.0"/>
+                                        <TableColumn fx:id="colSeatingTable" text="Table" prefWidth="100.0"/>
+                                        <TableColumn fx:id="colSeatingParty" text="Party" prefWidth="100.0"/>
+                                        <TableColumn fx:id="colSeatingCheckIn" text="Checked In" prefWidth="180.0"/>
+                                        <TableColumn fx:id="colSeatingCode" text="Code" prefWidth="160.0"/>
+                                        <TableColumn fx:id="colSeatingType" text="Type" prefWidth="120.0"/>
                                     </columns>
                                 </TableView>
                             </children>
@@ -82,6 +67,7 @@
                         </VBox>
                     </children>
                 </HBox>
+                <Label fx:id="infoLabel" text="" styleClass="muted"/>
             </children>
             <BorderPane.margin>
                 <Insets top="0.0" right="14.0" bottom="14.0" left="14.0"/>

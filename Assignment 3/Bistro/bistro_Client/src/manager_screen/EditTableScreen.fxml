@@ -20,7 +20,7 @@
                 <VBox spacing="2.0">
                     <children>
                         <Label text="Edit Tables" styleClass="h2"/>
-                        <Label text="Manage table status and seating capacity (placeholder UI)" styleClass="muted"/>
+                        <Label text="Manage table status and seating capacity " styleClass="muted"/>
                     </children>
                 </VBox>
                 <Region HBox.hgrow="ALWAYS"/>

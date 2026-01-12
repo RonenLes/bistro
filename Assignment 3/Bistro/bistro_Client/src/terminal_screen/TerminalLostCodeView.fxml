@@ -46,6 +46,10 @@
                     prefWidth="240.0"
                     onAction="#onSend"
                     defaultButton="true" />
+            <Button text="Scan QR code"
+                    prefHeight="54.0"
+                    prefWidth="240.0"
+                    onAction="#onScanQr" />         
 
             <Label fx:id="statusLabel"
                    text=" "

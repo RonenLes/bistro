@@ -6,6 +6,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
+import javafx.scene.control.TextInputDialog;
 
 public class TerminalLostCodeController implements ClientControllerAware {
 
@@ -39,26 +40,20 @@ public class TerminalLostCodeController implements ClientControllerAware {
     @FXML
     private void onSend() {
         String contact = phoneOrEmailField == null ? "" : phoneOrEmailField.getText().trim();
-        if (contact.isEmpty()) { setStatus("Enter phone or email."); return; }
-
-        // Double-check (in case text was set programmatically)
-        if (contact.length() > MAX_LEN) {
-            setStatus("Too long. Max " + MAX_LEN + " characters.");
-            return;
-        }
-
-        boolean email = contact.contains("@") && contact.contains(".");
-        boolean phone = contact.matches("[0-9+\\- ]{6,20}");
-        if (!email && !phone) { setStatus("Enter a valid phone/email."); return; }
-
-        if (!connected || clientController == null) {
-            setStatus("Demo: recovery sent to " + contact + " (offline).");
-            return;
-        }
-
-        clientController.requestLostCode(contact);
-        setStatus("Requesting your code...");
+        submitContact(contact, true);
       
+    }
+    @FXML
+    private void onScanQr() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Scan QR Code");
+        dialog.setHeaderText("Enter subscriber user ID");
+        dialog.setContentText("User ID:");
+
+        dialog.showAndWait().ifPresent(input -> {
+            String userId = input == null ? "" : input.trim();
+            submitContact(userId, false);
+        });
     }
 
     @FXML
@@ -70,4 +65,31 @@ public class TerminalLostCodeController implements ClientControllerAware {
     private void setStatus(String msg) {
         if (statusLabel != null) statusLabel.setText(msg == null ? "" : msg);
     }
+    
+
+    private void submitContact(String contact, boolean validateContact) {
+        if (contact.isEmpty()) {
+            setStatus(validateContact ? "Enter phone or email." : "Enter user ID.");
+            return;
+        }
+        if (contact.length() > MAX_LEN) {
+            setStatus("Too long. Max " + MAX_LEN + " characters.");
+            return;
+        }
+        if (validateContact) {
+            boolean email = contact.contains("@") && contact.contains(".");
+            boolean phone = contact.matches("[0-9+\\- ]{6,20}");
+            if (!email && !phone) {
+                setStatus("Enter a valid phone/email.");
+                return;
+            }
+        }
+        if (!connected || clientController == null) {
+            setStatus("Demo: recovery sent to " + contact + " (offline).");
+            return;
+        }
+        setStatus("Sent recovery request (placeholder).");
+
+    }
+   
 }

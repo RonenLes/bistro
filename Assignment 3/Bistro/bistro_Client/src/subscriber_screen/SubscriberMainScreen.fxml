@@ -23,6 +23,8 @@
                     </children>
                 </VBox>
                 <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="qrLabel" text="User ID: -" styleClass="muted"/>
+                <Button text="QR" styleClass="ghost" onAction="#onShowQr"/>
                 <Button text="Refresh" styleClass="ghost" onAction="#onRefresh"/>
             </children>
             <BorderPane.margin>

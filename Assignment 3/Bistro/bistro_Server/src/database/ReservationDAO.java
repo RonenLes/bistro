@@ -32,7 +32,8 @@ public class ReservationDAO {
 															"VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 															
 	
-	//SELECT statements	
+	//SELECT statements
+	
 	private static final String SELECT_UPCOMING_RESERVATIONS_BY_USER =
 	        "SELECT reservationDate, startTime, partySize, confirmationCode " +
 	        "FROM reservation " +
@@ -106,7 +107,7 @@ public class ReservationDAO {
 	        "UPDATE `reservation` " +
 	        "SET reservationDate = ?, status = ?, partySize = ?, allocatedCapacity = ?, guestContact = ?, userID = ?, startTime = ? " +
 	        "WHERE confirmationCode = ?";
-
+	
 	
 	/**
 	 * Represents an overbooked slot (a date + slot start time) and how many reservations overlap that slot.

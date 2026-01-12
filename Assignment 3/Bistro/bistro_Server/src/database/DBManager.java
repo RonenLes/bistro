@@ -104,12 +104,12 @@ public class DBManager {
             db_Pass = props.getProperty("db_Pass").trim();
             
             //validate that got the details from file
-            if (db_Url == null || db_Url.isBlank())
-                throw new RuntimeException("Missing property: db_Url");
-            if (db_User == null || db_User.isBlank())
-                throw new RuntimeException("Missing property: db_User");
-            if (db_Pass == null)
-                throw new RuntimeException("Missing property: db_Pass");
+            if (db_Url == null || db_Url.isBlank()) throw new RuntimeException("Missing property: db_Url");
+               
+            if (db_User == null || db_User.isBlank()) throw new RuntimeException("Missing property: db_User");
+               
+            if (db_Pass == null) throw new RuntimeException("Missing property: db_Pass");
+               
 
             //debugging 
             System.out.println(db_Url);

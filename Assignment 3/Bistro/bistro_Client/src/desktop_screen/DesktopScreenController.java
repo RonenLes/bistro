@@ -406,16 +406,15 @@ public class DesktopScreenController implements ClientUIHandler {
             // cache known controllers so we can route responses later
             if (ctrl instanceof ReservationsViewController rvc) reservationsVC = rvc;
             if (ctrl instanceof EditReservationViewController edvc) editReservationVC = edvc;
-<<<<<<< HEAD
+
             if (ctrl instanceof HistoryViewController hvc) historyVC = hvc;
             if (ctrl instanceof ReportsViewController rvc) reportsVC = rvc;
-=======
             if (ctrl instanceof HistoryViewController hvc) {
                 historyVC = hvc;
                 historyVC.setUserContext(role, buildDiscountInfo());
             }
 
->>>>>>> ronen-database/entities
+
             if (ctrl instanceof TablesViewController tvc) tablesVC = tvc;
             if (ctrl instanceof EditTableScreenController etc) editTableVC = etc;
             if (ctrl instanceof UpdateOpeningHoursScreenController uohc) openingHoursVC = uohc;

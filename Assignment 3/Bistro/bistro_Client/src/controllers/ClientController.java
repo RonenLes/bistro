@@ -329,7 +329,6 @@ public class ClientController {
 
         sendRequest(req);
     }
-<<<<<<< HEAD
     public void requestReports(ReportRequest reportRequest) {
         if (!connected) {
             safeUiWarning("Reports", "Not connected to server.");
@@ -343,8 +342,7 @@ public class ClientController {
         Request<ReportRequest> req = new Request<>(Request.Command.REPORT_REQUEST, reportRequest);
         sendRequest(req);
     }
-    public void requestLostCode(String contact) {
-=======
+    
     
     public void setLostCodeListener(java.util.function.Consumer<Integer> listener) {
         this.lostCodeListener = listener;
@@ -355,7 +353,6 @@ public class ClientController {
     }
 
     public void requestLostCode(String contactRaw) {
->>>>>>> ronen-database/entities
         if (!connected) {
             safeUiWarning("Retrieve Code", "Not connected to server.");
             return;

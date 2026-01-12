@@ -41,7 +41,7 @@
                 </children>
             </VBox>
 
-            <Button text="Send code"
+            <Button text="Show me my code"
                     prefHeight="54.0"
                     prefWidth="240.0"
                     onAction="#onSend"

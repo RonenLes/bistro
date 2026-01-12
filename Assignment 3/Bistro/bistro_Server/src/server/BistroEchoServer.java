@@ -151,9 +151,8 @@ public class BistroEchoServer extends AbstractServer {
 	    try {
 	        Object decoded = msg;
 	        if (msg instanceof byte[] bytes)  decoded = KryoUtil.deserialize(bytes);	
-	        System.out.println("SERVER decoded = " + decoded.getClass().getName()
-	                + " | module=" + decoded.getClass().getModule().getName());
-
+	        System.out.println("SERVER decoded request ");
+	                
 
 	        if (!(decoded instanceof Request<?> request)) {response = new Response<>(false, "Invalid request type", null);}
 	            

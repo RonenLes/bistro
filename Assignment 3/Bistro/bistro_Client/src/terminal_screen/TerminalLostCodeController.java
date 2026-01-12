@@ -72,10 +72,12 @@ public class TerminalLostCodeController implements ClientControllerAware {
             setStatus(validateContact ? "Enter phone or email." : "Enter user ID.");
             return;
         }
+
         if (contact.length() > MAX_LEN) {
             setStatus("Too long. Max " + MAX_LEN + " characters.");
             return;
         }
+
         if (validateContact) {
             boolean email = contact.contains("@") && contact.contains(".");
             boolean phone = contact.matches("[0-9+\\- ]{6,20}");
@@ -84,12 +86,14 @@ public class TerminalLostCodeController implements ClientControllerAware {
                 return;
             }
         }
+
         if (!connected || clientController == null) {
-            setStatus("Demo: recovery sent to " + contact + " (offline).");
+            setStatus("Terminal is offline.");
             return;
         }
-        setStatus("Sent recovery request (placeholder).");
 
+        clientController.requestLostCode(contact);
+        setStatus("Recovery request sent.");
     }
    
 }

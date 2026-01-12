@@ -309,18 +309,19 @@ public class ClientController {
         sendRequest(req);
     }
 
-    public void requestLostCode(String contact) {
+    public void requestLostCode(String contactRaw) {
         if (!connected) {
-            safeUiWarning("Lost code", "Not connected to server.");
-            return;
-        }
-        if (contact == null || contact.isBlank()) {
-            safeUiWarning("Lost code", "Contact is required.");
+            safeUiWarning("Retrieve Code", "Not connected to server.");
             return;
         }
 
-        String trimmedContact = contact.trim();
-        Request<String> req = new Request<>(Request.Command.LOST_CODE, trimmedContact);
+        String contact = contactRaw == null ? null : contactRaw.trim();
+        if (contact == null || contact.isEmpty()) {
+            safeUiWarning("Retrieve Code", "Missing contact or user ID.");
+            return;
+        }
+
+        Request<String> req = new Request<>(Request.Command.LOST_CODE, contact);
         sendRequest(req);
     }
     

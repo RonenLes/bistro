@@ -64,6 +64,12 @@ public class BillingControl {
 		        	conn.rollback();
 		            return failResponse("No open seating found for this reservation");
 		        }
+		        Bill existingBill = billDAO.getOpenBillBySeatingId(conn, seatingId);
+		        if(existingBill!=null) {
+		        	BillResponse br = new BillResponse(BillResponseType.ANSWER_TO_REQUEST_TO_SEE_BILL,existingBill.getBillID(),true);
+		        	return successResponse("Here is your bill", br);
+		        }
+		        
 		        Double bill=generateRandomBillSum();
 		        Double finalBill;
 		        int billId;

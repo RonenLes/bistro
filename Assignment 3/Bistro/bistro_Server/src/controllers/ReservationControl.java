@@ -72,7 +72,7 @@ public class ReservationControl {
 
         try (Connection conn = DBManager.getConnection()) {
         	
-        	
+        	System.out.println(req.getReservationDate()+" received");
         	
             List<LocalTime> availableTimes =getAvailableTimes(conn, req.getReservationDate(), req.getPartySize());            
 

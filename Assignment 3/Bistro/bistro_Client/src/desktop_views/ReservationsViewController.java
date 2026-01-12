@@ -65,22 +65,7 @@ public class ReservationsViewController implements ClientControllerAware {
         this.clientController = controller;
         this.connected = connected;
         
-        if (controller != null) {
-            // Explicitly check if we have a Subscriber ID first
-            String subId = controller.getCurrentUserId();
-            
-            if (subId != null && !subId.isEmpty()) {
-                // This is a Subscriber
-                this.guestMode = false;
-                this.userID = subId;
-                this.guestContact = null;
-            } else {
-                // This is a Guest
-                this.guestMode = true;
-                this.userID = null;
-                this.guestContact = controller.getGuestContact();
-            }
-        }
+        refreshIdentityFromController();
     }
 
     private void initDatePickerLimit() {
@@ -171,12 +156,20 @@ public class ReservationsViewController implements ClientControllerAware {
         currentDate = date;
 
         if (clientController == null) { setInfo("ClientController not set."); return; }
-
+        refreshIdentityFromController();
         setInfo("Fetching available times...");
 
         String userId = guestMode ? null : this.userID;
         String guestContactLocal = guestMode ? this.guestContact : null;
-
+        if (guestMode && (guestContactLocal == null || guestContactLocal.isBlank())) {
+            setInfo("Guest contact is required to create a reservation.");
+            return;
+        }
+        if (!guestMode && (userId == null || userId.isBlank())) {
+            setInfo("Subscriber ID is missing. Please log in again.");
+            return;
+        }
+        
         clientController.requestNewReservation(
                 ReservationRequestType.FIRST_PHASE,
                 date,
@@ -306,10 +299,19 @@ public class ReservationsViewController implements ClientControllerAware {
      */
     private void sendSecondPhaseRequest(LocalDate date, LocalTime time) {
         setInfo("Confirming reservation for " + date + " at " + time + "...");
-
+        refreshIdentityFromController();
         String userId = guestMode ? null : this.userID;
         String guestContactLocal = guestMode ? this.guestContact : null;
+        if (guestMode && (guestContactLocal == null || guestContactLocal.isBlank())) {
+            setInfo("Guest contact is required to confirm a reservation.");
+            return;
+        }
+        if (!guestMode && (userId == null || userId.isBlank())) {
+            setInfo("Subscriber ID is missing. Please log in again.");
+            return;
+        }
 
+        
         clientController.requestNewReservation(
                 ReservationRequestType.SECOND_PHASE,
                 date,
@@ -319,6 +321,26 @@ public class ReservationsViewController implements ClientControllerAware {
                 guestContactLocal,
                 0
         );
+    }
+    
+    private void refreshIdentityFromController() {
+        if (clientController == null) {
+            return;
+        }
+
+        if (clientController.isGuestSession()) {
+            this.guestMode = true;
+            this.userID = null;
+            this.guestContact = clientController.getGuestContact();
+            return;
+        }
+
+        String subId = clientController.getCurrentUserId();
+        String username = clientController.getCurrentUsername();
+
+        this.guestMode = false;
+        this.userID = (subId != null && !subId.isBlank()) ? subId : username;
+        this.guestContact = null;
     }
 
     private void switchToStep1() {

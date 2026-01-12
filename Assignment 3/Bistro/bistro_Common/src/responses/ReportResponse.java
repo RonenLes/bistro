@@ -1,31 +1,36 @@
 package responses;
 
-import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.List;
 
-public class ReportResponse implements Serializable {
+public class ReportResponse {
 
-    private static final long serialVersionUID = 1L;
+    
 
-    public enum ReportCommand {
-        VISITOR_REPORT_RES,
-        SUBSRIBER_REPORT_RES
-    }
     
-    public ReportResponse() {}
+    private final String month; 
+
     
+    private final List<LocalDateTime[]> visits;
+
     
-    private ReportCommand type;
-    private byte[] payload;   
-    public ReportResponse(ReportCommand type,byte[] payload) {
+    private final Integer[][] dailyCounts;
+
+    
+    public ReportResponse(String month,List<LocalDateTime[]> visits,Integer[][] dailyCounts) {
         
-        this.type = type;
-        this.payload = payload;
+        this.month = month;
+        this.visits = visits;
+        this.dailyCounts = dailyCounts;
     }
     
-    public ReportCommand getType() {
-        return type;
+    public String getMonth() {
+        return month;
     }
-    public byte[] getPayload() {
-        return payload;
+    public List<LocalDateTime[]> getVisits() {
+        return visits;
+    }
+    public Integer[][] getDailyCounts() {
+        return dailyCounts;
     }
 }

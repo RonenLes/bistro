@@ -1,22 +1,21 @@
 package requests;
 
+import java.time.YearMonth;
+
 public class ReportRequest {
-	public enum ReportCommand{
-		VISITOR_REPORT,
-		SUBSRIBER_REPORT;
-	}
-	
-	private ReportCommand type;
-	
-	public ReportRequest() {}
-	
-	public ReportRequest(ReportCommand type) {
-		this.type = type;
-	}
-	
-	public ReportCommand getType() {
-		return type;
-	}
-	
-	
+
+    
+
+    
+    private YearMonth month;
+
+    public ReportRequest() {}
+
+    public ReportRequest( YearMonth month) {
+        this.month = month;
+    }
+
+    public YearMonth getMonth() {
+        return month;
+    }
 }

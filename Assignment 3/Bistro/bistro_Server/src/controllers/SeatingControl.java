@@ -164,7 +164,7 @@ public class SeatingControl {
                 
                 int confirmationCode = reservationDAO.generateConfirmationCode(conn);
                 
-                int reservationId = reservationDAO.insertNewReservation(conn,today,partySize,allocatedCapacity,confirmationCode, userID,nowTime,"NEW",guestContact);
+                int reservationId = reservationDAO.insertNewReservation(conn,today,partySize,allocatedCapacity,confirmationCode, userID,nowTime,"CONFIRMED",guestContact);
 
                 if (reservationId <= 0) {
                     rollback(conn);
@@ -173,19 +173,40 @@ public class SeatingControl {
                 if (table == null) {
                     return moveToWaiting(conn,reservationId,confirmationCode,0,"No available table right now - added to waiting list");
                 }
-
+                Reservation r=reservationDAO.getReservationByReservationID(conn, reservationId);
+                boolean isSent;
+                if(r.getGuestContact()==null || r.getGuestContact().isBlank()) {
+                	User user=userDAO.getUserByUserID(conn, userID);
+                	if(user==null) {
+                		rollback(conn);
+                        return new Response<>(false, "couldnt find user to send confirmation code to", null);
+                	}
+                	isSent=notificationControl.sendConfirmationToUser(user, confirmationCode);
+                	if(!isSent) {
+                		rollback(conn);
+                		return new Response<>(false, "couldnt send confirmation code to user", null);
+                	}
+                }
+                else {
+                	isSent=notificationControl.sendConfirmationToGuest(guestContact, confirmationCode);
+                	if(!isSent) {
+                		rollback(conn);
+                		return new Response<>(false, "couldnt send confirmation code to guest", null);
+                	}
+                }
                 int seatingId = seatingDAO.checkIn(conn, table.getTableID(), reservationId);
                 if (seatingId == -1) {
                     rollback(conn);
                     return new Response<>(false, "Failed to create seating record", null);
                 }
-
+                
                 boolean statusUpdated = reservationDAO.updateStatusByReservationID(conn, reservationId, "SEATED");
                 if (!statusUpdated) {
                     rollback(conn);
                     return new Response<>(false, "Failed to update reservation status", null);
                 }
-
+                
+                
                 conn.commit();
 
                 SeatingResponse seatingResponse =new SeatingResponse(table.getTableNumber(), table.getCapacity(), nowTime,
@@ -235,7 +256,6 @@ public class SeatingControl {
             return new Response<>(false, "Check-in failed: " + e.getMessage(), null);
         }
     }
-    
     
     public Response<SeatingResponse> checkOutAndAssignNew(int tableID){
     	try (Connection conn = DBManager.getConnection()){

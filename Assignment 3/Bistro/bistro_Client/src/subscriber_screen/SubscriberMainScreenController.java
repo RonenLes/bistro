@@ -39,7 +39,7 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
    
 
     private final ObservableList<ReservationResponse> reservations = FXCollections.observableArrayList();
-
+    
     private ClientController clientController;
     private boolean connected;
     private Runnable onLogout;
@@ -219,6 +219,10 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
     @Override
     public void routeToDesktop(DesktopScreenController.Role role, String username) {
         // already in subscriber screen
+    }
+    @Override
+    public void onReportResponse(responses.ReportResponse reportResponse) {
+        // Subscriber home screen doesn't display reports
     }
 
     @Override

@@ -9,6 +9,7 @@ import kryo.KryoUtil;
 import java.util.HashMap;
 import java.util.Map;
 //requests
+import requests.ReportRequest;
 import requests.ManagerRequest;
 import requests.BillRequest;
 import requests.BillRequest.BillRequestType;
@@ -21,6 +22,7 @@ import requests.SeatingRequest;
 import requests.SeatingRequest.SeatingRequestType;
 //responses
 import responses.ManagerResponse;
+import responses.ReportResponse;
 import responses.BillResponse;
 import responses.SeatingResponse;
 import responses.LoginResponse;
@@ -254,6 +256,15 @@ public class ClientController {
                     uiPayload(seatingResponse);
                 }
             }
+            else if (responseData instanceof ReportResponse reportResponse) {
+                if (ui != null) {
+                    ui.onReportResponse(reportResponse);
+                } else {
+                    safeUiInfo("Reports", "Report received for " + reportResponse.getMonth());
+                }
+                return;
+            }
+            
             else if (responseData instanceof ManagerResponse managerResponse) {
                 if (ui != null) {
                     ui.onManagerResponse(managerResponse);
@@ -308,7 +319,19 @@ public class ClientController {
 
         sendRequest(req);
     }
+    public void requestReports(ReportRequest reportRequest) {
+        if (!connected) {
+            safeUiWarning("Reports", "Not connected to server.");
+            return;
+        }
+        if (reportRequest == null) {
+            safeUiWarning("Reports", "Missing report request.");
+            return;
+        }
 
+        Request<ReportRequest> req = new Request<>(Request.Command.REPORT_REQUEST, reportRequest);
+        sendRequest(req);
+    }
     public void requestLostCode(String contact) {
         if (!connected) {
             safeUiWarning("Lost code", "Not connected to server.");

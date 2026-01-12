@@ -92,9 +92,18 @@ public class ReservationDAO {
 	        "AND status = 'APPROVED'";
 	private static final String SELECT_CONFIRMATION_CODE_EXISTS = "SELECT 1 FROM reservation WHERE confirmationCode = ? LIMIT 1";
 	// Put this SQL near the top of ReservationDAO
-	private static final String SELECT_RESERVATION_COUNTS_BY_DAY_BETWEEN ="SELECT DAY(timeOfCreation) AS dayOfMonth, COUNT(*) AS cnt " +"FROM reservation " +
-	        "WHERE timeOfCreation >= ? AND timeOfCreation < ? " +
-	        "GROUP BY DAY(timeOfCreation)";
+	private static final String SELECT_RESERVATION_COUNTS_BY_DAY_BETWEEN =
+	        "SELECT DAY(r.reservationDate) AS dayOfMonth, COUNT(*) AS cnt " +
+	        "FROM reservation r " +
+	        "WHERE r.reservationDate >= ? AND r.reservationDate < ? " +
+	        "AND NOT EXISTS ( " +
+	        "   SELECT 1 FROM seating s " +
+	        "   WHERE s.reservationID = r.reservationID " +
+	        "     AND s.checkInTime IS NOT NULL " +
+	        "     AND ABS(TIMESTAMPDIFF(MINUTE, r.timeOfCreation, s.checkInTime)) <= 60 " +
+	        ") " +
+	        "GROUP BY DAY(r.reservationDate)";
+
 
 	private static final String SELECT_RESERVATIONS_BY_DATE =
 	        "SELECT * FROM reservation WHERE reservationDate = ?";
@@ -584,20 +593,21 @@ public class ReservationDAO {
 	}
 	
 	public Integer[] getCountOfReservationsBetween(Connection conn, LocalDateTime start, LocalDateTime end) throws SQLException {
-		Integer[] counts = new Integer[31];
+	    Integer[] counts = new Integer[31];
 	    for (int i = 0; i < counts.length; i++) counts[i] = 0;
+
 	    if (start == null || end == null) {
-	        return counts; 
+	        return counts;
 	    }
+
 	    try (PreparedStatement ps = conn.prepareStatement(SELECT_RESERVATION_COUNTS_BY_DAY_BETWEEN)) {
-	        ps.setTimestamp(1, Timestamp.valueOf(start));
-	        ps.setTimestamp(2, Timestamp.valueOf(end));
+	        ps.setDate(1, java.sql.Date.valueOf(start.toLocalDate()));
+	        ps.setDate(2, java.sql.Date.valueOf(end.toLocalDate()));
 
 	        try (ResultSet rs = ps.executeQuery()) {
 	            while (rs.next()) {
 	                int day = rs.getInt("dayOfMonth"); // 1..31
 	                int cnt = rs.getInt("cnt");
-
 	                if (day >= 1 && day <= 31) {
 	                    counts[day - 1] = cnt;
 	                }
@@ -606,6 +616,7 @@ public class ReservationDAO {
 	    }
 	    return counts;
 	}
+
 	public List<Reservation> fetchReservationsByDate(Connection conn, LocalDate date) throws SQLException {
 
 	    List<Reservation> reservations = new ArrayList<>();

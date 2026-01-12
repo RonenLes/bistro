@@ -178,9 +178,23 @@ public class BistroEchoServer extends AbstractServer {
 	                }
 	                case RESERVATION_REQUEST->{
 	                	ReservationRequest reservationReq = (ReservationRequest) request.getData();
-	                	reservationReq.setUserID(loggedUsers.get(client).getUserId());
-	                	Response<ReservationResponse> reservationResp = reservationControl.handleReservationRequest(reservationReq);
-	                	response = reservationResp;	                	
+	                   
+	                     session = loggedUsers.get(client);
+	                	if (session != null) {
+	                		String existingUserId = reservationReq.getUserID();
+	                		String existingContact = reservationReq.getGuestContact();
+	                		boolean hasIdentity = (existingUserId != null && !existingUserId.isBlank())
+	                				|| (existingContact != null && !existingContact.isBlank());
+	                		if (!hasIdentity) {
+	                			String sessionUserId = session.getUserId();
+	                			if (sessionUserId != null && !sessionUserId.isBlank()) {
+	                				reservationReq.setUserID(sessionUserId);
+	                			}
+	                		}
+	                	}
+	                    Response<ReservationResponse> reservationResp =
+	                            reservationControl.handleReservationRequest(reservationReq);
+	                    response = reservationResp;
 	                }
 	                case SEATING_REQUEST ->{
 	                	SeatingRequest seatingReq = (SeatingRequest) request.getData();
@@ -257,6 +271,9 @@ public class BistroEchoServer extends AbstractServer {
 		clientSession.setUsername(logRes.getData().getUsername());
 		clientSession.setRole(logRes.getData().getRole());		
 		serverGUI.onClientLogin(userId,clientSession.getUsername(),clientSession.getRole(),clientSession.getIp());
+		System.out.println("[LOGIN SUCCESS] role=" + logRes.getData().getRole()
+		        + " userId=" + logRes.getData().getUserID()
+		        + " username=" + logRes.getData().getUsername());
 	}
 	
 	

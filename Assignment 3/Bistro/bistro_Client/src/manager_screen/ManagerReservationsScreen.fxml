@@ -34,6 +34,13 @@
     <center>
         <VBox spacing="14.0" BorderPane.alignment="CENTER">
             <children>
+            <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <children>
+                        <Label styleClass="h3" text="Create reservation on behalf of a guest or subscriber" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Button onAction="#onOpenReservationFlow" styleClass="primary" text="Start reservation" />
+                    </children>
+                </HBox>
                 <TableView fx:id="reservationsTable" prefHeight="420.0">
                     <columns>
                         <TableColumn fx:id="colContact" prefWidth="317.0" text="Contact" />

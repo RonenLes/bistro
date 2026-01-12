@@ -45,6 +45,9 @@ public class ReservationsViewController implements ClientControllerAware {
     private boolean guestMode;
     private String guestContact;
     private boolean connected;
+    private String overrideUserId;
+    private String overrideGuestContact;
+    private boolean overrideIdentity;
     private static final int MIN_PARTY = 1;
     private static final int MAX_PARTY = 20;
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
@@ -53,7 +56,7 @@ public class ReservationsViewController implements ClientControllerAware {
     private static final double SLOT_HEIGHT = 55.0;
 
     @FXML
-    private void initialize() {
+    private void initialize() {    	
         initPartySizeSpinner();
         initDatePickerLimit();
         switchToStep1();
@@ -327,6 +330,12 @@ public class ReservationsViewController implements ClientControllerAware {
         if (clientController == null) {
             return;
         }
+        if (overrideIdentity) {
+            this.userID = overrideUserId;
+            this.guestContact = overrideGuestContact;
+            this.guestMode = overrideGuestContact != null && !overrideGuestContact.isBlank();
+            return;
+        }
 
         if (clientController.isGuestSession()) {
             this.guestMode = true;
@@ -342,6 +351,18 @@ public class ReservationsViewController implements ClientControllerAware {
         this.userID = (subId != null && !subId.isBlank()) ? subId : username;
         this.guestContact = null;
     }
+    public void setReservationIdentity(String userId, String guestContact) {
+        this.overrideUserId = userId == null || userId.isBlank() ? null : userId.trim();
+        this.overrideGuestContact = guestContact == null || guestContact.isBlank() ? null : guestContact.trim();
+        this.overrideIdentity = this.overrideUserId != null || this.overrideGuestContact != null;
+        refreshIdentityFromController();
+        if (overrideIdentity) {
+            String label = guestMode ? "guest" : "subscriber";
+            String value = guestMode ? overrideGuestContact : overrideUserId;
+            setInfo("Creating reservation for " + label + ": " + value);
+        }
+    }
+
 
     private void switchToStep1() {
         if (step1Pane != null) { step1Pane.setVisible(true); step1Pane.setManaged(true); }
@@ -356,4 +377,7 @@ public class ReservationsViewController implements ClientControllerAware {
     private void setInfo(String msg) {
         if (infoLabel != null) infoLabel.setText(msg == null ? "" : msg);
     }
+    
+    
+    
 }

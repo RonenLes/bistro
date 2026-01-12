@@ -237,16 +237,16 @@ public class SeatingControl {
     }
     
     
-    public Response<SeatingResponse> checkOutAndAssignNew(int tableID){
+    public boolean checkOutAndAssignNew(int tableID){
     	try (Connection conn = DBManager.getConnection()){
-    		if(conn==null) return new Response<>(false,"Couldnt connect to db",null);
+    		//if(conn==null) return new Response<>(false,"Couldnt connect to db",null);
     		conn.setAutoCommit(false);
 
     		Table table = tableDAO.fetchTableByID(conn, tableID);
     		if(table==null) {
     			conn.rollback();
     			System.out.println("checkout fail - Table not found");
-    			return new Response<>(false,"Table not found",null);
+    			return false;
     		}
    		
     		//2.find open seating
@@ -255,20 +255,20 @@ public class SeatingControl {
     		if(seatingID == null || seatedReservationID == null) {
     			conn.rollback();
     			System.out.println("checkout fail - Table is not currently occiupied");
-    			return new Response<>(false,"Table is not currently occiupied",null);
+    			//return new Response<>(false,"Table is not currently occiupied",null);
     		}
     		
     		boolean checkOut = seatingDAO.checkOutBySeatingId(conn, seatingID);
     		if(!checkOut) {
     			conn.rollback();
-    			return new Response<>(false,"Failed to checkout seating",null);
+    			//return new Response<>(false,"Failed to checkout seating",null);
     		}
     		
     		//3.update reservation status to completed
     		boolean completed = reservationDAO.updateStatusByReservationID(conn, seatedReservationID, "COMPLETED");
     		if(!completed) {
     			conn.rollback();
-    			return new Response<>(false,"Failed to update reservation status to COMPLETED",null);
+    			//return new Response<>(false,"Failed to update reservation status to COMPLETED",null);
     		}
     		conn.commit();
     		conn.setAutoCommit(false);
@@ -276,56 +276,57 @@ public class SeatingControl {
     		WaitingList nextInLine = waitingListDAO.getNextWaitingThatFits(conn, table.getCapacity());
     		if(nextInLine == null) {
     			conn.commit();
-    			return new Response<>(true, "Checked out. No one is waiting.", null);
+    			//return new Response<>(true, "Checked out. No one is waiting.", null);
     		}
     		Reservation r=waitingListDAO.getReservationByWaitingID(conn, nextInLine.getWaitID());
     		if(r==null) {
     			conn.rollback();
-    			return new Response<>(false,"Failed to notify next customer in waiting list",null);
+    			//return new Response<>(false,"Failed to notify next customer in waiting list",null);
     		}
     		boolean hasReservationStatusChanged=reservationDAO.updateStatusByReservationID(conn,r.getReservationID(),"CALLED");
     		if(!hasReservationStatusChanged) {
     			conn.rollback();
-    			return new Response<>(false,"Failed to update status of reservation.",null);
+    			//return new Response<>(false,"Failed to update status of reservation.",null);
     		}
     		boolean hasSent;
     		if(r.getGuestContact()==null||r.getGuestContact().isBlank()) {
     			User user=userDAO.getUserByUserID(conn,r.getUserID());
     			if(user==null) {
     				conn.rollback();
-    				return new Response<>(false,"Failed to get user details.",null);
+    				//return new Response<>(false,"Failed to get user details.",null);
     			}
     		    hasSent=notificationControl.sendInviteToTable(user.getEmail(),user.getPhone(),"Your table is ready,your confirmation code is "+r.getConfirmationCode()+".arrive in the next 15 minutes!");
     			if(!hasSent) {
     				conn.rollback();
-    				return new Response<>(false,"Failed to notify next customer in waiting list",null);
+    				//return new Response<>(false,"Failed to notify next customer in waiting list",null);
     			}
     		}
     		else {
     			hasSent=notificationControl.sendInviteToTable(r.getGuestContact(),"Your table is ready,your confirmation code is "+r.getConfirmationCode()+".arrive in the next 15 minutes!");
     			if(!hasSent) {
     				conn.rollback();
-    				return new Response<>(false,"Failed to notify next customer in waiting list",null);
+    				//return new Response<>(false,"Failed to notify next customer in waiting list",null);
     			}
     		}
     		boolean updateWaitingListStatus=waitingListDAO.markCalled(conn,nextInLine.getWaitID());
     		if(!updateWaitingListStatus) {
     			conn.rollback();
-    			return new Response<>(false,"Failed to mark waiting list as called",null);
+    			//return new Response<>(false,"Failed to mark waiting list as called",null);
     		}
     		int heldSeatingId = seatingDAO.insertHeldSeating(conn, tableID, r.getReservationID());
     		if (heldSeatingId == -1) {
     		    conn.rollback();
-    		    return new Response<>(false, "Failed to create seating", null);
+    		    //return new Response<>(false, "Failed to create seating", null);
     		}
     		conn.commit();
     		
     		SeatingResponse response=new SeatingResponse(table.getTableNumber(),table.getCapacity(),null,SeatingResponseType.CUSTOMER_IN_WAITINGLIST);
-    		return new Response<>(true,"Customer added to the waiting list and notified.he has 15 minutes to arrive",response);
-    		
+    		//return new Response<>(true,"Customer added to the waiting list and notified.he has 15 minutes to arrive",response);
+    		return true;
     	}catch(Exception e) {
     		System.out.println(e.getMessage());
-    		return new Response<>(false, "Checkout failed: " + e.getMessage(), null);
+    		//return new Response<>(false, "Checkout failed: " + e.getMessage(), null);
+    		return true;
     	}
     }
     

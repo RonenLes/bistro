@@ -184,7 +184,17 @@ public class HistoryViewController implements ClientControllerAware {
 
     private String formatTotal(Double total) {
         if (total == null) return "-";
-        return String.format("₪%.2f", total);
+        double value = total;
+        if (role == DesktopScreenController.Role.SUBSCRIBER
+                && discountInfo != null
+                && discountInfo.isActive()
+                && discountInfo.getRate() > 0) {
+            value = roundMoney(total * (1.0 - discountInfo.getRate()));
+        }
+        return String.format("₪%.2f", value);
+    }
+    private double roundMoney(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 
     private String inferStatus(UserHistoryResponse r) {
@@ -202,18 +212,20 @@ public class HistoryViewController implements ClientControllerAware {
     public static final class DiscountInfo {
         private final boolean active;
         private final String displayText;
+        private final double rate;
 
-        private DiscountInfo(boolean active, String displayText) {
+        private DiscountInfo(boolean active, String displayText, double rate) {
             this.active = active;
             this.displayText = displayText == null ? "" : displayText;
+            this.rate = rate;
         }
 
         public static DiscountInfo none() {
-            return new DiscountInfo(false, "");
+        	return new DiscountInfo(false, "", 0.0);
         }
 
-        public static DiscountInfo active(String displayText) {
-            return new DiscountInfo(true, displayText);
+        public static DiscountInfo active(String displayText, double rate) {
+            return new DiscountInfo(true, displayText, rate);
         }
 
         public boolean isActive() {
@@ -222,6 +234,9 @@ public class HistoryViewController implements ClientControllerAware {
 
         public String getDisplayText() {
             return displayText;
+        }
+        public double getRate() {
+            return rate;
         }
     }
 }

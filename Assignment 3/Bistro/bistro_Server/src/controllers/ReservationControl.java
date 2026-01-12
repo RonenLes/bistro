@@ -514,19 +514,30 @@ public class ReservationControl {
     }
     
     
-    public Response<Integer> retrieveConfirmationCode(String contact) {
-    	try(Connection conn = DBManager.getConnection()){
-    		int code= reservationDAO.fetchConfirmationCodeByGuestContact(conn, contact);
-    		if(code==-1) {
-    			List<UserHistoryResponse> upcoming = reservationDAO.fetchUpcomingReservationsByUser(conn, contact);
-    			if(upcoming !=null)code = upcoming.get(0).getConfirmationCode();
-    		}
-    		sendConfirmationNotification(null, contact, code);
-    		return new Response<>(true,"here is your code",code);
-    	}catch(Exception e) {
-    		return new Response<>(false, "Failed to fetch code by contact", null);
-    	}
+    public Response<Integer> retrieveConfirmationCode(String keyRaw) {
+        try (Connection conn = DBManager.getConnection()) {
+            String key = keyRaw == null ? null : keyRaw.trim();
+            if (key == null || key.isEmpty()) return new Response<>(false, "Missing input", null);
+
+            int code;
+            if (key.matches("U-\\d{5}")) {
+                code = reservationDAO.fetchBestConfirmationCodeByUserId(conn, key);
+                if (code <= 0) return new Response<>(false, "No relevant reservation found", null);
+                sendConfirmationNotification(key, null, code);
+            } else {
+                code = reservationDAO.fetchBestConfirmationCodeByGuestContact(conn, key);
+                if (code <= 0) return new Response<>(false, "No relevant reservation found", null);
+                sendConfirmationNotification(null, key, code);
+            }
+
+            return new Response<>(true, "Here is your code", code);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new Response<>(false, "Failed to fetch code", null);
+        }
     }
+    
+    
     
     /**
      * helper method to round up time for searching available times when doing a reservation

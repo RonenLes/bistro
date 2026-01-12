@@ -38,7 +38,7 @@ public class ReservationDAO {
 	        "SELECT reservationDate, startTime, partySize, confirmationCode " +
 	        "FROM reservation " +
 	        "WHERE userID = ? " +
-	        "AND status IN ('NEW','CONFIRMED') " +
+	        "AND status IN ('CONFIRMED') " +
 	        "AND reservationDate >= CURDATE() " +
 	        "ORDER BY reservationDate ASC, startTime ASC";
 	
@@ -72,7 +72,25 @@ public class ReservationDAO {
 	        "GROUP BY slots.reservationDate, slots.startTime " +
 	        "HAVING booked > ? " +
 	        "ORDER BY slots.reservationDate ASC, slots.startTime ASC";
-	private final String SELECT_CODE_BY_CONTACT ="SELECT confirmationCode FROM reservation WHERE guestContact = ?";
+	private static final String SELECT_BEST_CODE_BY_USERID =
+		    "SELECT confirmationCode FROM reservation " +
+		    "WHERE userID = ? AND status IN ('SEATED','CONFIRMED') AND reservationDate >= CURDATE() " +
+		    "ORDER BY " +
+		    "CASE WHEN status='SEATED' AND reservationDate=CURDATE() THEN 0 " +
+		    "     WHEN status='SEATED' THEN 1 ELSE 2 END, " +
+		    "reservationDate ASC, startTime ASC " +
+		    "LIMIT 1";
+
+		private static final String SELECT_BEST_CODE_BY_GUEST =
+		    "SELECT confirmationCode FROM reservation " +
+		    "WHERE guestContact = ? AND status IN ('SEATED','CONFIRMED') AND reservationDate >= CURDATE() " +
+		    "ORDER BY " +
+		    "CASE WHEN status='SEATED' AND reservationDate=CURDATE() THEN 0 " +
+		    "     WHEN status='SEATED' THEN 1 ELSE 2 END, " +
+		    "reservationDate ASC, startTime ASC " +
+		    "LIMIT 1";
+
+
 	private static final String SELECT_RESERVATIONS_DUE_FOR_NO_SHOW_PARAM ="SELECT reservationID FROM reservation WHERE reservationDate = ? AND status IN ('NEW','CONFIRMED') AND startTime <= ?";
 	private static final String SELECT_reservationByConfirmationCode = "SELECT * FROM `reservation` WHERE confirmationCode = ?";
 	private static final String SELECT_reservationByReservationId = "SELECT * FROM `reservation` WHERE reservationID = ?";
@@ -679,15 +697,27 @@ public class ReservationDAO {
 
 
 	
-	public int fetchConfirmationCodeByGuestContact(Connection conn,String contact)throws SQLException{
-		try(PreparedStatement ps = conn.prepareStatement(SELECT_CODE_BY_CONTACT)){
-			ps.setString(1, contact);
-			ResultSet rs = ps.executeQuery();
-			if(rs.next()) return rs.getInt("confirmationCode");
-			return -1;
-		}
+	public int fetchBestConfirmationCodeByUserId(Connection conn, String userId) throws SQLException {
+	    if (userId == null || userId.isBlank()) return -1;
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_BEST_CODE_BY_USERID)) {
+	        ps.setString(1, userId.trim());
+	        try (ResultSet rs = ps.executeQuery()) {
+	            return rs.next() ? rs.getInt(1) : -1;
+	        }
+	    }
 	}
+
+	public int fetchBestConfirmationCodeByGuestContact(Connection conn, String contact) throws SQLException {
+	    if (contact == null || contact.isBlank()) return -1;
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_BEST_CODE_BY_GUEST)) {
+	        ps.setString(1, contact.trim());
+	        try (ResultSet rs = ps.executeQuery()) {
+	            return rs.next() ? rs.getInt(1) : -1;
+	        }
+	    }
 	}
+
+}
 	
 	
 		

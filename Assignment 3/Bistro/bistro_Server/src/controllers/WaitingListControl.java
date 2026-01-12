@@ -33,8 +33,7 @@ public class WaitingListControl {
 	
 	public Response<WaitingListResponse> cancelWaitingList(WaitingListRequest req) {
 		try (Connection conn = DBManager.getConnection()) {
-	        if (conn == null) {
-	        	
+	        if (conn == null) {	        	
 	        		return new Response<>(false,"Failed to connect to db",null);
 	        }
 	        conn.setAutoCommit(false);

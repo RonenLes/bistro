@@ -192,8 +192,7 @@ public class BistroEchoServer extends AbstractServer {
 	                			}
 	                		}
 	                	}
-	                    Response<ReservationResponse> reservationResp =
-	                            reservationControl.handleReservationRequest(reservationReq);
+	                    Response<ReservationResponse> reservationResp = reservationControl.handleReservationRequest(reservationReq);	                           
 	                    response = reservationResp;
 	                }
 	                case SEATING_REQUEST ->{

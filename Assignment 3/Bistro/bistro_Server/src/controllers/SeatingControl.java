@@ -506,4 +506,9 @@ public class SeatingControl {
             if (conn != null) conn.rollback();
         } catch (SQLException ignore) {}
     }
+
+	public boolean checkOutAndAssignNew(Connection conn, Integer tableId) {
+		// TODO Auto-generated method stub
+		return false;
+	}
 }

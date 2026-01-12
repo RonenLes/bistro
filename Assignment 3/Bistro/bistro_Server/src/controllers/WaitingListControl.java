@@ -101,14 +101,13 @@ public class WaitingListControl {
 	                conn.setAutoCommit(false);
 	                continue;
 	            }
-
-	            
 	            conn.commit();
 	            conn.setAutoCommit(false);
-
-	            
 	            if (tableId != null) {
-	                seatingControl.checkOutAndAssignNew(tableId);
+	                if(!seatingControl.checkOutAndAssignNew(conn,tableId)) {
+	                	conn.rollback();   
+	                	return;
+	                }
 	            } else {
 	                System.out.println("processCalledTimeouts: No active seating/table found for reservationID=" + reservationId);
 	            }

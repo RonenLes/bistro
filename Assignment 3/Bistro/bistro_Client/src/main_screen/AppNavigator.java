@@ -202,6 +202,10 @@ public class AppNavigator {
         public void onReservationResponse(responses.ReservationResponse response) {
             // ignore here, desktop will be the handler when reservations are relevant
         }
+        @Override
+        public void onReportResponse(responses.ReportResponse reportResponse) {
+            // Not handled here (desktop will handle when active)
+        }
 
         @Override
         public void onSeatingResponse(responses.SeatingResponse response) {
@@ -285,6 +289,10 @@ public class AppNavigator {
         @Override
         public void routeToDesktop(DesktopScreenController.Role role, String username) {
             // terminal does not navigate to desktop
+        }
+        @Override
+        public void onReportResponse(responses.ReportResponse reportResponse) {
+            // Terminal app doesn't display reports
         }
 
         @Override

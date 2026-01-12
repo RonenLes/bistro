@@ -11,21 +11,32 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane prefHeight="800.0" prefWidth="1280.0" styleClass="surface"
-            xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+<BorderPane prefHeight="800.0" prefWidth="1280.0"
+            styleClass="surface"
+            xmlns="http://javafx.com/javafx/25"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="desktop_views.ReportsViewController">
+
     <top>
         <HBox spacing="12.0" BorderPane.alignment="CENTER">
             <children>
                 <VBox spacing="2.0">
                     <children>
                         <Label text="Reports" styleClass="h2"/>
-                        <Label text="Monthly operational reports (placeholder UI)" styleClass="muted"/>
+                        <Label text="Monthly operational reports" styleClass="muted"/>
+                        <Label fx:id="infoLabel" text="" styleClass="muted"/>
                     </children>
                 </VBox>
+
                 <Region HBox.hgrow="ALWAYS"/>
+
+                <!-- NEW: year + month -->
+                <ComboBox fx:id="yearPicker" promptText="Year" prefWidth="120.0"/>
                 <ComboBox fx:id="monthPicker" promptText="Month" prefWidth="160.0"/>
-                <Button text="Generate" styleClass="primary"/>
+
+                <Button text="Generate" styleClass="primary" onAction="#onGenerate"/>
             </children>
+
             <BorderPane.margin>
                 <Insets top="14.0" right="14.0" bottom="10.0" left="14.0"/>
             </BorderPane.margin>
@@ -35,41 +46,39 @@
     <center>
         <HBox spacing="14.0" BorderPane.alignment="CENTER">
             <children>
+
                 <VBox prefWidth="610.0" spacing="10.0" styleClass="card">
                     <children>
                         <Label text="Time Report" styleClass="subtle"/>
                         <Separator/>
-                        <Label text="Arrival/departure times, lateness and delays (graph placeholder)" styleClass="muted"/>
-                        <Pane prefHeight="420.0" styleClass="panel"/>
-                        <HBox spacing="10.0">
-                            <children>
-                                <Button text="View Details" styleClass="ghost"/>
-                                <Button text="Export PDF" styleClass="ghost"/>
-                            </children>
-                        </HBox>
+                        <Label text="Arrivals vs departures by hour" styleClass="muted"/>
+                        <Pane fx:id="timeChartHost" prefHeight="420.0" styleClass="panel"/>
+                       
                     </children>
-                    <padding><Insets top="16.0" right="16.0" bottom="16.0" left="16.0"/></padding>
+                    <padding>
+                        <Insets top="16.0" right="16.0" bottom="16.0" left="16.0"/>
+                    </padding>
                 </VBox>
 
                 <VBox prefWidth="610.0" spacing="10.0" styleClass="card">
                     <children>
                         <Label text="Subscribers Report" styleClass="subtle"/>
                         <Separator/>
-                        <Label text="Reservations + waitlists through the month (graph placeholder)" styleClass="muted"/>
-                        <Pane prefHeight="420.0" styleClass="panel"/>
-                        <HBox spacing="10.0">
-                            <children>
-                                <Button text="View Details" styleClass="ghost"/>
-                                <Button text="Export PDF" styleClass="ghost"/>
-                            </children>
-                        </HBox>
+                        <Label text="Reservations vs waiting list by day" styleClass="muted"/>
+                        <Pane fx:id="dailyChartHost" prefHeight="420.0" styleClass="panel"/>
+                        
                     </children>
-                    <padding><Insets top="16.0" right="16.0" bottom="16.0" left="16.0"/></padding>
+                    <padding>
+                        <Insets top="16.0" right="16.0" bottom="16.0" left="16.0"/>
+                    </padding>
                 </VBox>
+
             </children>
+
             <BorderPane.margin>
                 <Insets top="0.0" right="14.0" bottom="14.0" left="14.0"/>
             </BorderPane.margin>
         </HBox>
     </center>
+
 </BorderPane>

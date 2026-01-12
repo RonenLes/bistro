@@ -108,59 +108,64 @@ public class BillingControl {
         }
 	}
 	private Response<BillResponse> handleRequestToPayBill(BillRequest req) {
-
 	    try (Connection conn = DBManager.getConnection()) {
-	        if (conn == null)
-	            return failResponse("DB connection failed");
+	        if (conn == null) return failResponse("DB connection failed");
+
 	        conn.setAutoCommit(false);
+
 	        try {
 	            Reservation r = reservationDAO.getReservationByConfirmationCode(conn, req.getConfirmationCode());
-	            if (r == null) {
-	                conn.rollback();
-	                return failResponse("Reservation not found");
-	            }
+	            if (r == null) { conn.rollback(); return failResponse("Reservation not found"); }
+
 	            Integer seatingId = seatingDAO.getSeatingIdByReservationId(conn, r.getReservationID());
-	            if (seatingId == null) {
-	                conn.rollback();
-	                return failResponse("failed to find the Bill in the DB");
-	            }
+	            if (seatingId == null) { conn.rollback(); return failResponse("failed to find the Bill in the DB"); }
+
 	            Bill bill = billDAO.getOpenBillBySeatingId(conn, seatingId);
-	            if (bill == null) {
-	                conn.rollback();
-	                return failResponse("failed to access bill");
-	            }
+	            if (bill == null) { conn.rollback(); return failResponse("failed to access bill"); }
+
 	            if (!billDAO.markBillAsPaidBySeatingId(conn, seatingId)) {
-	                conn.rollback();
-	                return failResponse("failed to update Bill status in the DB");
+	                conn.rollback(); return failResponse("failed to update Bill status in the DB");
 	            }
-	            boolean hasStatusBeenUpdatedToRes=reservationDAO.updateStatus(conn, req.getConfirmationCode(),"COMPLETED");
-		        if(!hasStatusBeenUpdatedToRes) {
-		        	conn.rollback();
-		            return failResponse("Failed to update reservation status");
-		        }
-	            boolean notificationSent = sendConfirmationToCorrectContact(conn,r);
-	            if(!notificationSent) {
-	            	conn.rollback();
-	            	return failResponse("Failed to send bill and therefore pay the bill");
+
+	            if (!reservationDAO.updateStatus(conn, req.getConfirmationCode(), "COMPLETED")) {
+	                conn.rollback(); return failResponse("Failed to update reservation status");
 	            }
-	            boolean billSent=seatingDAO.updateBillSent(conn, seatingId, 1);
-	            if(!billSent) {
-	            	conn.rollback();
-	            	return failResponse("Failed to change billSent status");
+
+	            boolean notificationSent = sendConfirmationToCorrectContact(conn, r);
+	            if (!notificationSent) {
+	                conn.rollback(); return failResponse("Failed to send bill and therefore pay the bill");
 	            }
-	            Integer t = seatingDAO.getTableIDBySeatingID(conn, seatingId);
-	            if(t<0) {
-	            	conn.rollback();
-	            	return failResponse("Failed to checkout assign new");
+
+	            if (!seatingDAO.updateBillSent(conn, seatingId, 1)) {
+	                conn.rollback(); return failResponse("Failed to change billSent status");
 	            }
-	            boolean clearTable=seatingControl.checkOutAndAssignNew(t);
-	            if(!clearTable) {
-	            	conn.rollback();
-	            	return failResponse("Failed to check out seating");
+
+	            Integer tableId = seatingDAO.getTableIDBySeatingID(conn, seatingId);
+	            if (tableId == null || tableId <= 0) {
+	                conn.rollback(); return failResponse("Failed to resolve table");
 	            }
-	            conn.commit();
-	            conn.setAutoCommit(true); 
-	            BillResponse br = new BillResponse(BillResponse.BillResponseType.ANSWER_TO_PAY_BILL,bill.getTotalPrice(),notificationSent);
+	            
+	            if (!seatingControl.checkOutCurrentSeating(conn, tableId)) {
+	                conn.rollback(); return failResponse("Failed to check out seating");
+	            }
+	            
+	            conn.commit();          
+	            conn.setAutoCommit(false);
+
+	            try {
+	                seatingControl.tryAssignNextFromWaitingList(conn, tableId);
+	                conn.commit();
+	            } catch (Exception e) {
+	                try { conn.rollback(); } catch (Exception ignore) {}
+	                System.out.println("Assign-next failed (payment already committed): " + e.getMessage());
+	            }
+
+	            conn.setAutoCommit(true);
+	            BillResponse br = new BillResponse(
+	                BillResponse.BillResponseType.ANSWER_TO_PAY_BILL,
+	                bill.getTotalPrice(),
+	                notificationSent
+	            );
 	            return successResponse("Payment Fulfilled", br);
 
 	        } catch (Exception e) {
@@ -172,6 +177,7 @@ public class BillingControl {
 	        return new Response<>(false, "DB connection failed: " + e.getMessage(), null);
 	    }
 	}
+
 	
 	private boolean sendConfirmationToCorrectContact(Connection conn, Reservation r) throws SQLException {
 		if(r.getGuestContact()==null ||r.getGuestContact().isBlank()) {

@@ -2,8 +2,8 @@ package controllers;
 
 import database.DBManager;
 import database.ReportDAO;
-import database.SeatingDAO;
 import database.ReservationDAO;
+import database.SeatingDAO;
 import database.WaitingListDAO;
 import kryo.KryoUtil;
 import requests.ReportRequest;
@@ -11,80 +11,98 @@ import responses.ReportResponse;
 import responses.Response;
 
 import java.sql.Connection;
-import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
+import java.time.LocalDateTime;
 
 public class ReportControl {
-
-    private final SeatingDAO seatingDAO;
+	
+    private static final String VISITOR_REPORT_TYPE = "VISITOR_REPORT";
+    private static final String SUBSCRIBER_REPORT_TYPE = "SUBSCRIBER_REPORT"; 
+    
     private final ReportDAO reportDAO;
+    private final SeatingDAO seatingDAO;
     private final ReservationDAO reservationDAO;
     private final WaitingListDAO waitingListDAO;
-    private static final String VISITOR_REPORT_TYPE = "VISITOR_REPORT";
-    private static final String SUBSCRIBER_REPORT_TYPE = "SUBSCRIBER_REPORT";
-    
 
     public ReportControl() {
-    	this(new SeatingDAO(),new ReportDAO(),new ReservationDAO(),new WaitingListDAO());
+        this(new ReportDAO(), new SeatingDAO(), new ReservationDAO(), new WaitingListDAO());
     }
-    
-    public ReportControl(SeatingDAO seatingDAO, ReportDAO reportDAO,ReservationDAO reservationDAO,WaitingListDAO waitingListDAO) {
-        this.seatingDAO = seatingDAO;
+
+    public ReportControl(ReportDAO reportDAO, SeatingDAO seatingDAO,ReservationDAO reservationDAO,WaitingListDAO waitingListDAO) {
         this.reportDAO = reportDAO;
-        this.reservationDAO=reservationDAO;
-        this.waitingListDAO=waitingListDAO;
+        this.seatingDAO = seatingDAO;
+        this.reservationDAO = reservationDAO;
+        this.waitingListDAO = waitingListDAO;
     }
-    public Response<ReportResponse> handleReportRequest(ReportRequest req) {
 
-        if (req == null || req.getType() == null) {return new Response<>(false,"Invalid report request",null);
-        }
-        String reportMonth = java.time.YearMonth.now().minusMonths(1).toString();
-        String reportType;
-        ReportResponse.ReportCommand responseType;
-        switch (req.getType()) {
-            case VISITOR_REPORT:
-                reportType = VISITOR_REPORT_TYPE;
-                responseType = ReportResponse.ReportCommand.VISITOR_REPORT_RES;
-                break;
+   
+    public Response<ReportResponse> handleReportRequest(ReportRequest request) {
+    	
+        YearMonth target = (request != null && request.getMonth() != null)
+                ? request.getMonth()
+                : YearMonth.now().minusMonths(1);
 
-            case SUBSRIBER_REPORT:
-                reportType = SUBSCRIBER_REPORT_TYPE;
-                responseType = ReportResponse.ReportCommand.SUBSRIBER_REPORT_RES;
-                break;
-
-            default:
-                return new Response<>(false,"Unsupported report type",null);
-                                                                       
-                
-        }
+        String monthKey = target.toString();
 
         try (Connection conn = DBManager.getConnection()) {
-            if (conn == null) {return new Response<>(false,"DB connection failed",null);
+            if (conn == null) {
+                return new Response<>(false, "Couldnt connect to db", null);
             }
-            byte[] payload = reportDAO.getReportBytes(conn, reportType, reportMonth);
 
-            if (payload == null) return new Response<>(false,"Report not found for " + reportMonth,null);
             
-            ReportResponse resp =new  ReportResponse(responseType,payload);
-            return new Response<>(true,"Report loaded successfully",resp);
+            conn.setAutoCommit(false);
+
+            try {
+                byte[] visitorBytes = reportDAO.getReportBytes(conn, VISITOR_REPORT_TYPE, monthKey);
+                if (visitorBytes == null) {
+                    conn.rollback();
+                    return new Response<>(false, "Visitor report not found for " + monthKey, null);
+                }
+                
+                Object visitorObj = KryoUtil.deserialize(visitorBytes);
+                if (!(visitorObj instanceof List)) {
+                    conn.rollback();
+                    return new Response<>(false, "Bad visitor report payload for " + monthKey, null);
+                }
+
+                @SuppressWarnings("unchecked")
+                List<LocalDateTime[]> visits = (List<LocalDateTime[]>) visitorObj;
+
+                
+                byte[] resWaitBytes = reportDAO.getReportBytes(conn, SUBSCRIBER_REPORT_TYPE, monthKey);
+                if (resWaitBytes == null) {
+                    conn.rollback();
+                    return new Response<>(false, "Reservation/WaitingList report not found for " + monthKey, null);
+                }
+
+                Object resWaitObj = KryoUtil.deserialize(resWaitBytes);
+                if (!(resWaitObj instanceof Integer[][])) {
+                    conn.rollback();
+                    return new Response<>(false, "Bad reservation/waitinglist payload for " + monthKey, null);
+                }
+                
+                Integer[][] dailyCounts = (Integer[][]) resWaitObj;
+                
+                conn.commit();
+                ReportResponse payload = new ReportResponse(monthKey,visits,dailyCounts);
+                return new Response<>(true, "", payload);
+
+            } catch (Exception e) {
+                try { conn.rollback(); } catch (Exception ignore) {}
+                return new Response<>(false, "Report failed: " + e.getMessage(), null);
+            }
 
         } catch (Exception e) {
-            return new Response<>(false,"Failed to load report: " + e.getMessage(),null);                                                         
+            return new Response<>(false, "Report failed: " + e.getMessage(), null);
         }
     }
 
-
     
-    /**
-     * Creates the report for the previous calendar month and stores it in DB.
-     * Data format stored: Kryo bytes of List<LocalDateTime[]> where:
-     * [0] = checkIn, [1] = checkOut
-     */
-    public boolean createMonthlyVisitorReportIfMissing() {
 
+    public boolean createMonthlyVisitorReportIfMissing() {
         YearMonth target = YearMonth.now().minusMonths(1);
-        String monthKey = target.toString(); // "YYYY-MM"
+        String monthKey = target.toString();
 
         LocalDateTime start = target.atDay(1).atStartOfDay();
         LocalDateTime end = target.plusMonths(1).atDay(1).atStartOfDay();
@@ -92,68 +110,113 @@ public class ReportControl {
         try (Connection conn = DBManager.getConnection()) {
             if (conn == null) return false;
             conn.setAutoCommit(false);
-            try { 
+            try {
                 if (reportDAO.reportExists(conn, VISITOR_REPORT_TYPE, monthKey)) {
-                    conn.rollback();  
-                    return true;
+                    byte[] existing = reportDAO.getReportBytes(conn, VISITOR_REPORT_TYPE, monthKey);
+                    boolean valid = false;
+                    if (existing != null) {
+                        try {
+                            Object obj = KryoUtil.deserialize(existing);
+                            valid = isValidVisitsPayload(obj);
+                        } catch (Exception ignore) {
+                            valid = false;
+                        }
+                    }
+                    if (valid) {
+                        conn.rollback();
+                        return true;
+                    }
                 }
                 List<LocalDateTime[]> visits = seatingDAO.getVisitTimesBetween(conn, start, end);
                 byte[] payload = KryoUtil.serialize(visits);
+
                 boolean saved = reportDAO.upsertReportBytes(conn, VISITOR_REPORT_TYPE, monthKey, payload);
                 if (!saved) {
                     conn.rollback();
                     return false;
                 }
+
                 conn.commit();
                 return true;
+
             } catch (Exception e) {
                 try { conn.rollback(); } catch (Exception ignore) {}
                 return false;
             }
-            
+
         } catch (Exception e) {
             return false;
         }
     }
-    
+
+
     public boolean createMonthlyReservationWaitingListReportIfMissing() {
-    	
-    	YearMonth target = YearMonth.now().minusMonths(1);
-        int daysInMonth=target.lengthOfMonth();
+        YearMonth target = YearMonth.now().minusMonths(1);
+        String monthKey = target.toString();
+        int daysInMonth = target.lengthOfMonth();
 
         LocalDateTime start = target.atDay(1).atStartOfDay();
         LocalDateTime end = target.plusMonths(1).atDay(1).atStartOfDay();
+
         try (Connection conn = DBManager.getConnection()) {
             if (conn == null) return false;
             conn.setAutoCommit(false);
-            try { 
-                if (reportDAO.reportExists(conn, SUBSCRIBER_REPORT_TYPE,target.toString())) {
-                    conn.rollback();  
-                    return true;
+            try {
+                if (reportDAO.reportExists(conn, SUBSCRIBER_REPORT_TYPE, monthKey)) {
+                    byte[] existing = reportDAO.getReportBytes(conn, SUBSCRIBER_REPORT_TYPE, monthKey);
+                    boolean valid = false;
+                    if (existing != null) {
+                        try {
+                            Object obj = KryoUtil.deserialize(existing);
+                            valid = (obj instanceof Integer[][]);
+                        } catch (Exception ignore) {
+                            valid = false;
+                        }
+                    }
+                    if (valid) {
+                        conn.rollback();
+                        return true;
+                    }
                 }
-                Integer [] monthlyReservationsCount=reservationDAO.getCountOfReservationsBetween(conn,start,end);
-                Integer [] monthlyWaitingListCount=waitingListDAO.getCountOfWaitingListBetween(conn,start,end);
-                Integer [][]payloadBeforeByte=new Integer[31][2];
-                for(int i=0;i<daysInMonth;i++) {
-                	
-                	payloadBeforeByte[i][0]=monthlyReservationsCount[i];
-                	payloadBeforeByte[i][1]=monthlyWaitingListCount[i];
+
+                Integer[] monthlyReservationsCount = reservationDAO.getCountOfReservationsBetween(conn, start, end);
+                Integer[] monthlyWaitingListCount = waitingListDAO.getCountOfWaitingListBetween(conn, start, end);
+
+                Integer[][] payloadBeforeByte = new Integer[31][2];
+                for (int i = 0; i < daysInMonth; i++) {
+                    payloadBeforeByte[i][0] = monthlyReservationsCount[i];
+                    payloadBeforeByte[i][1] = monthlyWaitingListCount[i];
                 }
+
                 byte[] payload = KryoUtil.serialize(payloadBeforeByte);
-                boolean saved = reportDAO.upsertReportBytes(conn, SUBSCRIBER_REPORT_TYPE,target.toString(), payload);
+                boolean saved = reportDAO.upsertReportBytes(conn, SUBSCRIBER_REPORT_TYPE, monthKey, payload);
                 if (!saved) {
                     conn.rollback();
                     return false;
                 }
+
                 conn.commit();
                 return true;
+
             } catch (Exception e) {
                 try { conn.rollback(); } catch (Exception ignore) {}
                 return false;
             }
-            
+
         } catch (Exception e) {
             return false;
         }
     }
+
+    
+    private boolean isValidVisitsPayload(Object obj) {
+        if (!(obj instanceof java.util.List<?> list)) return false;
+        for (Object el : list) {
+            if (el == null) continue;
+            if (!(el instanceof LocalDateTime[] arr)) return false;
+            if (arr.length < 2) return false;
+        }
+        return true;
+    }
+
 }

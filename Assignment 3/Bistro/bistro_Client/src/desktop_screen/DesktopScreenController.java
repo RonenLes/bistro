@@ -36,7 +36,8 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
+import desktop_views.ReportsViewController;
+import responses.ReportResponse;
 /**
  * Shell controller (top bar + left navigation + center content host)
  * Handles:
@@ -104,7 +105,7 @@ public class DesktopScreenController implements ClientUIHandler {
     private AddSubscriberScreenController addSubscriberVC;
     private SubscribersScreenController subscribersVC;
     private SubscriberMainScreenController subscriberMainVC;
-
+    private ReportsViewController reportsVC;
     private Role role = Role.GUEST;
     private Runnable onLogout;
 
@@ -405,10 +406,14 @@ public class DesktopScreenController implements ClientUIHandler {
             // cache known controllers so we can route responses later
             if (ctrl instanceof ReservationsViewController rvc) reservationsVC = rvc;
             if (ctrl instanceof EditReservationViewController edvc) editReservationVC = edvc;
+
+            if (ctrl instanceof HistoryViewController hvc) historyVC = hvc;
+            if (ctrl instanceof ReportsViewController rvc) reportsVC = rvc;
             if (ctrl instanceof HistoryViewController hvc) {
                 historyVC = hvc;
                 historyVC.setUserContext(role, buildDiscountInfo());
             }
+
 
             if (ctrl instanceof TablesViewController tvc) tablesVC = tvc;
             if (ctrl instanceof EditTableScreenController etc) editTableVC = etc;
@@ -452,8 +457,18 @@ public class DesktopScreenController implements ClientUIHandler {
             if (contentHost != null) contentHost.getChildren().setAll(error);
         }
     }
+    @Override
+    public void onReportResponse(ReportResponse reportResponse) {
+        javafx.application.Platform.runLater(() -> {
+            if (reportsVC != null) {
+                reportsVC.onReportResponse(reportResponse);
+                return;
+            }
+            showInfo("Reports", "Report received. Open Reports screen to view it.");
+        });
+    }
 
-    // handle javafx run-later on responses
+    
     @Override
     public void onReservationResponse(ReservationResponse response) {
         javafx.application.Platform.runLater(() -> {

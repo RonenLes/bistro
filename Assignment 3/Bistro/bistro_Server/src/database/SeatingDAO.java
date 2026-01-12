@@ -241,7 +241,7 @@ public class SeatingDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
-                    return null; // no such seatingID
+                    return null; 
                 }
                 return rs.getInt("tableID");
             }

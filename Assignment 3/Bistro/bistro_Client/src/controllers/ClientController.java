@@ -44,6 +44,9 @@ public class ClientController {
     private final BistroEchoClient client;
     private ClientUIHandler ui;
     private boolean connected;
+    
+    private java.util.function.Consumer<Integer> lostCodeListener;
+
 
     // Session identity state
     private boolean guestSession;
@@ -55,6 +58,10 @@ public class ClientController {
     private String currentPhone;
     private UserCommand lastUserCommand;
 
+    public boolean getGuestSession(){
+    	return this.guestSession;
+    }
+    
     public ClientController(BistroEchoClient client) {
         this.client = client;
     }
@@ -272,9 +279,12 @@ public class ClientController {
                     uiPayload(managerResponse);
                 }
             }
+            
             else if (responseData instanceof Integer confirmationCode) {
-                String message = "Confirmation code: " + confirmationCode;
-                safeUiInfo("Lost code", message);
+            	if (lostCodeListener != null) {
+                    lostCodeListener.accept(confirmationCode);
+                    return;
+                }
             }
             // billing payloads are handled using reflection to avoid tight coupling
             if (responseData instanceof BillResponse billResponse) {
@@ -319,6 +329,7 @@ public class ClientController {
 
         sendRequest(req);
     }
+<<<<<<< HEAD
     public void requestReports(ReportRequest reportRequest) {
         if (!connected) {
             safeUiWarning("Reports", "Not connected to server.");
@@ -333,17 +344,30 @@ public class ClientController {
         sendRequest(req);
     }
     public void requestLostCode(String contact) {
+=======
+    
+    public void setLostCodeListener(java.util.function.Consumer<Integer> listener) {
+        this.lostCodeListener = listener;
+    }
+
+    public void clearLostCodeListener() {
+        this.lostCodeListener = null;
+    }
+
+    public void requestLostCode(String contactRaw) {
+>>>>>>> ronen-database/entities
         if (!connected) {
-            safeUiWarning("Lost code", "Not connected to server.");
-            return;
-        }
-        if (contact == null || contact.isBlank()) {
-            safeUiWarning("Lost code", "Contact is required.");
+            safeUiWarning("Retrieve Code", "Not connected to server.");
             return;
         }
 
-        String trimmedContact = contact.trim();
-        Request<String> req = new Request<>(Request.Command.LOST_CODE, trimmedContact);
+        String contact = contactRaw == null ? null : contactRaw.trim();
+        if (contact == null || contact.isEmpty()) {
+            safeUiWarning("Retrieve Code", "Missing contact or user ID.");
+            return;
+        }
+
+        Request<String> req = new Request<>(Request.Command.LOST_CODE, contact);
         sendRequest(req);
     }
     
@@ -359,7 +383,8 @@ public class ClientController {
         err = validatePassword(password);
         if (err != null) { safeUiWarning("Login", err); return; }
 
-
+        this.guestSession = false;
+        this.guestContact = null;
         LoginRequest loginRequest = new LoginRequest(username,password,UserCommand.LOGIN_REQUEST);       
         Request<LoginRequest> req = new Request<LoginRequest>(Request.Command.USER_REQUEST,loginRequest);
         sendRequest(req);

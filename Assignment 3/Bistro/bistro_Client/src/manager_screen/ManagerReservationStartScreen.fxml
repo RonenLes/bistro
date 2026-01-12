@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="800.0" prefWidth="1280.0" styleClass="surface" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="manager_screen.ManagerReservationStartScreenController">
+    <center>
+        <VBox spacing="16.0" BorderPane.alignment="CENTER">
+            <children>
+                <VBox spacing="4.0">
+                    <children>
+                        <Label styleClass="h2" text="Start reservation for a guest or subscriber" />
+                        <Label styleClass="muted" text="Choose a target and continue to the reservation screen." />
+                    </children>
+                </VBox>
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <children>
+                        <RadioButton fx:id="subscriberRadio" text="Subscriber">
+                            <toggleGroup>
+                                <ToggleGroup fx:id="reservationTargetGroup" />
+                            </toggleGroup>
+                        </RadioButton>
+                        <RadioButton fx:id="guestRadio" text="Guest" toggleGroup="$reservationTargetGroup" />
+                        <Region HBox.hgrow="ALWAYS" />
+                    </children>
+                </HBox>
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <children>
+                        <TextField fx:id="userIdField" promptText="Subscriber ID" />
+                        <TextField fx:id="guestContactField" promptText="Guest contact (phone/email)" />
+                    </children>
+                </HBox>
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <children>
+                        <Button onAction="#onContinue" styleClass="primary" text="Continue to reservations" />
+                        <Button onAction="#onCancel" styleClass="ghost" text="Back" />
+                    </children>
+                </HBox>
+                <Label fx:id="infoLabel" styleClass="muted" text="" />
+            </children>
+            <BorderPane.margin>
+                <Insets bottom="14.0" left="14.0" right="14.0" top="14.0" />
+            </BorderPane.margin>
+        </VBox>
+    </center>
+</BorderPane>

@@ -6,6 +6,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
+import javafx.scene.control.TextInputDialog;
 
 public class TerminalCheckInController implements ClientControllerAware {
 
@@ -49,6 +50,40 @@ public class TerminalCheckInController implements ClientControllerAware {
         setStatus("Checking in...");
         
         clientController.requestSeatingCheckInByConfirmationCode(confirmationCode);
+    }
+    
+    @FXML
+    private void onUseUserId() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Use user ID");
+        dialog.setHeaderText("Enter subscriber user ID");
+        dialog.setContentText("User ID:");
+
+        dialog.showAndWait().ifPresent(input -> {
+            String userId = input == null ? "" : input.trim();
+            if (userId.isEmpty()) {
+                setStatus("Enter user ID.");
+                return;
+            }
+            if (!connected || clientController == null) {
+                setStatus("Offline Mode: cannot check-in without server connection.");
+                return;
+            }
+
+            clientController.setLostCodeListener(code -> {
+                clientController.clearLostCodeListener();
+                if (code == null || code <= 0) {
+                    setStatus("Failed to resolve confirmation code.");
+                    return;
+                }
+                if (reservationNumberField != null) {
+                    reservationNumberField.setText(String.valueOf(code));
+                }
+                onEnter();
+            });
+            setStatus("Resolving confirmation code...");
+            clientController.requestLostCode(userId);
+        });
     }
     
     public void handleSeatingResponse(responses.SeatingResponse response) {

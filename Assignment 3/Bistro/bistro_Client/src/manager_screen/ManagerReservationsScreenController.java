@@ -33,6 +33,7 @@ public class ManagerReservationsScreenController implements ClientControllerAwar
     private boolean connected;
 
     private final ObservableList<ReservationResponse> reservations = FXCollections.observableArrayList();
+    private Runnable onStartReservationFlow;
 
     @FXML
     private void initialize() {
@@ -55,6 +56,13 @@ public class ManagerReservationsScreenController implements ClientControllerAwar
         this.clientController = controller;
         this.connected = connected;
     }
+    @FXML
+    private void onOpenReservationFlow() {
+        if (onStartReservationFlow != null) {
+            onStartReservationFlow.run();
+        }
+    }
+
 
     @FXML
     private void onLoad() {
@@ -80,6 +88,9 @@ public class ManagerReservationsScreenController implements ClientControllerAwar
                 }
             }
         }        
+    }
+    public void setOnStartReservationFlow(Runnable onStartReservationFlow) {
+        this.onStartReservationFlow = onStartReservationFlow;
     }
 
     private boolean readyForServer() {

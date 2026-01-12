@@ -24,18 +24,20 @@ public class BillingControl {
 	private final NotificationControl notificationControl;
 	private final UserDAO userDAO;
 	private final BillDAO billDAO;
+	private final SeatingControl seatingControl;
 	
 	public BillingControl() {
-		this(new ReservationDAO(),new SeatingDAO(),new NotificationControl(),new UserDAO(),new BillDAO());
+		this(new ReservationDAO(),new SeatingDAO(),new NotificationControl(),new UserDAO(),new BillDAO(),new SeatingControl());
 	}
 	
-	public BillingControl(ReservationDAO reservationDAO, SeatingDAO seatingDAO,NotificationControl notificationControl,UserDAO userDAO,BillDAO billDAO) {
+	public BillingControl(ReservationDAO reservationDAO, SeatingDAO seatingDAO,NotificationControl notificationControl,UserDAO userDAO,BillDAO billDAO,SeatingControl seatingControl) {
 		
 		this.reservationDAO = reservationDAO;
 		this.seatingDAO = seatingDAO;
 		this.notificationControl=notificationControl;
 		this.userDAO=userDAO;
 		this.billDAO=billDAO;
+		this.seatingControl = seatingControl;
 	}
 	
 	public Response<BillResponse> handleBillRequest(BillRequest req) throws SQLException{
@@ -64,6 +66,12 @@ public class BillingControl {
 		        	conn.rollback();
 		            return failResponse("No open seating found for this reservation");
 		        }
+		        Bill existingBill = billDAO.getOpenBillBySeatingId(conn, seatingId);
+		        if(existingBill!=null) {
+		        	BillResponse br = new BillResponse(BillResponseType.ANSWER_TO_REQUEST_TO_SEE_BILL,existingBill.getBillID(),true);
+		        	return successResponse("Here is your bill", br);
+		        }
+		        
 		        Double bill=generateRandomBillSum();
 		        Double finalBill;
 		        int billId;
@@ -140,7 +148,12 @@ public class BillingControl {
 	            	conn.rollback();
 	            	return failResponse("Failed to change billSent status");
 	            }
-	            boolean clearTable=seatingDAO.checkOutBySeatingId(conn,seatingId);
+	            Integer t = seatingDAO.getTableIDBySeatingID(conn, seatingId);
+	            if(t<0) {
+	            	conn.rollback();
+	            	return failResponse("Failed to checkout assign new");
+	            }
+	            boolean clearTable=seatingControl.checkOutAndAssignNew(t);
 	            if(!clearTable) {
 	            	conn.rollback();
 	            	return failResponse("Failed to check out seating");

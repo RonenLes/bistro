@@ -46,27 +46,24 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
     private boolean requested;
     private ReservationsViewController reservationsViewController;
     private Consumer<ReservationResponse> onEditReservation;
+    @FXML private Label qrLabel;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
     @FXML
     private void initialize() {
-        if (colDate != null) {
-            colDate.setCellValueFactory(cd -> new ReadOnlyStringWrapper(
-                    formatDate(cd.getValue() == null ? null : cd.getValue().getNewDate())
-            ));
-        }
-        if (colStartTime != null) {
-            colStartTime.setCellValueFactory(cd -> new ReadOnlyStringWrapper(
-                    formatTime(cd.getValue() == null ? null : cd.getValue().getNewTime())
-            ));
-        }
-        if (colPartySize != null) {
-            colPartySize.setCellValueFactory(cd -> new ReadOnlyStringWrapper(
-                    formatInt(cd.getValue() == null ? 0 : cd.getValue().getNewPartySize())
-            ));
-        }
+        if (colDate != null) 
+            colDate.setCellValueFactory(cd -> new ReadOnlyStringWrapper(formatDate(cd.getValue() == null ? null : cd.getValue().getNewDate())));
+                                       
+        if (colStartTime != null) 
+            colStartTime.setCellValueFactory(cd -> new ReadOnlyStringWrapper(formatTime(cd.getValue() == null ? null : cd.getValue().getNewTime())));
+                    
+            
+        
+        if (colPartySize != null) colPartySize.setCellValueFactory(cd -> new ReadOnlyStringWrapper(formatInt(cd.getValue() == null ? 0 : cd.getValue().getNewPartySize())));
+                                           
+        
         if (colConfirmationCode != null) {
             colConfirmationCode.setCellValueFactory(cd -> new ReadOnlyStringWrapper(
                     formatInt(cd.getValue() == null ? 0 : cd.getValue().getConfirmationCode())
@@ -139,6 +136,7 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
+        updateQrLabel();
         if (connected && !requested) {
             requested = true;
             requestUpcomingReservations();
@@ -158,6 +156,11 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
         requestUpcomingReservations();
     }
 
+    @FXML
+    private void onShowQr() {
+        updateQrLabel();
+        showQrPopup();
+    }
 
     
 
@@ -195,12 +198,35 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
             e.printStackTrace();
         }
     }
+    
+    private void updateQrLabel() {
+        if (qrLabel == null) return;
+        String userId = clientController == null ? null : clientController.getCurrentUserId();
+        qrLabel.setText("User ID: " + (userId == null || userId.isBlank() ? "-" : userId));
+    }
+
+    private void showQrPopup() {
+        String userId = clientController == null ? null : clientController.getCurrentUserId();
+        String displayId = userId == null || userId.isBlank() ? "-" : userId;
+
+        javafx.scene.control.Dialog<Void> dialog = new javafx.scene.control.Dialog<>();
+        dialog.setTitle("QR Code");
+        dialog.getDialogPane().getButtonTypes().add(javafx.scene.control.ButtonType.CLOSE);
+
+        javafx.scene.control.Label label = new javafx.scene.control.Label(displayId);
+        label.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+
+        javafx.scene.layout.VBox content = new javafx.scene.layout.VBox(12, label);
+        content.setStyle("-fx-alignment: center; -fx-padding: 20;");
+        dialog.getDialogPane().setContent(content);
+        dialog.showAndWait();
+    }
 
     @Override
     public void showInfo(String title, String message) {
         setInfo(message);
     }
-
+    
     @Override
     public void showWarning(String title, String message) {
         setInfo(message);

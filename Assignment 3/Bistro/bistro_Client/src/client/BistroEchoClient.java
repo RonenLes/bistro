@@ -58,4 +58,6 @@ public class BistroEchoClient extends AbstractClient {
             controller.handleConnectionLost("Connection error: " + exception.getMessage());
         }
     }
+    
+    
 }

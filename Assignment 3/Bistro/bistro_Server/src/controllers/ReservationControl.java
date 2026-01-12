@@ -7,6 +7,7 @@ import requests.ReservationRequest;
 import responses.ReservationResponse;
 import responses.ReservationResponse.ReservationResponseType;
 import responses.Response;
+import responses.UserHistoryResponse;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -71,7 +72,7 @@ public class ReservationControl {
 
         try (Connection conn = DBManager.getConnection()) {
         	
-        	
+        	System.out.println(req.getReservationDate()+" received");
         	
             List<LocalTime> availableTimes =getAvailableTimes(conn, req.getReservationDate(), req.getPartySize());            
 
@@ -105,14 +106,21 @@ public class ReservationControl {
     }
 
     // ---------------- SECOND PHASE ----------------
+    private static String q(String s) { return s == null ? "null" : ("'" + s + "'"); }
+
     private Response<ReservationResponse> handleSecondPhase(ReservationRequest req) {
+    	System.out.println("[SERVER SECOND_PHASE] userID=" + q(req.getUserID())
+        + " guestContact=" + q(req.getGuestContact())
+        + " date=" + req.getReservationDate()
+        + " time=" + req.getStartTime()
+        + " party=" + req.getPartySize());
         if (req.getReservationDate() == null || req.getStartTime() == null)
             return failResponse("Missing reservation date/time");
         if (req.getPartySize() <= 0) return failResponse("Invalid party size");
 
         boolean hasUser = req.getUserID() != null && !req.getUserID().isBlank();
         if (!hasUser && (req.getGuestContact() == null || req.getGuestContact().isBlank()))
-            return failResponse("Missing guest contact");
+            return failResponse("Missing identity: both userID and guestContact are empty");
 
         try {
             return createReservation(req, ReservationResponseType.SECOND_PHASE_CONFIRMED);
@@ -509,6 +517,10 @@ public class ReservationControl {
     public Response<Integer> retrieveConfirmationCode(String contact) {
     	try(Connection conn = DBManager.getConnection()){
     		int code= reservationDAO.fetchConfirmationCodeByGuestContact(conn, contact);
+    		if(code==-1) {
+    			List<UserHistoryResponse> upcoming = reservationDAO.fetchUpcomingReservationsByUser(conn, contact);
+    			if(upcoming !=null)code = upcoming.get(0).getConfirmationCode();
+    		}
     		sendConfirmationNotification(null, contact, code);
     		return new Response<>(true,"here is your code",code);
     	}catch(Exception e) {

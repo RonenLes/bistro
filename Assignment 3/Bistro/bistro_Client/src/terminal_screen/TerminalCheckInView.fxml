@@ -42,11 +42,19 @@
                 </children>
             </VBox>
 
-            <Button text="Continue"
-                    prefHeight="54.0"
-                    prefWidth="220.0"
-                    onAction="#onEnter"
-                    defaultButton="true" />
+            <VBox alignment="CENTER" spacing="10.0">
+                <children>
+                    <Button text="Continue"
+                            prefHeight="54.0"
+                            prefWidth="220.0"
+                            onAction="#onEnter"
+                            defaultButton="true" />
+                    <Button text="Use user ID"
+                            prefHeight="44.0"
+                            prefWidth="220.0"
+                            onAction="#onUseUserId" />
+                </children>
+            </VBox>
 
             <Label fx:id="statusLabel"
                    text=" "

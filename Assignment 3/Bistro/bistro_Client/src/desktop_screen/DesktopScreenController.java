@@ -23,6 +23,7 @@ import manager_screen.ManagerReservationsScreenController;
 import manager_screen.ShowDataScreenController;
 import manager_screen.UpdateOpeningHoursScreenController;
 import manager_screen.SubscribersScreenController;
+import manager_screen.ManagerReservationStartScreenController;
 import subscriber_screen.*;
 import responses.ManagerResponse;
 import responses.ReservationResponse;
@@ -140,7 +141,7 @@ public class DesktopScreenController implements ClientUIHandler {
         // SUBSCRIBER -> edit details, new reservations, pay, history
         ROLE_SCREENS.put(Role.SUBSCRIBER, EnumSet.of(
         		 ScreenKey.SUBSCRIBER_HOME,
-                ScreenKey.EDIT_DETAILS,
+                //ScreenKey.EDIT_DETAILS,
                 ScreenKey.RESERVATIONS,
                 ScreenKey.PAY,
                 ScreenKey.HISTORY
@@ -170,7 +171,7 @@ public class DesktopScreenController implements ClientUIHandler {
                //ScreenKey.TABLES, 
                 ScreenKey.EDIT_TABLES,
                 ScreenKey.MANAGER_DATA,
-                ScreenKey.ANALYTICS,
+                //ScreenKey.ANALYTICS,
                 ScreenKey.MANAGER_RESERVATIONS,
                 ScreenKey.REPORTS,
                 ScreenKey.OPENING_HOURS
@@ -190,6 +191,9 @@ public class DesktopScreenController implements ClientUIHandler {
         selectDefaultForRole(); // pick default screen for this role
         if (this.role == Role.SUBSCRIBER && clientController != null) {
             clientController.requestUpcomingReservations();
+        }
+        if (historyVC != null) {
+            historyVC.setUserContext(this.role, buildDiscountInfo());
         }
     }
 
@@ -402,12 +406,27 @@ public class DesktopScreenController implements ClientUIHandler {
             // cache known controllers so we can route responses later
             if (ctrl instanceof ReservationsViewController rvc) reservationsVC = rvc;
             if (ctrl instanceof EditReservationViewController edvc) editReservationVC = edvc;
+<<<<<<< HEAD
             if (ctrl instanceof HistoryViewController hvc) historyVC = hvc;
             if (ctrl instanceof ReportsViewController rvc) reportsVC = rvc;
+=======
+            if (ctrl instanceof HistoryViewController hvc) {
+                historyVC = hvc;
+                historyVC.setUserContext(role, buildDiscountInfo());
+            }
+
+>>>>>>> ronen-database/entities
             if (ctrl instanceof TablesViewController tvc) tablesVC = tvc;
             if (ctrl instanceof EditTableScreenController etc) editTableVC = etc;
             if (ctrl instanceof UpdateOpeningHoursScreenController uohc) openingHoursVC = uohc;
-            if (ctrl instanceof ManagerReservationsScreenController mrc) managerReservationsVC = mrc;
+            if (ctrl instanceof ManagerReservationsScreenController mrc) {
+                managerReservationsVC = mrc;
+                managerReservationsVC.setOnStartReservationFlow(this::openManagerReservationStart);
+            }
+            if (ctrl instanceof ManagerReservationStartScreenController startCtrl) {
+                startCtrl.setOnContinue(this::openReservationForIdentity);
+                startCtrl.setOnCancel(this::openManagerReservations);
+            }
             if (ctrl instanceof ShowDataScreenController sdc) showDataVC = sdc;
             if (ctrl instanceof AddSubscriberScreenController asc) addSubscriberVC = asc;
             if (ctrl instanceof SubscribersScreenController ssc) subscribersVC = ssc;
@@ -468,6 +487,12 @@ public class DesktopScreenController implements ClientUIHandler {
     @Override
     public void onSeatingResponse(SeatingResponse response) {
         // desktop currently does not handle seating responses
+    }
+    private HistoryViewController.DiscountInfo buildDiscountInfo() {
+        if (role == Role.SUBSCRIBER) {
+            return HistoryViewController.DiscountInfo.active("10% subscriber discount", 0.10);
+        }
+        return HistoryViewController.DiscountInfo.none();
     }
 
     @Override
@@ -557,7 +582,20 @@ public class DesktopScreenController implements ClientUIHandler {
             showInfo("Billing", "Bill total received: " + String.format("%.2f", baseTotal));
         });
     }
+    private void openManagerReservations() {
+        selectIfVisible(managerReservationsBtn);
+    }
 
+    private void openManagerReservationStart() {
+        loadIntoContentHost("/manager_screen/ManagerReservationStartScreen.fxml");
+    }
+
+    private void openReservationForIdentity(String userId, String guestContact) {
+        selectIfVisible(reservationsBtn);
+        if (reservationsVC != null) {
+            reservationsVC.setReservationIdentity(userId, guestContact);
+        }
+    }
     @Override
     public void onBillPaid(Integer tableNumber) {
     	javafx.application.Platform.runLater(() -> {

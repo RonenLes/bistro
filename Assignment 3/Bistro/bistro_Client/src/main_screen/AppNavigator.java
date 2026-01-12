@@ -332,20 +332,29 @@ public class AppNavigator {
 
 		@Override
 		public void onBillTotal(double baseTotal, boolean isCash) {
-			// TODO Auto-generated method stub
+			if (terminalController == null) {
+                return;
+            }
+            javafx.application.Platform.runLater(() -> terminalController.onBillTotal(baseTotal));
 			
 		}
 
 		@Override
 		public void onBillPaid(Integer tableNumber) {
-			// TODO Auto-generated method stub
+			if (terminalController == null) {
+                return;
+            }
+            javafx.application.Platform.runLater(() -> terminalController.onBillPaid());
 			
 			
 		}
 
 		@Override
 		public void onBillError(String message) {
-			// TODO Auto-generated method stub
+			if (terminalController == null) {
+                return;
+            }
+            javafx.application.Platform.runLater(() -> terminalController.onBillError(message));
 			
 		}
     }

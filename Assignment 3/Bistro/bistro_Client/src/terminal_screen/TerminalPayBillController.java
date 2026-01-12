@@ -5,6 +5,7 @@ import controllers.ClientControllerAware;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.control.Button;
@@ -160,6 +161,39 @@ public class TerminalPayBillController implements ClientControllerAware {
             setStatus("Confirmation code must be numeric.", true);
             return null;
         }
+    }
+    @FXML
+    private void onUseUserId() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Use user ID");
+        dialog.setHeaderText("Enter subscriber user ID");
+        dialog.setContentText("User ID:");
+
+        dialog.showAndWait().ifPresent(input -> {
+            String userId = input == null ? "" : input.trim();
+            if (userId.isEmpty()) {
+                setStatus("Enter user ID.", true);
+                return;
+            }
+            if (!connected || clientController == null) {
+                setStatus("Terminal is offline.", true);
+                return;
+            }
+
+            clientController.setLostCodeListener(code -> {
+                clientController.clearLostCodeListener();
+                if (code == null || code <= 0) {
+                    setStatus("Failed to resolve confirmation code.", true);
+                    return;
+                }
+                if (reservationOrTableField != null) {
+                    reservationOrTableField.setText(String.valueOf(code));
+                }
+                onFetchBill();
+            });
+            setStatus("Resolving confirmation code...", false);
+            clientController.requestLostCode(userId);
+        });
     }
 
     private String formatMoney(double value) {

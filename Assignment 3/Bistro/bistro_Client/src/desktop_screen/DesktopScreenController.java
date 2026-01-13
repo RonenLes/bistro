@@ -398,6 +398,9 @@ public class DesktopScreenController implements ClientUIHandler {
 
     private void loadIntoContentHost(String fxmlPath) {
         try {
+        	if (!"/desktop_views/ReservationsView.fxml".equals(fxmlPath) && reservationsVC != null) {
+                reservationsVC.clearReservationIdentity();
+            }
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
             Node view = loader.load();
 

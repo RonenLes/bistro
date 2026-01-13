@@ -1,5 +1,6 @@
 package controllers;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -58,9 +59,7 @@ public class ClientController {
     private String currentPhone;
     private UserCommand lastUserCommand;
 
-    public boolean getGuestSession(){
-    	return this.guestSession;
-    }
+    
     
     public ClientController(BistroEchoClient client) {
         this.client = client;
@@ -460,7 +459,7 @@ public class ClientController {
             return;
         }
 
-        String username = currentUsername == null ? null : currentUsername.trim();
+        String username = resolveUsername();
         if (username == null || username.isEmpty()) {
             safeUiWarning("Subscriber Details", "No active user session.");
             return;
@@ -478,7 +477,7 @@ public class ClientController {
             return;
         }
 
-        String username = currentUsername == null ? null : currentUsername.trim();
+        String username = resolveUsername();
         if (username == null || username.isEmpty()) {
             safeUiWarning("Subscriber Details", "No active user session.");
             return;
@@ -495,6 +494,14 @@ public class ClientController {
         Request<LoginRequest> req = new Request<>(Request.Command.USER_REQUEST, payload);
         lastUserCommand = UserCommand.EDIT_DETAIL_REQUEST;
         sendRequest(req);
+    }
+    
+    private String resolveUsername() {
+        String username = currentUsername;
+        if (username == null || username.isBlank()) {
+            username = lastLoginUsername;
+        }
+        return username == null ? null : username.trim();
     }
     
     // Manager request
@@ -545,30 +552,33 @@ public class ClientController {
     }
     
     public void logout() {
-        try {
-            if (connected && client != null) {
-                client.closeConnection();   // OCSF AbstractClient.closeConnection()
-            }
-        } catch (Exception e) {
-            safeUiError("Logout", "Error while closing connection:\n" + e.getMessage());
-        } finally {
-            connected = false;
-            
+    	 if (connected && client != null) {
+             Request<Void> req = new Request<>(Request.Command.LOGOUT_REQUEST, null);
+             sendRequest(req);
+         }
+    	// reset session identity locally, keep connection alive
+         guestSession = false;
+         guestContact = null;
+         currentUsername = null;
+         currentEmail = null;
+         currentPhone = null;
+         currentUserId = null;
 
-            // reset session identity
-            guestSession = false;
-            guestContact = null;
-            currentUsername = null;
-            currentEmail = null;
-            currentPhone = null;
-            currentUserId = null;
-
-            // Optionally notify UI to go back to login screen
-            if (ui != null) {
-                ui.showInfo("Logout", "You have been logged out.");
-                //ui.routeToLogin(); // <-- add this to your ClientUIHandler if you do not have it yet
-            }
-        }
+         if (ui != null) {
+             ui.showInfo("Logout", "You have been logged out.");
+         }
+    }
+    
+    public void closeConnectionForExit() {
+    	 if (client != null) {
+             try {
+				client.closeConnection();
+			} catch (IOException e) {
+				 safeUiError("Exit", "Error while closing connection:\n" + e.getMessage());				
+			} finally {
+				connected = false;
+			}
+         }
     }
 
 

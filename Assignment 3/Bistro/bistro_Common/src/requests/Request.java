@@ -12,7 +12,8 @@ public class Request<T> {
 		MANAGER_REQUEST,
 		BILLING_REQUEST,
 		REPORT_REQUEST,
-		LOST_CODE
+		LOST_CODE,
+		LOGOUT_REQUEST
 	}
 	
 	public Request() {}

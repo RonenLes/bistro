@@ -42,7 +42,7 @@ public class ReservationDAO {
 	        "AND reservationDate >= CURDATE() " +
 	        "ORDER BY reservationDate ASC, startTime ASC";
 	
-	private final String SELECT_RESERVATIONS_OVERLAPING_WITH_CLOSE_HOURS="SELECT r.reservationID FROM reservation r "+
+	private final String SELECT_RESERVATIONS_OVERLAPING_WITH_CLOSE_HOURS="SELECT r.reservationID, r.userID, r.guestContact, r.status, r.reservationDate, r.startTime FROM reservation r "+
 																		 "WHERE r.reservationDate = ? "+
 																		 "AND (r.startTime < ? OR ADDTIME(r.startTime, '02:00:00') > ?) "+
 																		 "ORDER BY r.startTime";
@@ -50,10 +50,10 @@ public class ReservationDAO {
             "SELECT guestContact, userID, status, reservationID " +
             "FROM reservation " +
             "WHERE reservationDate = ? " +
-            "  AND allocatedCapacity = ? " +
-            "  AND status IN ('NEW','CONFIRMED') " +
-            "  AND (? < ADDTIME(startTime, '02:00:00') AND ? > startTime) " +
-            "ORDER BY (status='NEW') DESC, reservationID DESC " +
+            "  AND allocatedCapacity <= ? " +
+            "  AND status = 'CONFIRMED' " +
+            "  AND (startTime < ? AND ADDTIME(startTime,'02:00:00') > ?) " +
+            "ORDER BY reservationDate DESC, startTime DESC " +
             "LIMIT ?";
 	private static final String SELECT_OVERBOOKED_SLOTS =
 	        "SELECT slots.reservationDate, slots.startTime AS slotStart, COUNT(r2.reservationID) AS booked " +
@@ -61,11 +61,11 @@ public class ReservationDAO {
 	        "SELECT DISTINCT reservationDate, startTime " +
 	        "FROM reservation " +
 	        "WHERE reservationDate >= CURDATE() " +
-	        "AND allocatedCapacity = ? " +
-	        "AND status IN ('NEW','CONFIRMED') " +
+	        "AND allocatedCapacity <= ? " +
+	        "AND status = 'CONFIRMED' " +
 	        ") slots " +
 	        "JOIN reservation r2 ON r2.reservationDate = slots.reservationDate " +
-	        "AND r2.allocatedCapacity = ? " +
+	        "AND r2.allocatedCapacity <= ? " +
 	        "AND r2.status IN ('NEW','CONFIRMED') " +
 	        "AND (slots.startTime < ADDTIME(r2.startTime, '02:00:00') " +
 	        "AND ADDTIME(slots.startTime, '02:00:00') > r2.startTime) " +
@@ -116,11 +116,10 @@ public class ReservationDAO {
 	        "FROM reservation r " +
 	        "WHERE r.reservationDate >= ? AND r.reservationDate < ? " +
 	        "AND NOT EXISTS ( " +
-	        "   SELECT 1 FROM seating s " +
-	        "   WHERE s.reservationID = r.reservationID " +
-	        "     AND s.checkInTime IS NOT NULL " +
-	        "     AND ABS(TIMESTAMPDIFF(MINUTE, r.timeOfCreation, s.checkInTime)) <= 60 " +
-	        ") " +
+	        "SELECT 1 FROM seating s " +
+	        "WHERE s.reservationID = r.reservationID " +
+	        "AND s.checkInTime IS NOT NULL " +
+	        "AND ABS(TIMESTAMPDIFF(MINUTE, r.timeOfCreation, s.checkInTime)) <= 60) "+
 	        "GROUP BY DAY(r.reservationDate)";
 
 
@@ -582,8 +581,8 @@ public class ReservationDAO {
         try (PreparedStatement ps = conn.prepareStatement(SELECT_OVERLAPPING_RESERVATIONS_TO_CANCEL)){
         	ps.setDate(1, Date.valueOf(date));
             ps.setInt(2, allocatedCapacity);
-            ps.setTime(3, Time.valueOf(timeStart));
-            ps.setTime(4, Time.valueOf(timeEnd));
+            ps.setTime(3, Time.valueOf(timeEnd));   // interval end
+            ps.setTime(4, Time.valueOf(timeStart)); // interval start
             ps.setInt(5, limit);
             
             ResultSet rs = ps.executeQuery();

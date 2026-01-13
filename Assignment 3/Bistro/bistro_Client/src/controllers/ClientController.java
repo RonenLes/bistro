@@ -528,15 +528,10 @@ public class ClientController {
             return;
         }
 
-        SeatingRequest payload = new SeatingRequest(
-                SeatingRequestType.BY_CONFIRMATIONCODE,
-                confirmationCode,
-                null
-        );
+        SeatingRequest payload = new SeatingRequest(SeatingRequestType.BY_CONFIRMATIONCODE,confirmationCode,null);
 
-        Request<SeatingRequest> req =
-                new Request<>(Request.Command.SEATING_REQUEST, payload);
-
+        Request<SeatingRequest> req =new Request<>(Request.Command.SEATING_REQUEST, payload);
+        
         sendRequest(req);
     }
     

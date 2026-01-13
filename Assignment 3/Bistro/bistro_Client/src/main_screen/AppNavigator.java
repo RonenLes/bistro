@@ -255,6 +255,10 @@ public class AppNavigator {
 			terminalController.onBillError(message);
 			
 		}
+		@Override
+        public void onUserDetailsResponse(String email, String phone) {
+            showInfo("Subscriber Details", "Email: " + email + "\nPhone: " + phone);
+        }
     }
     
 
@@ -357,5 +361,10 @@ public class AppNavigator {
             javafx.application.Platform.runLater(() -> terminalController.onBillError(message));
 			
 		}
+		
+		@Override
+        public void onUserDetailsResponse(String email, String phone) {
+            showInfo("Subscriber Details", "Email: " + email + "\nPhone: " + phone);
+        }
     }
 }

@@ -204,10 +204,23 @@ public class ClientController {
                         }
                     }
                     case EDIT_RESPONSE -> {
-                        //update local cache if server returns updated values
-                        this.currentEmail = loginResponse.getEmail();
-                        this.currentPhone = loginResponse.getPhone();
+                    	if (loginResponse.getEmail() != null) {
+                            this.currentEmail = loginResponse.getEmail();
+                        }
+                        if (loginResponse.getPhone() != null) {
+                            this.currentPhone = loginResponse.getPhone();
+                        }
                         safeUiInfo("Subscriber Details", "Details updated successfully");
+                                               
+                    }
+                    case SHOW_DETAIL_RESPONSE->{
+                    	this.currentEmail = loginResponse.getEmail();
+                        this.currentPhone = loginResponse.getPhone();
+                        if (ui != null) {
+                            ui.onUserDetailsResponse(loginResponse.getEmail(), loginResponse.getPhone());
+                        } else {
+                            safeUiInfo("Subscriber Details", "Email: " + loginResponse.getEmail() + "\nPhone: " + loginResponse.getPhone());
+                        }
                     }
                     case HISTORY_RESPONSE -> {
                         java.util.List<UserHistoryResponse> rows = loginResponse.getUserHistory();
@@ -312,15 +325,8 @@ public class ClientController {
             return;
         }
 
-        ReservationRequest reservationRequest = new ReservationRequest(
-                null,
-                LocalDate.now(),
-                LocalTime.now(),
-                partySize,
-                trimmedUserId.isEmpty() ? null : trimmedUserId,
-                trimmedGuestContact.isEmpty() ? null : trimmedGuestContact,
-                0
-        );
+        ReservationRequest reservationRequest = new ReservationRequest(null,LocalDate.now(),LocalTime.now(),
+                partySize,trimmedUserId.isEmpty() ? null : trimmedUserId,trimmedGuestContact.isEmpty() ? null : trimmedGuestContact,0);
 
         SeatingRequest payload = new SeatingRequest(SeatingRequestType.BY_RESERVATION,0,reservationRequest);
 
@@ -447,6 +453,50 @@ public class ClientController {
         lastUserCommand = UserCommand.HISTORY_REQUEST;
         sendRequest(req);
     }
+    
+    public void requestUserDetails() {
+        if (!connected) {
+            safeUiWarning("Subscriber Details", "Not connected to server.");
+            return;
+        }
+
+        String username = currentUsername == null ? null : currentUsername.trim();
+        if (username == null || username.isEmpty()) {
+            safeUiWarning("Subscriber Details", "No active user session.");
+            return;
+        }
+
+        LoginRequest payload = new LoginRequest(username, null, UserCommand.SHOW_DETAILS_REQUEST);
+        Request<LoginRequest> req = new Request<>(Request.Command.USER_REQUEST, payload);
+        lastUserCommand = UserCommand.SHOW_DETAILS_REQUEST;
+        sendRequest(req);
+    }
+
+    public void requestEditDetails(String emailRaw, String phoneRaw) {
+        if (!connected) {
+            safeUiWarning("Subscriber Details", "Not connected to server.");
+            return;
+        }
+
+        String username = currentUsername == null ? null : currentUsername.trim();
+        if (username == null || username.isEmpty()) {
+            safeUiWarning("Subscriber Details", "No active user session.");
+            return;
+        }
+
+        String email = emailRaw == null ? "" : emailRaw.trim();
+        String phone = phoneRaw == null ? "" : phoneRaw.trim();
+        if (email.isEmpty() && phone.isEmpty()) {
+            safeUiWarning("Subscriber Details", "Provide an email or phone number to update.");
+            return;
+        }
+
+        LoginRequest payload = new LoginRequest(username, phone, email, UserCommand.EDIT_DETAIL_REQUEST);
+        Request<LoginRequest> req = new Request<>(Request.Command.USER_REQUEST, payload);
+        lastUserCommand = UserCommand.EDIT_DETAIL_REQUEST;
+        sendRequest(req);
+    }
+    
     // Manager request
     public void requestManagerAction(ManagerRequest request) {
         if (!connected) {

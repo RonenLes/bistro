@@ -541,6 +541,17 @@ public class DesktopScreenController implements ClientUIHandler {
             }
         });
     }
+    
+    @Override
+    public void onUserDetailsResponse(String email, String phone) {
+        javafx.application.Platform.runLater(() -> {
+            if (subscriberMainVC != null) {
+                subscriberMainVC.onUserDetailsResponse(email, phone);
+            } else {
+                showInfo("Subscriber Details", "Email: " + email + "\nPhone: " + phone);
+            }
+        });
+    }
 
     @Override
     public void onManagerResponse(ManagerResponse response) {

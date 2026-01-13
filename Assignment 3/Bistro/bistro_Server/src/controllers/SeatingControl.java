@@ -47,82 +47,84 @@ public class SeatingControl {
         if (req == null) return new Response<>(false, "Request is missing", null);
         if(req.getType()==null)return new Response<>(false, "type is missing", null);
        return switch(req.getType()) {
-        	case BY_CONFIRMATIONCODE -> checkInRouterByConfirmationCode(req.getConfirmationCode());
+        	case BY_CONFIRMATIONCODE -> checkInByConfirmationCode(req.getConfirmationCode());
         	case BY_RESERVATION -> checkInForNonReserved(req.getReservation());
+        	case BY_CALLED -> checkInForCalledCustomer(req.getConfirmationCode());
         };
     }
-    public Response<SeatingResponse> checkInRouterByConfirmationCode(int confirmationCode) {
+    
+    private Response<SeatingResponse> checkInForCalledCustomer(int confirmationCode) {
         try (Connection conn = DBManager.getConnection()) {
-            if (conn == null) return new Response<>(false, "Couldnt connect to db", null);
+            if (conn == null) return new Response<>(false, "DB connection failed", null);
             conn.setAutoCommit(false);
 
             try {
-                Reservation r = reservationDAO.getReservationByConfirmationCode(conn, confirmationCode);
-                if (r == null) {
+                Reservation reservation = reservationDAO.getReservationByConfirmationCode(conn, confirmationCode);
+                if (reservation == null || reservation.getStatus() == null) {
                     conn.rollback();
                     return new Response<>(false, "Reservation not found", null);
                 }
 
-                // We treat as "CALLED customer" ONLY if:
-                // (1) reservation.status == CALLED
-                // (2) there is already a seating row for this reservation
-                // (3) that seating row has checkInTime NULL (held seating)
-                Integer seatingId = seatingDAO.getSeatingIdByReservationId(conn, r.getReservationID());
-                boolean isCalled = "CALLED".equalsIgnoreCase(r.getStatus());
-
-                if (isCalled && seatingId != null && seatingDAO.isCheckInNull(conn, seatingId)) {
-                    // called customer check-in
-                    Response<SeatingResponse> resp = checkInForCalledCustomer(conn, r, seatingId);
-                    if (!resp.isSuccess()) { conn.rollback(); return resp; }
-                    conn.commit();
-                    return resp;
+                if (!"CALLED".equalsIgnoreCase(reservation.getStatus())) {
+                    conn.rollback();
+                    return new Response<>(false, "Reservation is not CALLED anymore", null);
                 }
 
-                // normal reservation check-in
-                Response<SeatingResponse> resp = checkInByConfirmationCode(conn, r);
-                if (!resp.isSuccess()) { conn.rollback(); return resp; }
+                Integer seatingId = seatingDAO.getSeatingIdByReservationId(conn, reservation.getReservationID()); 
+                if (seatingId == null) {
+                    conn.rollback();
+                    return new Response<>(false, "Could not find active seating for this reservation", null);
+                }
+
+                Integer tableId = seatingDAO.getTableIDBySeatingID(conn, seatingId);
+                if (tableId == null) {
+                    conn.rollback();
+                    return new Response<>(false, "Could not find table for seating", null);
+                }
+
+                Table table = tableDAO.fetchTableByID(conn, tableId);
+                if (table == null) {
+                    conn.rollback();
+                    return new Response<>(false, "Could not find table", null);
+                }
+
+                // 1) mark real arrival time
+                boolean checkedIn = seatingDAO.markCheckInNow(conn, seatingId);
+                if (!checkedIn) {
+                    conn.rollback();
+                    return new Response<>(false, "Check-in already done or seating not active", null);
+                }
+
+                // 2) reservation becomes SEATING/SEATED (pick one)
+                boolean resUpdated = reservationDAO.updateStatusByReservationID(conn, reservation.getReservationID(), "SEATING");
+                if (!resUpdated) {
+                    conn.rollback();
+                    return new Response<>(false, "Failed to update reservation status", null);
+                }
+
+                // 3) waiting_list becomes ASSIGNED (prefer conditional)
+                boolean wlUpdated = waitingListDAO.markAssignedIfCalled(conn, reservation.getReservationID());
+                if (!wlUpdated) {
+                    // If this returns false, it means waiting_list isn't CALLED anymore -> race/inconsistency
+                    conn.rollback();
+                    return new Response<>(false, "Failed to mark waiting list as ASSIGNED", null);
+                }
+
                 conn.commit();
-                return resp;
+
+                SeatingResponse seatingResponse = new SeatingResponse(table.getTableNumber(),table.getCapacity(),LocalTime.now(),SeatingResponseType.CUSTOMER_CHECKED_IN);
+
+                return new Response<>(true,"Bon appetite! Your table number: " + table.getTableNumber(),seatingResponse);
 
             } catch (Exception e) {
                 try { conn.rollback(); } catch (Exception ignore) {}
-                return new Response<>(false, "Check-in failed: " + e.getMessage(), null);
+                return new Response<>(false, "checkInForCalledCustomer failed: " + e.getMessage(), null);
             }
+
         } catch (Exception e) {
-            return new Response<>(false, "DB error: " + e.getMessage(), null);
+            return new Response<>(false, "DB connection failed: " + e.getMessage(), null);
         }
     }
-
-    private Response<SeatingResponse> checkInForCalledCustomer(Connection conn, Reservation r, int seatingId) throws SQLException {
-    	if (r == null) return new Response<>(false, "Reservation is null", null);
-        if (r.getStatus() == null || !"CALLED".equalsIgnoreCase(r.getStatus())) {
-            return new Response<>(false, "Customer is not in CALLED status", null);
-        }
-        
-        boolean ok = seatingDAO.markCheckInNow(conn, seatingId);
-        if (!ok) return new Response<>(false, "Failed to check in seating", null);
-
-        boolean updatedWaitingList=waitingListDAO.markAssignedIfCalled(conn, r.getReservationID()); 
-        if(!updatedWaitingList) return new Response<>(false, "Failed to update waiting list status", null);
-        
-        boolean updated = reservationDAO.updateStatusByReservationID(conn, r.getReservationID(), "SEATED");
-        if (!updated) return new Response<>(false, "Failed to update reservation status", null);
-        
-        
-        Integer tableId=seatingDAO.getTableIDBySeatingID(conn, seatingId);
-        if(tableId==null) {
-        	return new Response<>(false, "failed to return a response", null);
-        }
-        Table table=tableDAO.fetchTableByID(conn, tableId);
-        if(table==null) {
-        	return new Response<>(false, "failed to return a response", null);
-        }
-        
-        
-        SeatingResponse sr = new SeatingResponse(table.getTableNumber(),table.getCapacity(),LocalTime.now(),SeatingResponse.SeatingResponseType.CUSTOMER_CHECKED_IN);
-        return new Response<>(true, "Checked in (called customer)", sr);
-    }
-
 
 
 	public Response<SeatingResponse> checkInForNonReserved(ReservationRequest rr) {
@@ -231,10 +233,11 @@ public class SeatingControl {
      * @param confirmationCode of the reservation
      * @return table entity with all the needed details about the table including tableNumber
      */
-    public Response<SeatingResponse> checkInByConfirmationCode(Connection conn,Reservation r) {
-        try  {
-        	if(r==null) return new Response<>(false, "reservation is null error" ,null);
-        	Integer confirmationCode=r.getConfirmationCode();
+    public Response<SeatingResponse> checkInByConfirmationCode(int confirmationCode) {
+        try (Connection conn = DBManager.getConnection()) {
+        	if(conn==null) return new Response<>(false, "Failed to connect to db", null);
+            conn.setAutoCommit(false);
+            Reservation r = reservationDAO.getReservationByConfirmationCode(conn, confirmationCode);
             String validationMsg= validateReservationForCheckIn(r);
             
             if (validationMsg!=null) {
@@ -280,17 +283,14 @@ public class SeatingControl {
         if (nextInLine == null) return true;
 
         Reservation r = waitingListDAO.getReservationByWaitingID(conn, nextInLine.getWaitID());
-        if (r == null) return false;
+        if (r == null) return true;
 
-        // 1) create held seating first (so you don't "call" someone without holding a slot)
-        int heldSeatingId = seatingDAO.insertHeldSeating(conn, tableID, r.getReservationID());
-        if (heldSeatingId == -1) return false;
+        if (!reservationDAO.updateStatusByReservationID(conn, r.getReservationID(), "CALLED")) return true;
 
-        // 2) send notification (if this fails, caller should rollback, and held seating won't exist)
         boolean hasSent;
         if (r.getGuestContact() == null || r.getGuestContact().isBlank()) {
             User user = userDAO.getUserByUserID(conn, r.getUserID());
-            if (user == null) return false;
+            if (user == null) return true;
 
             hasSent = notificationControl.sendInviteToTable(
                 user.getEmail(),
@@ -303,17 +303,16 @@ public class SeatingControl {
                 "Your table is ready, confirmation code: " + r.getConfirmationCode() + ". Arrive in 15 minutes!"
             );
         }
-        if (!hasSent) return false;
 
-        // 3) mark waiting list called
-        if (!waitingListDAO.markCalled(conn, nextInLine.getWaitID())) return false;
+        if (!hasSent) return true;
 
-        // 4) update reservation status
-        if (!reservationDAO.updateStatusByReservationID(conn, r.getReservationID(), "CALLED")) return false;
+        if (!waitingListDAO.markCalled(conn, nextInLine.getWaitID())) return true;
+
+        int heldSeatingId = seatingDAO.insertHeldSeating(conn, tableID, r.getReservationID());
+        if (heldSeatingId == -1) return true;
 
         return true;
     }
-
 
 
 

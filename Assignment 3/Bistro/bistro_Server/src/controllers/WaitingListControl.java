@@ -67,95 +67,57 @@ public class WaitingListControl {
 	            System.out.println("processCalledTimeouts: DB connection failed");
 	            return;
 	        }
-
 	        conn.setAutoCommit(false);
-
 	        List<WaitingList> expired = waitingListDAO.fetchExpiredCalled(conn);
-	        if (expired == null || expired.isEmpty()) {
+	        if (expired.isEmpty()) {
 	            conn.rollback();
 	            return;
 	        }
-
 	        for (WaitingList w : expired) {
-	            try {
-	                int reservationId = w.getReservationID();
-
-	                Integer seatingId = seatingDAO.getSeatingIdByReservationId(conn, reservationId);
-	                Integer tableId = (seatingId != null) ? seatingDAO.getTableIDBySeatingID(conn, seatingId) : null;
-
-	                Reservation reservation = reservationDAO.getReservationByReservationID(conn, reservationId);
-	                if (reservation == null || reservation.getStatus() == null) {
-	                    
-	                    conn.rollback();
-	                    conn.setAutoCommit(false);
-	                    continue;
-	                }
-
-	                if (!"CALLED".equalsIgnoreCase(reservation.getStatus())) {
-	                    
-	                    conn.rollback();
-	                    conn.setAutoCommit(false);
-	                    continue;
-	                }
-
+	            int reservationId = w.getReservationID();
+	            Integer seatingId = seatingDAO.getSeatingIdByReservationId(conn, reservationId);
+	            Integer tableId = (seatingId != null) ? seatingDAO.getTableIDBySeatingID(conn, seatingId) : null;
+	            Reservation reservation = reservationDAO.getReservationByReservationID(conn, reservationId);
+	            if (reservation == null || reservation.getStatus() == null) {
 	                
-	                boolean waitingCancelled = waitingListDAO.updateWaitingStatus(conn, reservationId, "CANCELLED");
-	                if (!waitingCancelled) {
-	                    conn.rollback();
-	                    conn.setAutoCommit(false);
-	                    continue;
-	                }
-	                
-	                // 2) cancel reservation
-	                boolean reservationCancelled = reservationDAO.updateStatusByReservationID(conn, reservationId, "CANCELLED");
-	                if (!reservationCancelled) {
-	                    conn.rollback();
-	                    conn.setAutoCommit(false);
-	                    continue;
-	                }
+	                continue;
+	            }   
+	            if (!"CALLED".equalsIgnoreCase(reservation.getStatus())) {
+	                continue;
+	            }
 
-	                
-	                conn.commit();
+	            
+	            boolean waitingCancelled = waitingListDAO.updateWaitingStatus(conn, reservationId, "CANCELLED");
+	            if (!waitingCancelled) {
+	            	conn.rollback();          
 	                conn.setAutoCommit(false);
-
+	                continue;
+	            }
+	            boolean reservationCancelled =reservationDAO.updateStatusByReservationID(conn, reservationId, "CANCELLED");
+	            if (!reservationCancelled) {
 	               
-	                if (tableId != null) {
-	                    boolean freed = seatingControl.checkOutCurrentSeating(conn, tableId);
-	                    if (!freed) {
-	                        conn.rollback();
-	                        conn.setAutoCommit(false);
-	                        continue;
-	                    }
-	                    try {
-	                        seatingControl.tryAssignNextFromWaitingList(conn, tableId);
-	                        conn.commit();
-	                        conn.setAutoCommit(false);
-	                    } catch (Exception e) {
-	                        try { conn.rollback(); } catch (Exception ignore) {}
-	                        conn.setAutoCommit(false);
-	                        System.out.println("tryAssignNextFromWaitingList failed for tableId=" + tableId + ": " + e.getMessage());
-	                        
-	                    }
-	                } else {
-	                    conn.rollback();
-	                    conn.setAutoCommit(false);
-	                }
-
-	            } catch (Exception perRow) {
-	                try { conn.rollback(); } catch (Exception ignore) {}
+	                conn.rollback();
 	                conn.setAutoCommit(false);
-	                System.out.println("processCalledTimeouts per-row failed: " + perRow.getMessage());
+	                continue;
+	            }
+	            conn.commit();
+	            conn.setAutoCommit(false);
+	            if (tableId != null) {
+	                if(!seatingControl.checkOutAndAssignNew(conn,tableId)) {
+	                	conn.rollback();   
+	                	return;
+	                }
+	            } else {
+	                System.out.println("processCalledTimeouts: No active seating/table found for reservationID=" + reservationId);
 	            }
 	        }
 
-	        // safety commit 
-	        try { conn.commit(); } catch (Exception ignore) {}
+	        conn.commit();
 
 	    } catch (Exception e) {
 	        System.out.println("processCalledTimeouts failed: " + e.getMessage());
 	    }
 	}
-
 
 
 	

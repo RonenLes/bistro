@@ -25,14 +25,12 @@ public class WaitingListDAO {
 	        "VALUES (?, ?, ?, ?, NULL)";
 	
 	//SELECT
-	private final String SELECT_NEXT_IN_LINE =
-	        "SELECT w.waitID, w.reservationID, w.priority, w.status, w.createdAt " +
-	        "FROM waiting_list w " +
-	        "JOIN reservation r ON r.reservationID = w.reservationID " +
-	        "WHERE w.status = 'WAITING' AND r.allocatedCapacity <= ? " +
-	        "ORDER BY w.priority DESC, w.createdAt ASC " +
-	        "LIMIT 1 FOR UPDATE";
-
+	private final String SELECT_NEXT_IN_LINE = "SELECT w.waitID, w.reservationID, w.priority, w.status "+
+											   "FROM waiting_list w "+
+											   "JOIN reservation r ON r.reservationID = w.reservationID "+
+											   "WHERE w.status = 'WAITING' AND r.allocatedCapacity <= ? "+
+											   "ORDER BY w.priority DESC, w.createdAt ASC "+
+											   "LIMIT 1 FOR UPDATE";
 	private static final String SELECT_RESERVATION_BY_WAIT_ID =
 	        "SELECT r.* " +
 	        "FROM waiting_list w " +
@@ -98,12 +96,12 @@ public class WaitingListDAO {
 	        ps.setInt(1, tableCapacity);
 	        try (ResultSet rs = ps.executeQuery()) {
 	            if (!rs.next()) return null;
-
-	            return new WaitingList(rs.getInt("waitID"),rs.getInt("reservationID"),rs.getString("status"),rs.getInt("priority"),rs.getTimestamp("createdAt").toLocalDateTime(),null);
+	            WaitingList w = new WaitingList(rs.getInt("waitID"),rs.getInt("reservationID"),rs.getString("status"),
+	            		rs.getInt("priority"),rs.getTimestamp("createdAt").toLocalDateTime(),null);	            
+	            return w;
 	        }
 	    }
 	}
-
 	
 
 	

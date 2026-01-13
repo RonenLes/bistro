@@ -1,5 +1,6 @@
 package controllers;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -8,6 +9,7 @@ import desktop_screen.DesktopScreenController;
 import kryo.KryoUtil;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 //requests
 import requests.ReportRequest;
 import requests.ManagerRequest;
@@ -42,33 +44,27 @@ import responses.UserHistoryResponse;
 public class ClientController {
 
     private final BistroEchoClient client;
-    private ClientUIHandler ui;
+    private ClientUIHandler ui = new NullClientUIHandler();
     private boolean connected;
+    private final SessionState session = new SessionState();
     
     private java.util.function.Consumer<Integer> lostCodeListener;
+    private final Map<Class<?>, Consumer<Object>> responseHandlers = new HashMap<>();
 
 
-    // Session identity state
-    private boolean guestSession;
-    private String guestContact;
-    private String currentUserId;
-    private String currentUsername;
-    private String lastLoginUsername;
-    private String currentEmail;
-    private String currentPhone;
+    
     private UserCommand lastUserCommand;
 
-    public boolean getGuestSession(){
-    	return this.guestSession;
-    }
+    
     
     public ClientController(BistroEchoClient client) {
         this.client = client;
+        registerResponseHandlers();
     }
 
     /** Called once during UI startup */
     public void setUIHandler(ClientUIHandler ui) {
-        this.ui = ui;
+    	 this.ui = ui == null ? new NullClientUIHandler() : ui;
     }
     
     //connected boolean
@@ -113,8 +109,8 @@ public class ClientController {
                 decoded = KryoUtil.deserialize(bytes);
             }
 
-            if (!(decoded instanceof Response<?> response)) {
-                safeUiInfo("Failed", "failed to deserialize response");
+            Response<?> response = decodeResponse(decoded);
+            if(response ==null) {
                 return;
             }
 
@@ -124,180 +120,169 @@ public class ClientController {
             }
 
             Object responseData = response.getData();
+            if (responseData == null) {
+                //safeUiInfo("Empty Response", "Server returned no payload.");
+                return;
+            }
 
             // user history payload: Response<List<UserHistoryResponse>>
             if (responseData instanceof java.util.List<?> list ) {
-            	if (list.isEmpty()) {
-                    if (lastUserCommand == UserCommand.UPCOMING_RESERVATIONS_REQUEST) {
-                        if (ui != null) {
-                            ui.onUpcomingReservationsResponse(java.util.List.of());
-                        } else {
-                            safeUiInfo("Upcoming Reservations", "Upcoming reservations received. Rows: 0");
-                        }
-                        return;
-                    }
-                    if (lastUserCommand == UserCommand.HISTORY_REQUEST) {
-                        if (ui != null) {
-                            ui.onUserHistoryResponse(java.util.List.of());
-                        } else {
-                            safeUiInfo("History", "History response received. Rows: 0");
-                        }
-                        return;
-                    }
-                    if (list.get(0) instanceof ReservationResponse) {
-                        @SuppressWarnings("unchecked")
-                        java.util.List<ReservationResponse> rows = (java.util.List<ReservationResponse>) list;
-                        if (ui != null) {
-                            ui.onUpcomingReservationsResponse(rows);
-                        } else {
-                            safeUiInfo("Upcoming Reservations", "Upcoming reservations received. Rows: " + rows.size());
-                        }
-                        return;
-                    }
-                }
-                if (list.get(0) instanceof UserHistoryResponse) {
-                    @SuppressWarnings("unchecked")
-                    java.util.List<UserHistoryResponse> rows = (java.util.List<UserHistoryResponse>) list;
-
-                    if (ui != null) {
-                        ui.onUserHistoryResponse(rows);
-                    } else {
-                        safeUiInfo("History", "History response received. Rows: " + rows.size());
-                    }
-                    return;
-                }
+            	handleListResponse(list);
+                return;
             }
 
-            else if (responseData instanceof LoginResponse loginResponse) {
-                switch (loginResponse.getResponseCommand()) {
-                    case LOGIN_RESPONSE -> {
-                        DesktopScreenController.Role uiRole =
-                                mapRoleFromServer(loginResponse.getRole());
-
-                        // update session state for member login
-                        this.guestSession = false;
-                        this.guestContact = null;
-                        this.currentUserId = loginResponse.getUserID();
-                        this.currentUsername = loginResponse.getUsername();
-                        this.currentEmail = loginResponse.getEmail();
-                        this.currentPhone = loginResponse.getPhone();
-  
-
-                        // choose username for server history lookup
-                        String serverUsername = loginResponse.getUsername();
-                        serverUsername = serverUsername == null ? null : serverUsername.trim();
-
-                        // reuse the username typed in the login screen if server did not return it
-                        if (serverUsername != null && !serverUsername.isEmpty()) {
-                            this.currentUsername = serverUsername;
-                        } else {
-                            this.currentUsername = lastLoginUsername == null ? null : lastLoginUsername.trim();
-                        }
-                        
-                        // THIS is where we move to the next screen
-                        if (ui != null) {
-                        	//move on with the respected role, and username
-                            ui.routeToDesktop(uiRole, loginResponse.getUsername());
-                        } else {
-                            System.out.println("[INFO] Login success for " +
-                                    loginResponse.getUsername() + " as " + uiRole);
-                        }
-                    }
-                    case EDIT_RESPONSE -> {
-                        //update local cache if server returns updated values
-                        this.currentEmail = loginResponse.getEmail();
-                        this.currentPhone = loginResponse.getPhone();
-                        safeUiInfo("Subscriber Details", "Details updated successfully");
-                    }
-                    case HISTORY_RESPONSE -> {
-                        java.util.List<UserHistoryResponse> rows = loginResponse.getUserHistory();
-                        if (ui != null) {
-                            ui.onUserHistoryResponse(rows == null ? java.util.List.of() : rows);
-                        } else {
-                            safeUiInfo("History", "History response received. Rows: " + (rows == null ? 0 : rows.size()));
-                        }
-                    }
-                    case UPCOMING_RESERVATIONS_RESPONSE -> {
-                        java.util.List<ReservationResponse> rows = loginResponse.getUpcomingReservations();
-                        if (ui != null) {
-                            ui.onUpcomingReservationsResponse(rows == null ? java.util.List.of() : rows);
-                        } else {
-                            safeUiInfo("Upcoming Reservations", "Upcoming reservations received. Rows: " + (rows == null ? 0 : rows.size()));
-                        }
-                    }
-                }
-            }
-
-            else if (responseData instanceof ReservationResponse reservationResponse) {
-
-                // if this is the final confirmation, show a global info message + confirmation code
-                if (reservationResponse.getType() == ReservationResponse.ReservationResponseType.SECOND_PHASE_CONFIRMED) {
-                    String messege = "Reservation confirmed successfully. "
-                               + "Confirmation code: " + reservationResponse.getConfirmationCode();
-                    safeUiInfo("Reservation", messege);
-                }
-
-                //push to UI handler
-                if (ui != null) {
-                    ui.onReservationResponse(reservationResponse);
-                } else {
-                    uiPayload(reservationResponse);
-                }
-            }
-            
-            else if (responseData instanceof responses.SeatingResponse seatingResponse) {
-
-                if (seatingResponse.getType() == responses.SeatingResponse.SeatingResponseType.CUSTOMER_CHECKED_IN) {
-                    Integer tn = seatingResponse.getTableNumberl();
-                    String seatingMessage = "Checked-in successfully."
-                            + (tn != null ? (" Table: " + tn) : "");
-                    safeUiInfo("Check-in", seatingMessage);
-                } else if (seatingResponse.getType() == responses.SeatingResponse.SeatingResponseType.CUSTOMER_IN_WAITINGLIST) {
-                    safeUiInfo("Check-in", "No table available. You were added to the waiting list.");
-                }
-
-                // push to UI handler
-                if (ui != null) {
-                    ui.onSeatingResponse(seatingResponse);
-                } else {
-                    uiPayload(seatingResponse);
-                }
-            }
-            else if (responseData instanceof ReportResponse reportResponse) {
-                if (ui != null) {
-                    ui.onReportResponse(reportResponse);
-                } else {
-                    safeUiInfo("Reports", "Report received for " + reportResponse.getMonth());
-                }
+            Consumer<Object> handler = responseHandlers.get(responseData.getClass());
+            if (handler != null) {
+                handler.accept(responseData);
                 return;
             }
             
-            else if (responseData instanceof ManagerResponse managerResponse) {
-                if (ui != null) {
-                    ui.onManagerResponse(managerResponse);
-                } else {
-                    uiPayload(managerResponse);
-                }
-            }
-            
-            else if (responseData instanceof Integer confirmationCode) {
-            	if (lostCodeListener != null) {
-                    lostCodeListener.accept(confirmationCode);
-                    return;
-                }
-            }
-            // billing payloads are handled using reflection to avoid tight coupling
-            if (responseData instanceof BillResponse billResponse) {
-                handleBillResponse(billResponse);
-            }
-
-            // handle other response types here (Reservations, etc)
-
+            safeUiInfo("Unhandled Response", "No handler for " + responseData.getClass().getSimpleName());
         } catch (Exception e) {
             safeUiError("Client Error", "Error handling server response:\n" + e.getMessage());
             e.printStackTrace();
         }
     }
+            
+            
+    
+    private void registerResponseHandlers() {
+        responseHandlers.put(LoginResponse.class, payload -> handleLoginResponse((LoginResponse) payload));
+        responseHandlers.put(ReservationResponse.class, payload -> handleReservationResponse((ReservationResponse) payload));
+        responseHandlers.put(SeatingResponse.class, payload -> handleSeatingResponse((SeatingResponse) payload));
+        responseHandlers.put(ReportResponse.class, payload -> handleReportResponse((ReportResponse) payload));
+        responseHandlers.put(ManagerResponse.class, payload -> handleManagerResponse((ManagerResponse) payload));
+        responseHandlers.put(BillResponse.class, payload -> handleBillResponse((BillResponse) payload));
+        responseHandlers.put(Integer.class, payload -> handleLostCode((Integer) payload));
+    }
+
+    private Response<?> decodeResponse(Object decoded) {
+        if (!(decoded instanceof Response<?> response)) {
+            safeUiInfo("Failed", "failed to deserialize response");
+            return null;
+        }
+        return response;
+    }
+
+    private void handleListResponse(java.util.List<?> list) {
+        if (list.isEmpty()) {
+            if (lastUserCommand == UserCommand.UPCOMING_RESERVATIONS_REQUEST) {
+                ui.onUpcomingReservationsResponse(java.util.List.of());
+                return;
+            }
+            
+            if (lastUserCommand == UserCommand.HISTORY_REQUEST) {
+                ui.onUserHistoryResponse(java.util.List.of());
+                return;
+            }
+            return;
+        }
+        
+        Object first = list.get(0);
+        if (first instanceof ReservationResponse) {
+            @SuppressWarnings("unchecked")
+            java.util.List<ReservationResponse> rows = (java.util.List<ReservationResponse>) list;
+            ui.onUpcomingReservationsResponse(rows);
+            
+        } else if (first instanceof UserHistoryResponse) {
+            @SuppressWarnings("unchecked")
+            java.util.List<UserHistoryResponse> rows = (java.util.List<UserHistoryResponse>) list;
+            ui.onUserHistoryResponse(rows);
+            
+        } else {
+            safeUiInfo("Unhandled Response", "Unhandled list payload");
+        }
+    }
+    
+    
+    private void handleLoginResponse(LoginResponse loginResponse) {
+        switch (loginResponse.getResponseCommand()) {
+            case LOGIN_RESPONSE -> {
+                DesktopScreenController.Role uiRole =
+                        mapRoleFromServer(loginResponse.getRole());
+
+                session.setGuestSession(false);
+                session.setGuestContact(null);
+                session.setCurrentUserId(loginResponse.getUserID());
+                session.setCurrentUsername(loginResponse.getUsername());
+                session.setCurrentEmail(loginResponse.getEmail());
+                session.setCurrentPhone(loginResponse.getPhone());
+
+                String serverUsername = loginResponse.getUsername();
+                serverUsername = serverUsername == null ? null : serverUsername.trim();
+
+                if (serverUsername != null && !serverUsername.isEmpty()) {
+                    session.setCurrentUsername(serverUsername);
+                } else {
+                	session.setCurrentUsername(session.getLastLoginUsername() == null? null : session.getLastLoginUsername().trim());                                                       
+                }
+                ui.routeToDesktop(uiRole, loginResponse.getUsername());
+            }
+            case EDIT_RESPONSE -> {
+                if (loginResponse.getEmail() != null) {
+                    session.setCurrentEmail(loginResponse.getEmail());
+                }
+                if (loginResponse.getPhone() != null) {
+                    session.setCurrentPhone(loginResponse.getPhone());
+                }
+                safeUiInfo("Subscriber Details", "Details updated successfully");
+            }
+            case SHOW_DETAIL_RESPONSE -> {
+                session.setCurrentEmail(loginResponse.getEmail());
+                session.setCurrentPhone(loginResponse.getPhone());
+                ui.onUserDetailsResponse(loginResponse.getEmail(), loginResponse.getPhone());
+            }
+            case HISTORY_RESPONSE -> {
+                java.util.List<UserHistoryResponse> rows = loginResponse.getUserHistory();
+                ui.onUserHistoryResponse(rows == null ? java.util.List.of() : rows);
+            }
+            case UPCOMING_RESERVATIONS_RESPONSE -> {
+                java.util.List<ReservationResponse> rows = loginResponse.getUpcomingReservations();
+                ui.onUpcomingReservationsResponse(rows == null ? java.util.List.of() : rows);
+            }
+        }
+    }
+    
+    
+    private void handleReservationResponse(ReservationResponse reservationResponse) {
+        if (reservationResponse.getType() == ReservationResponse.ReservationResponseType.SECOND_PHASE_CONFIRMED) {
+            String messege = "Reservation confirmed successfully. "
+                    + "Confirmation code: " + reservationResponse.getConfirmationCode();
+            safeUiInfo("Reservation", messege);
+        }
+        ui.onReservationResponse(reservationResponse);
+    }
+    
+    private void handleSeatingResponse(SeatingResponse seatingResponse) {
+        if (seatingResponse.getType() == SeatingResponse.SeatingResponseType.CUSTOMER_CHECKED_IN) {
+            Integer tn = seatingResponse.getTableNumberl();
+            String seatingMessage = "Checked-in successfully."
+                    + (tn != null ? (" Table: " + tn) : "");
+            safeUiInfo("Check-in", seatingMessage);
+        } else if (seatingResponse.getType() == SeatingResponse.SeatingResponseType.CUSTOMER_IN_WAITINGLIST) {
+            safeUiInfo("Check-in", "No table available. You were added to the waiting list.");
+        }
+
+        ui.onSeatingResponse(seatingResponse);
+    }
+
+    private void handleReportResponse(ReportResponse reportResponse) {
+        ui.onReportResponse(reportResponse);
+    }
+
+    private void handleManagerResponse(ManagerResponse managerResponse) {
+        ui.onManagerResponse(managerResponse);
+    }
+    
+    private void handleLostCode(Integer confirmationCode) {
+        if (lostCodeListener != null) {
+            lostCodeListener.accept(confirmationCode);
+        }
+    }
+    
+    
+    
+    
     public void requestWalkInSeating(String userId, String guestContact, int partySize) {
         if (!connected) {
             safeUiWarning("Take a seat", "Not connected to server.");
@@ -312,15 +297,8 @@ public class ClientController {
             return;
         }
 
-        ReservationRequest reservationRequest = new ReservationRequest(
-                null,
-                LocalDate.now(),
-                LocalTime.now(),
-                partySize,
-                trimmedUserId.isEmpty() ? null : trimmedUserId,
-                trimmedGuestContact.isEmpty() ? null : trimmedGuestContact,
-                0
-        );
+        ReservationRequest reservationRequest = new ReservationRequest(null,LocalDate.now(),LocalTime.now(),
+                partySize,trimmedUserId.isEmpty() ? null : trimmedUserId,trimmedGuestContact.isEmpty() ? null : trimmedGuestContact,0);
 
         SeatingRequest payload = new SeatingRequest(SeatingRequestType.BY_RESERVATION,0,reservationRequest);
 
@@ -372,7 +350,7 @@ public class ClientController {
     public void requestLogin(String usernameRaw, String passwordRaw) {
         String username = usernameRaw == null ? "" : usernameRaw.trim();
         String password = passwordRaw == null ? "" : passwordRaw.trim();
-        this.lastLoginUsername = username == null ? null : username.trim();
+        session.setLastLoginUsername(username == null ? null : username.trim());
 
         String err = validateUsername(username);
         if (err != null) { safeUiWarning("Login", err); return; }
@@ -380,12 +358,14 @@ public class ClientController {
         err = validatePassword(password);
         if (err != null) { safeUiWarning("Login", err); return; }
 
-        this.guestSession = false;
-        this.guestContact = null;
+        session.setGuestSession(false);
+        session.setGuestContact(null);
         LoginRequest loginRequest = new LoginRequest(username,password,UserCommand.LOGIN_REQUEST);       
         Request<LoginRequest> req = new Request<LoginRequest>(Request.Command.USER_REQUEST,loginRequest);
         sendRequest(req);
     }
+    
+    
     // User history request
     public void requestUserHistory() {
         if (!connected) {
@@ -393,7 +373,7 @@ public class ClientController {
             return;
         }
 
-        String username = guestSession ? guestContact : currentUsername;
+        String username = session.isGuestSession() ? session.getGuestContact() : session.getCurrentUsername();
         username = username == null ? null : username.trim();
 
         System.out.println("[HISTORY_REQUEST] sending username='" + username + "'");
@@ -414,7 +394,8 @@ public class ClientController {
             return;
         }
 
-        String username = currentUsername == null ? null : currentUsername.trim();
+        String username = session.getCurrentUsername();
+        username = username == null ? null : username.trim();
         if (username == null || username.isEmpty()) {
             safeUiWarning("Upcoming Reservations", "No active user session.");
             return;
@@ -447,6 +428,52 @@ public class ClientController {
         lastUserCommand = UserCommand.HISTORY_REQUEST;
         sendRequest(req);
     }
+    
+    public void requestUserDetails() {
+        if (!connected) {
+            safeUiWarning("Subscriber Details", "Not connected to server.");
+            return;
+        }
+
+        String username = session.resolveUsername();
+        if (username == null || username.isEmpty()) {
+            safeUiWarning("Subscriber Details", "No active user session.");
+            return;
+        }
+
+        LoginRequest payload = new LoginRequest(username, null, UserCommand.SHOW_DETAILS_REQUEST);
+        Request<LoginRequest> req = new Request<>(Request.Command.USER_REQUEST, payload);
+        lastUserCommand = UserCommand.SHOW_DETAILS_REQUEST;
+        sendRequest(req);
+    }
+
+    public void requestEditDetails(String emailRaw, String phoneRaw) {
+        if (!connected) {
+            safeUiWarning("Subscriber Details", "Not connected to server.");
+            return;
+        }
+
+        String username = session.resolveUsername();
+        if (username == null || username.isEmpty()) {
+            safeUiWarning("Subscriber Details", "No active user session.");
+            return;
+        }
+
+        String email = emailRaw == null ? "" : emailRaw.trim();
+        String phone = phoneRaw == null ? "" : phoneRaw.trim();
+        if (email.isEmpty() && phone.isEmpty()) {
+            safeUiWarning("Subscriber Details", "Provide an email or phone number to update.");
+            return;
+        }
+
+        LoginRequest payload = new LoginRequest(username, phone, email, UserCommand.EDIT_DETAIL_REQUEST);
+        Request<LoginRequest> req = new Request<>(Request.Command.USER_REQUEST, payload);
+        lastUserCommand = UserCommand.EDIT_DETAIL_REQUEST;
+        sendRequest(req);
+    }
+    
+    
+    
     // Manager request
     public void requestManagerAction(ManagerRequest request) {
         if (!connected) {
@@ -458,8 +485,7 @@ public class ClientController {
             return;
         }
 
-        Request<ManagerRequest> req =
-                new Request<>(Request.Command.MANAGER_REQUEST, request);
+        Request<ManagerRequest> req = new Request<>(Request.Command.MANAGER_REQUEST, request);               
         sendRequest(req);
     }
     // Billing helpers
@@ -495,30 +521,26 @@ public class ClientController {
     }
     
     public void logout() {
-        try {
-            if (connected && client != null) {
-                client.closeConnection();   // OCSF AbstractClient.closeConnection()
-            }
-        } catch (Exception e) {
-            safeUiError("Logout", "Error while closing connection:\n" + e.getMessage());
-        } finally {
-            connected = false;
-            
-
-            // reset session identity
-            guestSession = false;
-            guestContact = null;
-            currentUsername = null;
-            currentEmail = null;
-            currentPhone = null;
-            currentUserId = null;
-
-            // Optionally notify UI to go back to login screen
-            if (ui != null) {
-                ui.showInfo("Logout", "You have been logged out.");
-                //ui.routeToLogin(); // <-- add this to your ClientUIHandler if you do not have it yet
-            }
-        }
+    	 if (connected && client != null) {
+             Request<Void> req = new Request<>(Request.Command.LOGOUT_REQUEST, null);
+             sendRequest(req);
+         }
+    	
+    	 session.reset();
+         ui.showInfo("Logout", "You have been logged out.");
+         
+    }
+    
+    public void closeConnectionForExit() {
+    	 if (client != null) {
+             try {
+				client.closeConnection();
+			} catch (IOException e) {
+				 safeUiError("Exit", "Error while closing connection:\n" + e.getMessage());				
+			} finally {
+				connected = false;
+			}
+         }
     }
 
 
@@ -528,10 +550,10 @@ public class ClientController {
             return;
         }
 
-        SeatingRequest payload = new SeatingRequest(SeatingRequestType.BY_CONFIRMATIONCODE,confirmationCode,null);
+        SeatingRequest payload = new SeatingRequest(SeatingRequestType.BY_CONFIRMATIONCODE,confirmationCode, null);
 
-        Request<SeatingRequest> req =new Request<>(Request.Command.SEATING_REQUEST, payload);
-        
+        Request<SeatingRequest> req = new Request<>(Request.Command.SEATING_REQUEST, payload);
+
         sendRequest(req);
     }
     
@@ -609,23 +631,19 @@ public class ClientController {
     // safe UI calls
 
     private void safeUiInfo(String title, String message) {
-        if (ui != null) ui.showInfo(title, message);
-        else System.out.println("[INFO] " + title + ": " + message);
+    	 ui.showInfo(title, message);
     }
 
     private void safeUiWarning(String title, String message) {
-        if (ui != null) ui.showWarning(title, message);
-        else System.out.println("[WARN] " + title + ": " + message);
+    	 ui.showWarning(title, message);
     }
 
     private void safeUiError(String title, String message) {
-        if (ui != null) ui.showError(title, message);
-        else System.err.println("[ERROR] " + title + ": " + message);
+    	 ui.showError(title, message);
     }
  
     private void uiPayload(Object payload) {
-        if (ui != null) ui.showPayload(payload);
-        else System.out.println("[PAYLOAD] " + payload);
+    	ui.showPayload(payload);
     } 
     
     // Setters
@@ -635,37 +653,37 @@ public class ClientController {
 
     // session identity API (guest)
     public void startGuestSession(String contact) {
-        this.guestSession = true;
-        this.guestContact = contact;
-        this.currentUsername = "guest";
-        this.currentUserId = null;
+    	 session.setGuestSession(true);
+         session.setGuestContact(contact);
+         session.setCurrentUsername("guest");
+         session.setCurrentUserId(null);
 
     }
     
 
     public boolean isGuestSession() {
-        return guestSession;
+    	 return session.isGuestSession();
     }
     
     //Getters
     public String getCurrentUserId() {
-        return currentUserId;
+    	return session.getCurrentUserId();
     }
     
     public String getGuestContact() {
-        return guestContact;
+    	 return session.getGuestContact();
     }
 
     public String getCurrentUsername() {
-        return currentUsername;
+    	return session.getCurrentUsername();
     }
     
     public String getCurrentEmail() {
-        return currentEmail;
+    	return session.getCurrentEmail();
     }
 
     public String getCurrentPhone() {
-        return currentPhone;
+    	return session.getCurrentPhone();
     }
 
 }

@@ -29,6 +29,7 @@ import responses.ManagerResponse;
 import responses.ReservationResponse;
 import responses.SeatingResponse;
 import responses.UserHistoryResponse;
+import responses.WaitingListResponse;
 
 import java.io.IOException;
 import java.util.EnumMap;
@@ -141,7 +142,7 @@ public class DesktopScreenController implements ClientUIHandler {
         // SUBSCRIBER -> edit details, new reservations, pay, history
         ROLE_SCREENS.put(Role.SUBSCRIBER, EnumSet.of(
         		 ScreenKey.SUBSCRIBER_HOME,
-                //ScreenKey.EDIT_DETAILS,
+                ScreenKey.EDIT_DETAILS,
                 ScreenKey.RESERVATIONS,
                 ScreenKey.PAY,
                 ScreenKey.HISTORY
@@ -513,6 +514,18 @@ public class DesktopScreenController implements ClientUIHandler {
             if (addSubscriberVC != null) addSubscriberVC.handleManagerResponse(response);
                 
             
+        });
+    }
+    
+    @Override
+    public void onWaitingListCancellation(WaitingListResponse response) {
+        javafx.application.Platform.runLater(() -> {
+            boolean cancelled = response != null && response.getHasBeenCancelled();
+            if (cancelled) {
+                showInfo("Waiting List", "Waiting list entry cancelled.");
+            } else {
+                showWarning("Waiting List", "Unable to cancel waiting list entry.");
+            }
         });
     }
 

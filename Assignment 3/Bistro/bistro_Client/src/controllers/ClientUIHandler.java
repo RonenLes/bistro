@@ -3,6 +3,7 @@ package controllers;
 import desktop_screen.DesktopScreenController;
 import responses.ReservationResponse;
 import responses.SeatingResponse;
+import responses.WaitingListResponse;
 import responses.ManagerResponse;
 import responses.ReportResponse;
 //Interface for desktopUI or terminalUI to implement
@@ -25,6 +26,7 @@ public interface ClientUIHandler {
     void onBillPaid(Integer tableNumber);
     void onBillError(String message);
     void onUserDetailsResponse(String email, String phone);
+    void onWaitingListCancellation(WaitingListResponse response);
 
 
 }

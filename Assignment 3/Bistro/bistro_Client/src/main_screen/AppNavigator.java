@@ -259,6 +259,13 @@ public class AppNavigator {
         public void onUserDetailsResponse(String email, String phone) {
             showInfo("Subscriber Details", "Email: " + email + "\nPhone: " + phone);
         }
+		@Override
+        public void onWaitingListCancellation(responses.WaitingListResponse response) {
+            boolean cancelled = response != null && response.getHasBeenCancelled();
+            showInfo("Waiting List", cancelled
+                    ? "Waiting list entry cancelled."
+                    : "Unable to cancel waiting list entry.");
+        }
     }
     
 
@@ -365,6 +372,13 @@ public class AppNavigator {
 		@Override
         public void onUserDetailsResponse(String email, String phone) {
             showInfo("Subscriber Details", "Email: " + email + "\nPhone: " + phone);
+        }
+		@Override
+        public void onWaitingListCancellation(responses.WaitingListResponse response) {
+            if (terminalController == null) {
+                return;
+            }
+            javafx.application.Platform.runLater(() -> terminalController.onWaitingListCancellation(response));
         }
     }
 }

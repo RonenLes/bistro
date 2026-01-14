@@ -8,10 +8,7 @@ public class WaitingListResponse {
 	private LocalDateTime createdAt;
 	private String contact;
 	
-	
-	
-	
-	
+			
 	public WaitingListResponse(String priority, LocalDateTime createdAt, String contact) {
 		this.priority = priority;
 		this.createdAt = createdAt;

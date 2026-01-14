@@ -51,6 +51,13 @@ public class WaitingListControl {
 	        	conn.rollback();
        		    return new Response<>(false,"failed to update waitingList status",null);
 	        }
+	        
+	        hasUpdated = reservationDAO.updateStatusByReservationID(conn, reservationID, "CANCELLED");
+	        if(!hasUpdated) {
+	        	conn.rollback();
+       		    return new Response<>(false,"failed to update waitingList status",null);
+	        }
+	        
 	        conn.commit();
 	       WaitingListResponse response= new WaitingListResponse(true);
 	       return new Response<>(true,"We hope to see you another time !",response);

@@ -36,7 +36,9 @@
 	                    <Button fx:id="checkInBtn" onAction="#onCheckIn" prefHeight="52.0" prefWidth="140.0" styleClass="terminal-nav-btn" text="Check-in" />
 	
 	                     <Button fx:id="joinWaitlistBtn" onAction="#onJoinWaitingList" prefHeight="52.0" prefWidth="170.0" styleClass="terminal-nav-btn" text="Take a seat" />
-	
+	                     
+	                     <Button fx:id="cancelWaitlistBtn" onAction="#onCancelWaitlist" prefHeight="52.0" prefWidth="190.0" styleClass="terminal-nav-btn" text="Cancel waitlist" />
+		
 	                    <Button fx:id="lostCodeBtn" onAction="#onLostCode" prefHeight="52.0" prefWidth="160.0" styleClass="terminal-nav-btn" text="Retrieve code" />
 	
 	                    <Button fx:id="payBillBtn" onAction="#onPayBill" prefHeight="52.0" prefWidth="143.0" styleClass="terminal-nav-btn" text="Pay bill" />

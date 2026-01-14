@@ -249,6 +249,11 @@ public class BistroEchoServer extends AbstractServer {
 	                	}
 	                	response = new Response<>(true,"Logged out successfully",null);
 	                }
+	                case WAITING_LIST_REQUEST -> {
+	                	WaitingListRequest waitingListReq = (WaitingListRequest) request.getData();
+	                	Response<WaitingListResponse> waitingListResp = waitingListControl.cancelWaitingList(waitingListReq);
+	                	response = waitingListResp;
+	                }
 	                	                
 	                default -> response = new Response<>(false, "Unknown command", null);
 	            }

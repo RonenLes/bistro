@@ -13,7 +13,8 @@ public class Request<T> {
 		BILLING_REQUEST,
 		REPORT_REQUEST,
 		LOST_CODE,
-		LOGOUT_REQUEST
+		LOGOUT_REQUEST,
+		WAITING_LIST_REQUEST,
 	}
 	
 	public Request() {}

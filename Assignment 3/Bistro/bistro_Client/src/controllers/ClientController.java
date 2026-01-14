@@ -31,6 +31,7 @@ import responses.LoginResponse;
 import responses.ReservationResponse;
 import responses.Response;
 import responses.UserHistoryResponse;
+import responses.WaitingListResponse;
 
 /**
  * Central application controller for the Bistro Echo Client.
@@ -154,6 +155,7 @@ public class ClientController {
         responseHandlers.put(ManagerResponse.class, payload -> handleManagerResponse((ManagerResponse) payload));
         responseHandlers.put(BillResponse.class, payload -> handleBillResponse((BillResponse) payload));
         responseHandlers.put(Integer.class, payload -> handleLostCode((Integer) payload));
+        responseHandlers.put(WaitingListResponse.class, payload -> handleWaitingListResponse((WaitingListResponse) payload));
     }
 
     private Response<?> decodeResponse(Object decoded) {
@@ -162,6 +164,11 @@ public class ClientController {
             return null;
         }
         return response;
+    }
+    
+    private void handleWaitingListResponse(WaitingListResponse waitingListResponse) {
+    	safeUiError(getCurrentPhone(), getCurrentEmail());
+    	ui.onWaitingListCancellation(waitingListResponse);
     }
 
     private void handleListResponse(java.util.List<?> list) {
@@ -275,9 +282,7 @@ public class ClientController {
     }
     
     private void handleLostCode(Integer confirmationCode) {
-        if (lostCodeListener != null) {
-            lostCodeListener.accept(confirmationCode);
-        }
+        if (lostCodeListener != null) lostCodeListener.accept(confirmationCode);                    
     }
     
     
@@ -362,6 +367,22 @@ public class ClientController {
         session.setGuestContact(null);
         LoginRequest loginRequest = new LoginRequest(username,password,UserCommand.LOGIN_REQUEST);       
         Request<LoginRequest> req = new Request<LoginRequest>(Request.Command.USER_REQUEST,loginRequest);
+        sendRequest(req);
+    }
+    
+    public void requestWaitingListCancellation(int confirmationCode) {
+        if (!connected) {
+            safeUiWarning("Cancel waitlist", "Not connected to server.");
+            return;
+        }
+        if (confirmationCode <= 0) {
+            safeUiWarning("Cancel waitlist", "Confirmation code is required.");
+            return;
+        }
+
+        requests.WaitingListRequest payload = new requests.WaitingListRequest(confirmationCode);
+        Request<requests.WaitingListRequest> req =
+                new Request<>(Request.Command.WAITING_LIST_REQUEST, payload);
         sendRequest(req);
     }
     

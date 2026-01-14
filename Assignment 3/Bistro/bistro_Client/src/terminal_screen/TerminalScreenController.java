@@ -21,6 +21,7 @@ public class TerminalScreenController {
     @FXML private Button joinWaitlistBtn;
     @FXML private Button lostCodeBtn;
     @FXML private Button payBillBtn;
+    @FXML private Button cancelWaitlistBtn;
 
     private ClientController clientController;
     private boolean connected;
@@ -29,7 +30,7 @@ public class TerminalScreenController {
     private Runnable onBackToMain;
 
     private enum View {
-        CHECK_IN, WAITING_LIST, PAY_BILL, LOST_CODE
+    	CHECK_IN, WAITING_LIST, CANCEL_WAITLIST, PAY_BILL, LOST_CODE
     }
 
     private final Map<View, Parent> cache = new EnumMap<>(View.class);
@@ -59,6 +60,7 @@ public class TerminalScreenController {
     @FXML private void onBackToMain()      { if (onBackToMain != null) onBackToMain.run(); }
     @FXML private void onCheckIn()         { show(View.CHECK_IN); }
     @FXML private void onJoinWaitingList() { show(View.WAITING_LIST); }
+    @FXML private void onCancelWaitlist()  { show(View.CANCEL_WAITLIST); }
     @FXML private void onPayBill()         { show(View.PAY_BILL); }
     @FXML private void onLostCode()        { show(View.LOST_CODE); }
 
@@ -81,6 +83,9 @@ public class TerminalScreenController {
 
         if (contentHolder == null) {
             return;
+        }
+        if (cancelWaitlistBtn != null) {
+            cancelWaitlistBtn.setDisable(!online);
         }
 
         if (!online) {
@@ -106,6 +111,15 @@ public class TerminalScreenController {
             }
         }
     }
+    
+    public void onWaitingListCancellation(responses.WaitingListResponse response) {
+        javafx.application.Platform.runLater(() -> {
+            if (currentContentController instanceof TerminalCancelWaitingListController cancelCtrl) {
+                cancelCtrl.handleWaitingListResponse(response);
+            }
+        });
+    }
+
 
     public void onSeatingResponse(responses.SeatingResponse response) {
         javafx.application.Platform.runLater(() -> {
@@ -191,6 +205,7 @@ public class TerminalScreenController {
             String fxml = switch (view) {
                 case CHECK_IN -> "/terminal_screen/TerminalCheckInView.fxml";
                 case WAITING_LIST -> "/terminal_screen/TerminalWaitingListView.fxml";
+                case CANCEL_WAITLIST -> "/terminal_screen/TerminalCancelWaitingListView.fxml";
                 case PAY_BILL -> "/terminal_screen/TerminalPayBillView.fxml";
                 case LOST_CODE -> "/terminal_screen/TerminalLostCodeView.fxml";
             };

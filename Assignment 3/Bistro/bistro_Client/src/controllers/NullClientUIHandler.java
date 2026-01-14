@@ -6,6 +6,7 @@ import responses.ReportResponse;
 import responses.ReservationResponse;
 import responses.SeatingResponse;
 import responses.UserHistoryResponse;
+import responses.WaitingListResponse;
 
 public class NullClientUIHandler implements ClientUIHandler {
     @Override
@@ -68,4 +69,8 @@ public class NullClientUIHandler implements ClientUIHandler {
 
     @Override
     public void onUserDetailsResponse(String email, String phone) {}
+    @Override
+    public void onWaitingListCancellation(WaitingListResponse response) {
+        // no-op
+    }
 }

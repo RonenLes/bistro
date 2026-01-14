@@ -151,26 +151,22 @@ public class BillingControl {
 	            
 	            conn.commit();          
 	            conn.setAutoCommit(false);
-	            boolean hasCalledNext=true;
+
 	            try {
-	                boolean ok=seatingControl.tryAssignNextFromWaitingList(conn, tableId);
-	                if(ok)
+	                seatingControl.tryAssignNextFromWaitingList(conn, tableId);
 	                conn.commit();
-	                else {
-	                	hasCalledNext=false;
-	                	conn.rollback();
-	                	
-	                }
 	            } catch (Exception e) {
-	            	hasCalledNext=false;
 	                try { conn.rollback(); } catch (Exception ignore) {}
 	                System.out.println("Assign-next failed (payment already committed): " + e.getMessage());
 	            }
-	            
+
 	            conn.setAutoCommit(true);
-	            
-	            BillResponse br = new BillResponse(BillResponse.BillResponseType.ANSWER_TO_PAY_BILL,bill.getTotalPrice(),notificationSent,hasCalledNext);
-	            return successResponse(hasCalledNext?"Payment Fulfilled":"Payment fulfilled but failed to call next customer in waiting list", br);
+	            BillResponse br = new BillResponse(
+	                BillResponse.BillResponseType.ANSWER_TO_PAY_BILL,
+	                bill.getTotalPrice(),
+	                notificationSent
+	            );
+	            return successResponse("Payment Fulfilled", br);
 
 	        } catch (Exception e) {
 	            try { conn.rollback(); } catch (Exception ignore) {}

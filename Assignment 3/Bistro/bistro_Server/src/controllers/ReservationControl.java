@@ -550,11 +550,22 @@ public class ReservationControl {
             	code = reservationDAO.fetchBestConfirmationCodeByUserId(conn, key);
                 if (code > 0) {
                     sendConfirmationNotification(key, null, code);
-                } else {
-                    code = reservationDAO.fetchBestConfirmationCodeByGuestContact(conn, key);
-                    if (code <= 0) return new Response<>(false, "No relevant reservation found", null);
-                    sendConfirmationNotification(null, key, code);
+                    return new Response<>(true, "Here is your code", code);                    
                 }
+                
+                code = reservationDAO.fetchBestConfirmationCodeByGuestContact(conn, key);
+                if (code > 0) {
+                    sendConfirmationNotification(null, key, code);
+                    return new Response<>(true, "Here is your code", code);
+                }
+                code = reservationDAO.fetchWaitingListConfirmationCodeByUserId(conn, key);
+                if (code <= 0) {
+                    code = reservationDAO.fetchWaitingListConfirmationCodeByGuestContact(conn, key);
+                }
+                if (code <= 0) {
+                    return new Response<>(false, "No relevant reservation found", null);
+                }
+
             }
 
             return new Response<>(true, "Here is your code", code);

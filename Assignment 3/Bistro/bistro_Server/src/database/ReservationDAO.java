@@ -35,10 +35,10 @@ public class ReservationDAO {
 	//SELECT statements
 	
 	private static final String SELECT_UPCOMING_RESERVATIONS_BY_USER =
-	        "SELECT reservationDate, startTime, partySize, confirmationCode " +
+	        "SELECT reservationDate, startTime, partySize, confirmationCode,status " +
 	        "FROM reservation " +
 	        "WHERE userID = ? " +
-	        "AND status IN ('CONFIRMED', 'WAITING') " +
+	        "AND status IN ('CONFIRMED', 'WAITING', 'SEATED') " +
 	        "AND reservationDate >= CURDATE() " +
 	        "ORDER BY reservationDate ASC, startTime ASC";
 	
@@ -707,7 +707,8 @@ public class ReservationDAO {
 	                        rs.getDate("reservationDate").toLocalDate(),
 	                        rs.getInt("partySize"),
 	                        rs.getTime("startTime").toLocalTime(),
-	                        rs.getInt("confirmationCode")));	                        	                
+	                        rs.getInt("confirmationCode"),
+	                        rs.getString("status")));	                        	                
 	            }
 	        }
 	    }

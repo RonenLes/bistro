@@ -29,6 +29,14 @@ public class UserHistoryResponse {
 		this.confirmationCode=confirmationCode;
 	}
 	
+	public UserHistoryResponse(LocalDate resDate, int partySize,LocalTime startTime,int confirmationCode, String status){
+		this.reservationDate =resDate;
+		this.partySize = partySize;
+		this.checkInTime = startTime;
+		this.confirmationCode=confirmationCode;
+		this.status = status;
+	}
+	
 	public UserHistoryResponse(LocalDate reservationDate, LocalTime reservedForTime, LocalTime checkInTime,
 			LocalTime checkOutTime, int tableNumber, Double totalPrice, int partySize, String status) {
 		this.reservationDate = reservationDate;

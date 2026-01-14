@@ -151,30 +151,30 @@ public class DesktopScreenController implements ClientUIHandler {
         // REP -> edit details, new reservations, pay, history, tables, waitlist
         ROLE_SCREENS.put(Role.REP, EnumSet.of(
                 ScreenKey.EDIT_DETAILS,
-                ScreenKey.RESERVATIONS,                               
-                ScreenKey.WAITLIST,
+                ScreenKey.RESERVATIONS,                                              
                 ScreenKey.EDIT_TABLES,
                 ScreenKey.MANAGER_DATA,
                 ScreenKey.MANAGER_RESERVATIONS,
                 ScreenKey.ADD_SUBSCRIBER,
-                ScreenKey.SUBSCRIBERS
+                ScreenKey.SUBSCRIBERS,
+                ScreenKey.OPENING_HOURS,
+                ScreenKey.PAY
                 
         ));
 
         // MANAGER -> manager screens
         ROLE_SCREENS.put(Role.MANAGER, EnumSet.of(
                 ScreenKey.EDIT_DETAILS,
-                ScreenKey.RESERVATIONS,
-                //ScreenKey.PAY,    maybe later
+                ScreenKey.RESERVATIONS,                
                 ScreenKey.ADD_SUBSCRIBER,
-                ScreenKey.SUBSCRIBERS,
-               //ScreenKey.TABLES, 
+                ScreenKey.SUBSCRIBERS,                
                 ScreenKey.EDIT_TABLES,
-                ScreenKey.MANAGER_DATA,
-                //ScreenKey.ANALYTICS,
+                ScreenKey.MANAGER_DATA,                
                 ScreenKey.MANAGER_RESERVATIONS,
                 ScreenKey.REPORTS,
-                ScreenKey.OPENING_HOURS
+                ScreenKey.OPENING_HOURS,
+                ScreenKey.PAY
+                
         ));
     }
 
@@ -404,6 +404,7 @@ public class DesktopScreenController implements ClientUIHandler {
             if (ctrl instanceof SubscriberMainScreenController smc) {
                 subscriberMainVC = smc;
                 subscriberMainVC.setOnEditReservation(this::openEditReservation);
+                subscriberMainVC.setOnPayReservation(this::openPayReservation);
             }
             if (ctrl instanceof PayViewController pvc) payVC = pvc;
 
@@ -575,6 +576,18 @@ public class DesktopScreenController implements ClientUIHandler {
             }
             showError("Billing", message == null ? "Billing failed." : message);
         });
+    }
+    private void openPayReservation(ReservationResponse reservation) {
+        if (reservation == null) return;
+        Integer code = reservation.getConfirmationCode();
+        if (code == null || code <= 0) {
+            showWarning("Billing", "Missing confirmation code.");
+            return;
+        }
+        selectIfVisible(payBtn);
+        if (payVC != null) {
+            payVC.loadBillForConfirmationCode(code);
+        }
     }
 
     @Override

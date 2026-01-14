@@ -45,6 +45,7 @@
                         <TableColumn fx:id="colConfirmationCode" text="Confirmation Code" prefWidth="200.0"/>
                         <TableColumn fx:id="colEdit" text="Edit" prefWidth="120.0"/>
                         <TableColumn fx:id="colCancel" text="Cancel" prefWidth="120.0"/>
+                        <TableColumn fx:id="colPay" text="Pay" prefWidth="120.0"/>
                     </columns>
                 </TableView>
 

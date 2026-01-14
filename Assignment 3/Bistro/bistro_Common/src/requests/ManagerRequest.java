@@ -11,6 +11,7 @@ public class ManagerRequest {
 	private String password;
 	private String phone;
 	private String email;
+	private String role;
 	
 	//for new table/edit table/delete
 	private int tableNumber;
@@ -58,14 +59,19 @@ public class ManagerRequest {
 	
 	//for adding new user
 	public ManagerRequest(ManagerCommand managerCommand, String newUsername, String password, String phone,
-			String email) {
+			String email,String role) {
 		this.managerCommand = managerCommand;
 		this.newUsername = newUsername;
 		this.password = password;
 		this.phone = phone;
 		this.email = email;
+		this.role = role;
 	}
 	
+	public String getRole() {
+		return role;
+	}
+
 	////for deleting table by number
 	public ManagerRequest(ManagerCommand managerCommand,int tableNumber) {
 		this.managerCommand = managerCommand;

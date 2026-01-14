@@ -149,7 +149,7 @@ public class UserControl {
             if (upcoming != null) {
                 for (UserHistoryResponse row : upcoming) {
                     if (row == null) continue;
-                    upcomingReservations.add(new ReservationResponse(
+                    ReservationResponse resp = new ReservationResponse(
                             row.getReservationDate(),
                             row.getPartySize(),
                             row.getCheckInTime(),
@@ -157,7 +157,9 @@ public class UserControl {
                             user.getUserID(),
                             null,
                             ReservationResponse.ReservationResponseType.SHOW_RESERVATION
-                    ));
+                    );
+                    resp.setStatus(row.getStatus());
+                    upcomingReservations.add(resp);
                 }
             }
     		LoginResponse resp = new LoginResponse(UserReponseCommand.UPCOMING_RESERVATIONS_RESPONSE, upcomingReservations, true);

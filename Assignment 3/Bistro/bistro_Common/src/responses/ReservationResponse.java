@@ -18,7 +18,7 @@ public class ReservationResponse  {
 		 WALKIN_WAITING
 	}
 	
-	
+	private String status;
 	private LocalDate date;
 	private int partySize;
 	private LocalTime time;
@@ -110,5 +110,13 @@ public class ReservationResponse  {
     }
     public Integer getConfirmationCode() {
         return confirmationCode;
+    }
+    
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

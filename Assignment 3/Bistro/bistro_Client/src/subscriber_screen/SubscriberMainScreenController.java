@@ -28,6 +28,7 @@ import javafx.scene.Node;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
+import requests.BillRequest.BillRequestType;
 
 
 import java.time.LocalDate;
@@ -45,6 +46,7 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
     @FXML private TableColumn<ReservationResponse, String> colConfirmationCode;
     @FXML private TableColumn<ReservationResponse, Void> colEdit;
     @FXML private TableColumn<ReservationResponse, Void> colCancel;
+    @FXML private TableColumn<ReservationResponse, Void> colPay;
     @FXML private Label infoLabel;
    
 
@@ -56,6 +58,7 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
     private boolean requested;
     private ReservationsViewController reservationsViewController;
     private Consumer<ReservationResponse> onEditReservation;
+    private Consumer<ReservationResponse> onPayReservation;
     @FXML private Label qrLabel;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -135,6 +138,43 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
                 }
             });
         }
+        if (colPay != null) {
+            colPay.setCellFactory(col -> new TableCell<>() {
+                private final Button payButton = buildPayButton();
+
+                @Override
+                protected void updateItem(Void item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty) {
+                        setGraphic(null);
+                        return;
+                    }
+                    ReservationResponse row = getRowReservation();
+                    if (row == null || !isSeated(row)) {
+                        setGraphic(null);
+                        return;
+                    }
+                    setGraphic(payButton);
+                }
+
+                private Button buildPayButton() {
+                    Button button = new Button("Pay");
+                    button.getStyleClass().add("ghost");
+                    button.setOnAction(event -> {
+                        ReservationResponse row = getRowReservation();
+                        if (row == null) return;
+                        handlePayReservation(row);
+                    });
+                    return button;
+                }
+
+                private ReservationResponse getRowReservation() {
+                    int index = getIndex();
+                    if (index < 0 || index >= getTableView().getItems().size()) return null;
+                    return getTableView().getItems().get(index);
+                }
+            });
+        }
         if (reservationsTable != null) {
             reservationsTable.setItems(reservations);
         }
@@ -153,6 +193,9 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
             requested = true;
             requestUpcomingReservations();
         }
+    }
+    public void setOnPayReservation(Consumer<ReservationResponse> onPayReservation) {
+        this.onPayReservation = onPayReservation;
     }
 
     public void setOnLogout(Runnable onLogout) {
@@ -325,17 +368,17 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
 
     @Override
     public void onBillTotal(double baseTotal, boolean isCash) {
-        // not used here
+    	setInfo("Bill total: " + baseTotal);
     }
 
     @Override
     public void onBillPaid(Integer tableNumber) {
-        // not used here
+    	 setInfo("Payment completed.");
     }
 
     @Override
     public void onBillError(String message) {
-        // not used here
+    	setInfo(message == null || message.isBlank() ? "Payment failed." : message);
     }
 
     private String formatDate(LocalDate date) {
@@ -354,13 +397,34 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
         if (infoLabel != null) infoLabel.setText(msg == null ? "" : msg);
     }
     
+    private void handlePayReservation(ReservationResponse row) {
+        if (row == null || clientController == null || !connected) {
+            setInfo("Not connected to server.");
+            return;
+        }
+        if (onPayReservation != null) {
+            onPayReservation.accept(row);
+            return;
+        }
+        int confirmationCode = row.getConfirmationCode() == null ? 0 : row.getConfirmationCode();
+        if (confirmationCode <= 0) {
+            setInfo("Missing confirmation code.");
+            return;
+        }
+        setInfo("Submitting payment...");
+        clientController.requestBillAction(BillRequestType.PAY_BILL, confirmationCode, false);
+    }
+
+    private boolean isSeated(ReservationResponse row) {
+        if (row == null) return false;
+        String status = row.getStatus();
+        return status != null && "SEATED".equalsIgnoreCase(status.trim());
+    }
+    
     private void handleEditReservation(ReservationResponse row) {
         if (row == null) return;
-        if (onEditReservation != null) {
-            onEditReservation.accept(row);
-        } else {
-            setInfo("Edit screen unavailable.");
-        }
+        if (onEditReservation != null)  onEditReservation.accept(row);           
+        else  setInfo("Edit screen unavailable.");                   
     }
     
     private void showAccountDialog(String email, String phone) {

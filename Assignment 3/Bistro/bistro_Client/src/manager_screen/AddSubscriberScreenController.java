@@ -5,6 +5,8 @@ import controllers.ClientControllerAware;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ComboBox;
+import javafx.collections.FXCollections;
 import requests.ManagerRequest;
 import requests.ManagerRequest.ManagerCommand;
 import responses.ManagerResponse;
@@ -17,9 +19,18 @@ public class AddSubscriberScreenController implements ClientControllerAware {
     @FXML private TextField phoneField;
     @FXML private TextField emailField;
     @FXML private Label infoLabel;
+    @FXML private ComboBox<String> roleComboBox;
 
     private ClientController clientController;
     private boolean connected;
+    
+    @FXML
+    private void initialize() {
+        if (roleComboBox != null) {
+            roleComboBox.setItems(FXCollections.observableArrayList("SUBSCRIBER", "REPRESENTATIVE", "MANAGER"));
+            roleComboBox.getSelectionModel().select("SUBSCRIBER");
+        }
+    }
 
     @Override
     public void setClientController(ClientController controller, boolean connected) {
@@ -35,9 +46,19 @@ public class AddSubscriberScreenController implements ClientControllerAware {
         String password = getValue(passwordField);
         String phone = getValue(phoneField);
         String email = getValue(emailField);
+        String role = roleComboBox == null ? "" : String.valueOf(roleComboBox.getValue());
+        
+        if(password.length()<6 || password.length()>10) {
+        	setInfo("password musn be 6-10 chars long.");
+            return;
+        }
 
         if (username.isEmpty() || password.isEmpty()) {
             setInfo("Username and password are required.");
+            return;
+        }
+        if (role == null || role.isBlank()) {
+            setInfo("Role is required.");
             return;
         }
 
@@ -46,7 +67,8 @@ public class AddSubscriberScreenController implements ClientControllerAware {
                 username,
                 password,
                 phone,
-                email
+                email,
+                role
         );
 
         clientController.requestManagerAction(request);
@@ -76,6 +98,7 @@ public class AddSubscriberScreenController implements ClientControllerAware {
         if (passwordField != null) passwordField.clear();
         if (phoneField != null) phoneField.clear();
         if (emailField != null) emailField.clear();
+        if (roleComboBox != null) roleComboBox.getSelectionModel().select("SUBSCRIBER");
     }
 
     private String getValue(TextField field) {

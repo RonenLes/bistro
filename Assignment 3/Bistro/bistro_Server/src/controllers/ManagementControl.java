@@ -85,8 +85,10 @@ public class ManagementControl {
 	public Response<ManagerResponse> addNewUser(ManagerRequest req){
 		
 		try {
+			String requestedRole = req.getRole();
+			String role = normalizeRole(requestedRole);
 			String newID = userControl.generateUserID();
-			if(userDAO.insertNewUser(newID, req.getNewUsername(), req.getPassword(), "SUBSCRIBER", req.getPhone(), req.getEmail())) {
+			if(userDAO.insertNewUser(newID, req.getNewUsername(), req.getPassword(), role, req.getPhone(), req.getEmail())) {
 				ManagerResponse resp = new ManagerResponse(ManagerResponseCommand.NEW_USER_RESPONSE,newID);
 				return new Response<>(true,"Weclome "+req.getNewUsername(),resp);
 			}
@@ -96,6 +98,15 @@ public class ManagementControl {
     		e.printStackTrace();
     		return new Response<>(false, "username used or a general db error", null);
 		}
+	}
+	
+	private String normalizeRole(String roleRaw) {
+		if (roleRaw == null) return "SUBSCRIBER";
+		String role = roleRaw.trim().toUpperCase();
+		return switch (role) {
+			case "SUBSCRIBER", "REPRESENTATIVE", "MANAGER" -> role;
+			default -> "SUBSCRIBER";
+		};
 	}
 	
 	/**

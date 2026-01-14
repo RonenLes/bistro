@@ -163,6 +163,15 @@ public class PayViewController implements ClientControllerAware {
             payBillButton.setDisable(lastBaseTotal == null);
         }
     }
+    
+    public void loadBillForConfirmationCode(int confirmationCode) {
+        if (confirmationCodeField == null) {
+            setStatus("Confirmation code field is not available.", true);
+            return;
+        }
+        confirmationCodeField.setText(String.valueOf(confirmationCode));
+        onShowBillClicked();
+    }
 
     private Integer parseConfirmationCode() {
         if (confirmationCodeField == null) {

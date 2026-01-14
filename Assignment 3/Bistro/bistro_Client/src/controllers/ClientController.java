@@ -643,6 +643,10 @@ public class ClientController {
         }
 
         String normalized = rawRole.trim().toUpperCase();
+        if ("REPRESENTATIVE".equals(normalized)) {
+            normalized = "REP";
+        }
+
 
         // server sends exact enum names
         try {

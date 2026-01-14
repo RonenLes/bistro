@@ -167,7 +167,6 @@ public class ClientController {
     }
     
     private void handleWaitingListResponse(WaitingListResponse waitingListResponse) {
-    	safeUiError(getCurrentPhone(), getCurrentEmail());
     	ui.onWaitingListCancellation(waitingListResponse);
     }
 
@@ -218,20 +217,16 @@ public class ClientController {
                 String serverUsername = loginResponse.getUsername();
                 serverUsername = serverUsername == null ? null : serverUsername.trim();
 
-                if (serverUsername != null && !serverUsername.isEmpty()) {
-                    session.setCurrentUsername(serverUsername);
-                } else {
-                	session.setCurrentUsername(session.getLastLoginUsername() == null? null : session.getLastLoginUsername().trim());                                                       
-                }
+                if (serverUsername != null && !serverUsername.isEmpty())  session.setCurrentUsername(serverUsername);                   
+                else session.setCurrentUsername(session.getLastLoginUsername() == null? null : session.getLastLoginUsername().trim());
+                	                                                                     
                 ui.routeToDesktop(uiRole, loginResponse.getUsername());
             }
             case EDIT_RESPONSE -> {
-                if (loginResponse.getEmail() != null) {
-                    session.setCurrentEmail(loginResponse.getEmail());
-                }
-                if (loginResponse.getPhone() != null) {
-                    session.setCurrentPhone(loginResponse.getPhone());
-                }
+                if (loginResponse.getEmail() != null) session.setCurrentEmail(loginResponse.getEmail());
+                                    
+                if (loginResponse.getPhone() != null)  session.setCurrentPhone(loginResponse.getPhone());
+                                   
                 safeUiInfo("Subscriber Details", "Details updated successfully");
             }
             case SHOW_DETAIL_RESPONSE -> {
@@ -283,6 +278,22 @@ public class ClientController {
     
     private void handleLostCode(Integer confirmationCode) {
         if (lostCodeListener != null) lostCodeListener.accept(confirmationCode);                    
+    }
+    
+    public void requestWaitingListLostCode(String contactRaw) {
+        if (!connected) {
+            safeUiWarning("Retrieve Code", "Not connected to server.");
+            return;
+        }
+
+        String contact = contactRaw == null ? null : contactRaw.trim();
+        if (contact == null || contact.isEmpty()) {
+            safeUiWarning("Retrieve Code", "Missing contact or user ID.");
+            return;
+        }
+
+        Request<String> req = new Request<>(Request.Command.LOST_CODE, "WAITLIST:" + contact);
+        sendRequest(req);
     }
     
     

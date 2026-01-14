@@ -205,7 +205,7 @@ public class TerminalScreenController {
             String fxml = switch (view) {
                 case CHECK_IN -> "/terminal_screen/TerminalCheckInView.fxml";
                 case WAITING_LIST -> "/terminal_screen/TerminalWaitingListView.fxml";
-                case CANCEL_WAITLIST -> "/terminal_screen/TerminalCancelWaitingListView.fxml";
+                case CANCEL_WAITLIST -> "/terminal_screen/TerminalCancelWaitingList.fxml";
                 case PAY_BILL -> "/terminal_screen/TerminalPayBillView.fxml";
                 case LOST_CODE -> "/terminal_screen/TerminalLostCodeView.fxml";
             };

@@ -3,9 +3,11 @@ package terminal_screen;
 import controllers.ClientController;
 import controllers.ClientControllerAware;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import responses.WaitingListResponse;
+import javafx.scene.control.TextInputDialog;
 
 public class TerminalCancelWaitingListController implements ClientControllerAware {
 
@@ -63,6 +65,11 @@ public class TerminalCancelWaitingListController implements ClientControllerAwar
         }
         if (response.getHasBeenCancelled()) {
             setStatus("Waiting list entry cancelled.");
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Waiting List");
+            alert.setHeaderText(null);
+            alert.setContentText("Waiting list entry cancelled.");
+            alert.showAndWait();
         } else {
             setStatus("Unable to cancel waiting list entry.");
         }
@@ -72,5 +79,39 @@ public class TerminalCancelWaitingListController implements ClientControllerAwar
         if (statusLabel != null) {
             statusLabel.setText(message == null ? "" : message);
         }
+    }
+    
+    @FXML
+    private void onUseUserId() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Use user ID");
+        dialog.setHeaderText("Enter subscriber user ID");
+        dialog.setContentText("User ID:");
+
+        dialog.showAndWait().ifPresent(input -> {
+            String userId = input == null ? "" : input.trim();
+            if (userId.isEmpty()) {
+                setStatus("Enter user ID.");
+                return;
+            }
+            if (!connected || clientController == null) {
+                setStatus("Offline Mode: cannot cancel without server connection.");
+                return;
+            }
+
+            clientController.setLostCodeListener(code -> {
+                clientController.clearLostCodeListener();
+                if (code == null || code <= 0) {
+                    setStatus("Failed to resolve confirmation code.");
+                    return;
+                }
+                if (confirmationCodeField != null) {
+                    confirmationCodeField.setText(String.valueOf(code));
+                }
+                onCancel();
+            });
+            setStatus("Resolving confirmation code...");
+            clientController.requestLostCode(userId);
+        });
     }
 }

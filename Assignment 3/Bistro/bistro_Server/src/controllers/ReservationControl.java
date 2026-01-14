@@ -529,17 +529,32 @@ public class ReservationControl {
     public Response<Integer> retrieveConfirmationCode(String keyRaw) {
         try (Connection conn = DBManager.getConnection()) {
             String key = keyRaw == null ? null : keyRaw.trim();
-            if (key == null || key.isEmpty()) return new Response<>(false, "Missing input", null);
+            boolean waitlistLookup = false;
+            if (key.startsWith("WAITLIST:")) {
+                waitlistLookup = true;
+                key = key.substring("WAITLIST:".length()).trim();
+            }
 
+            if (key.isEmpty()) {
+                return new Response<>(false, "Missing input", null);
+            }          
             int code;
-            if (key.matches("U-\\d{5}")) {
-                code = reservationDAO.fetchBestConfirmationCodeByUserId(conn, key);
-                if (code <= 0) return new Response<>(false, "No relevant reservation found", null);
-                sendConfirmationNotification(key, null, code);
+            boolean looksLikeUserId = key.matches("U-\\d{5}");
+            if (waitlistLookup) {
+                code = reservationDAO.fetchWaitingListConfirmationCodeByUserId(conn, key);
+                if (code <= 0 && !looksLikeUserId) {
+                    code = reservationDAO.fetchWaitingListConfirmationCodeByGuestContact(conn, key);
+                }
+                if (code <= 0) return new Response<>(false, "No relevant waiting list reservation found", null);
             } else {
-                code = reservationDAO.fetchBestConfirmationCodeByGuestContact(conn, key);
-                if (code <= 0) return new Response<>(false, "No relevant reservation found", null);
-                sendConfirmationNotification(null, key, code);
+            	code = reservationDAO.fetchBestConfirmationCodeByUserId(conn, key);
+                if (code > 0) {
+                    sendConfirmationNotification(key, null, code);
+                } else {
+                    code = reservationDAO.fetchBestConfirmationCodeByGuestContact(conn, key);
+                    if (code <= 0) return new Response<>(false, "No relevant reservation found", null);
+                    sendConfirmationNotification(null, key, code);
+                }
             }
 
             return new Response<>(true, "Here is your code", code);

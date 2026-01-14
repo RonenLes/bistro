@@ -133,7 +133,17 @@ public class ReservationDAO {
 	        "UPDATE `reservation` " +
 	        "SET reservationDate = ?, status = ?, partySize = ?, allocatedCapacity = ?, guestContact = ?, userID = ?, startTime = ? " +
 	        "WHERE confirmationCode = ?";
-	
+	private static final String SELECT_WAITLIST_CODE_BY_USERID =
+		    "SELECT confirmationCode FROM reservation " +
+		    "WHERE userID = ? AND status IN ('WAITING','CALLED') AND reservationDate >= CURDATE() " +
+		    "ORDER BY reservationDate ASC, startTime ASC " +
+		    "LIMIT 1";
+
+		private static final String SELECT_WAITLIST_CODE_BY_GUEST =
+		    "SELECT confirmationCode FROM reservation " +
+		    "WHERE guestContact = ? AND status IN ('WAITING','CALLED') AND reservationDate >= CURDATE() " +
+		    "ORDER BY reservationDate ASC, startTime ASC " +
+		    "LIMIT 1";
 	
 	/**
 	 * Represents an overbooked slot (a date + slot start time) and how many reservations overlap that slot.
@@ -720,6 +730,26 @@ public class ReservationDAO {
 	public int fetchBestConfirmationCodeByGuestContact(Connection conn, String contact) throws SQLException {
 	    if (contact == null || contact.isBlank()) return -1;
 	    try (PreparedStatement ps = conn.prepareStatement(SELECT_BEST_CODE_BY_GUEST)) {
+	        ps.setString(1, contact.trim());
+	        try (ResultSet rs = ps.executeQuery()) {
+	            return rs.next() ? rs.getInt(1) : -1;
+	        }
+	    }
+	}
+	
+	public int fetchWaitingListConfirmationCodeByUserId(Connection conn, String userId) throws SQLException {
+	    if (userId == null || userId.isBlank()) return -1;
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_WAITLIST_CODE_BY_USERID)) {
+	        ps.setString(1, userId.trim());
+	        try (ResultSet rs = ps.executeQuery()) {
+	            return rs.next() ? rs.getInt(1) : -1;
+	        }
+	    }
+	}
+
+	public int fetchWaitingListConfirmationCodeByGuestContact(Connection conn, String contact) throws SQLException {
+	    if (contact == null || contact.isBlank()) return -1;
+	    try (PreparedStatement ps = conn.prepareStatement(SELECT_WAITLIST_CODE_BY_GUEST)) {
 	        ps.setString(1, contact.trim());
 	        try (ResultSet rs = ps.executeQuery()) {
 	            return rs.next() ? rs.getInt(1) : -1;

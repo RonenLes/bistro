@@ -41,11 +41,19 @@
                 </children>
             </VBox>
 
-            <Button text="Cancel waitlist"
-                    prefHeight="54.0"
-                    prefWidth="240.0"
-                    onAction="#onCancel"
-                    defaultButton="true" />
+            <VBox alignment="CENTER" spacing="10.0">
+                <children>
+                    <Button text="Cancel waitlist"
+                            prefHeight="54.0"
+                            prefWidth="240.0"
+                            onAction="#onCancel"
+                            defaultButton="true" />
+                    <Button text="Use user ID"
+                            prefHeight="44.0"
+                            prefWidth="240.0"
+                            onAction="#onUseUserId" />
+                </children>
+            </VBox>
 
             <Label fx:id="statusLabel"
                    text=" "

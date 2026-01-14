@@ -20,6 +20,7 @@ import javafx.scene.layout.GridPane;
 import responses.ManagerResponse;
 import responses.ReservationResponse;
 import responses.SeatingResponse;
+import responses.WaitingListResponse;
 import requests.ReservationRequest.ReservationRequestType;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
@@ -27,8 +28,7 @@ import javafx.scene.Node;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Dialog;
+
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -141,6 +141,8 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
         
         setInfo("Loading upcoming reservations...");
     }
+    
+    
 
     @Override
     public void setClientController(ClientController controller, boolean connected) {
@@ -452,4 +454,10 @@ public class SubscriberMainScreenController implements ClientControllerAware, Cl
             }
         }
     }
+
+	@Override
+	public void onWaitingListCancellation(WaitingListResponse response) {
+		// TODO Auto-generated method stub
+		
+	}
 }

@@ -51,6 +51,7 @@ public class SeatingControl {
         	case BY_RESERVATION -> checkInForNonReserved(req.getReservation());
         };
     }
+    
     public Response<SeatingResponse> checkInRouterByConfirmationCode(int confirmationCode) {
         try (Connection conn = DBManager.getConnection()) {
             if (conn == null) return new Response<>(false, "Couldnt connect to db", null);
@@ -63,22 +64,19 @@ public class SeatingControl {
                     return new Response<>(false, "Reservation not found", null);
                 }
 
-                // We treat as "CALLED customer" ONLY if:
-                // (1) reservation.status == CALLED
-                // (2) there is already a seating row for this reservation
-                // (3) that seating row has checkInTime NULL (held seating)
+                
                 Integer seatingId = seatingDAO.getSeatingIdByReservationId(conn, r.getReservationID());
                 boolean isCalled = "CALLED".equalsIgnoreCase(r.getStatus());
 
                 if (isCalled && seatingId != null && seatingDAO.isCheckInNull(conn, seatingId)) {
-                    // called customer check-in
+                    
                     Response<SeatingResponse> resp = checkInForCalledCustomer(conn, r, seatingId);
                     if (!resp.isSuccess()) { conn.rollback(); return resp; }
                     conn.commit();
                     return resp;
                 }
 
-                // normal reservation check-in
+              
                 Response<SeatingResponse> resp = checkInByConfirmationCode(conn, r);
                 if (!resp.isSuccess()) { conn.rollback(); return resp; }
                 conn.commit();

@@ -148,8 +148,7 @@ public class WaitingListControl {
 	                System.out.println("processCalledTimeouts per-row failed: " + perRow.getMessage());
 	            }
 	        }
-
-	        // safety commit 
+	        
 	        try { conn.commit(); } catch (Exception ignore) {}
 
 	    } catch (Exception e) {

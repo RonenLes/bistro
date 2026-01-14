@@ -160,6 +160,7 @@ public class BillingScheduler {
                 System.out.println("waitngListScheduler failed " + e.getMessage());
             }
         }, 0, 1, TimeUnit.MINUTES);
+        
         openingHoursScheduler.scheduleAtFixedRate(() -> {
             Connection conn = null;
             try {

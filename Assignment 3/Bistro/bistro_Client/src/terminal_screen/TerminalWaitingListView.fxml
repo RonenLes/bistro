@@ -35,7 +35,7 @@
             <VBox alignment="CENTER" spacing="12.0" maxWidth="640.0">
                 <children>
                      <Label text="Subscriber ID (optional)" />
-                    <TextField fx:id="userIdField" prefHeight="56.0" maxWidth="520.0" promptText="Enter your user ID" />
+                    <TextField fx:id="userIdField" prefHeight="56.0" maxWidth="520.0" promptText="Scan QR" />
 
                     <Label text="Guest contact (optional)" />
                     <TextField fx:id="guestContactField" prefHeight="56.0" maxWidth="520.0" promptText="Phone or email for guests" />

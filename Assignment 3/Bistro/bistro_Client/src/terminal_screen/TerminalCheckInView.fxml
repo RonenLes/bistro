@@ -49,7 +49,7 @@
                             prefWidth="220.0"
                             onAction="#onEnter"
                             defaultButton="true" />
-                    <Button text="Use user ID"
+                    <Button text="Scan QR"
                             prefHeight="44.0"
                             prefWidth="220.0"
                             onAction="#onUseUserId" />

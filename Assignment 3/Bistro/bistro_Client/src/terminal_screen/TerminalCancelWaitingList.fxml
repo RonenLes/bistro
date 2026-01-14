@@ -48,7 +48,7 @@
                             prefWidth="240.0"
                             onAction="#onCancel"
                             defaultButton="true" />
-                    <Button text="Use user ID"
+                    <Button text="Scan QR"
                             prefHeight="44.0"
                             prefWidth="240.0"
                             onAction="#onUseUserId" />

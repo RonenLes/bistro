@@ -165,9 +165,7 @@ public class WaitingListDAO {
 	                    rs.getTimestamp("createdAt") != null
 	                            ? rs.getTimestamp("createdAt").toLocalDateTime()
 	                            : null,
-	                    rs.getTimestamp("assignedAt") != null
-	                            ? rs.getTimestamp("assignedAt").toLocalDateTime()
-	                            : null
+	                    rs.getTimestamp("assignedAt") != null? rs.getTimestamp("assignedAt").toLocalDateTime(): null	                            	                            
 	            );
 	        }
 	    }

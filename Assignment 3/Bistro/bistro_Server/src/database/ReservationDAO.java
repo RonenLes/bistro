@@ -38,7 +38,7 @@ public class ReservationDAO {
 	        "SELECT reservationDate, startTime, partySize, confirmationCode " +
 	        "FROM reservation " +
 	        "WHERE userID = ? " +
-	        "AND status IN ('CONFIRMED') " +
+	        "AND status IN ('CONFIRMED', 'WAITING') " +
 	        "AND reservationDate >= CURDATE() " +
 	        "ORDER BY reservationDate ASC, startTime ASC";
 	

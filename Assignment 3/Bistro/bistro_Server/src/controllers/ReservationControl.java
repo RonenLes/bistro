@@ -3,6 +3,7 @@ package controllers;
 import database.*;
 import entities.OpeningHours;
 import entities.Reservation;
+import entities.WaitingList;
 import requests.ReservationRequest;
 import responses.ReservationResponse;
 import responses.ReservationResponse.ReservationResponseType;
@@ -37,19 +38,21 @@ public class ReservationControl {
     private final OpeningHoursDAO openingHoursDAO;
     private final UserDAO userDAO; 
     private final NotificationControl notificationControl;
+    private final WaitingListDAO waitingListDAO;
 
     public ReservationControl() {
         this(new ReservationDAO(), new TableDAO(), new OpeningHoursDAO(),
-                new UserDAO(), new NotificationControl());
+                new UserDAO(), new NotificationControl(),new WaitingListDAO());
     }
 
     public ReservationControl(ReservationDAO reservationDAO, TableDAO tableDAO,OpeningHoursDAO openingHoursDAO,
-                             UserDAO userDAO,  NotificationControl notificationControl) {                                                                                      
+                             UserDAO userDAO,  NotificationControl notificationControl,WaitingListDAO waitingListDAO) {                                                                                      
         this.reservationDAO = reservationDAO;
         this.tableDAO = tableDAO;
         this.openingHoursDAO = openingHoursDAO;
         this.userDAO = userDAO;
         this.notificationControl = notificationControl;
+        this.waitingListDAO=waitingListDAO;
     }
 
     public Response<ReservationResponse> handleReservationRequest(ReservationRequest req) {
@@ -326,6 +329,15 @@ public class ReservationControl {
                 if (!ok) {
                     conn.rollback();
                     return new Response<>(false, "Failed to cancel reservation", null);
+                }
+                
+                WaitingList wl = waitingListDAO.getWaitingListByReservationId(conn, reservation.getReservationID());
+                if(wl != null) {
+                	boolean updated = waitingListDAO.updateWaitingStatus(conn, reservation.getReservationID(),"CANCELLED");
+                	if(!updated) {
+                		conn.rollback();
+                		return new Response<>(false, "Failed to cancel waiting list", null);
+                	}
                 }
 
                 conn.commit();

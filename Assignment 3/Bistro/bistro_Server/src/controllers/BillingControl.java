@@ -18,6 +18,16 @@ import responses.BillResponse.BillResponseType;
 import responses.Response;
 import database.SeatingDAO;
 
+/**
+ * BillingControl handles bill-related client requests:
+ * - Creating / returning an open bill for a reservation (by confirmation code).
+ * - Paying an existing open bill and finalizing the reservation + seating.
+ * - Sending bills automatically (scheduler flow) using a claim/mark mechanism in seating.
+ *
+ * Notes:
+ * - Uses explicit transactions (setAutoCommit(false)) and commits/rollbacks manually.
+ * - Notification failures are handled separately in some flows (after commit).
+ */
 public class BillingControl {
 	private final ReservationDAO reservationDAO;
 	private final SeatingDAO seatingDAO;
@@ -26,10 +36,23 @@ public class BillingControl {
 	private final BillDAO billDAO;
 	private final SeatingControl seatingControl;
 	
+	/**
+	 * Default constructor (used by frameworks/serialization and simple instantiation).
+	 */
 	public BillingControl() {
 		this(new ReservationDAO(),new SeatingDAO(),new NotificationControl(),new UserDAO(),new BillDAO(),new SeatingControl());
 	}
 	
+	/**
+	 * Dependency-injection constructor.
+	 *
+	 * @param reservationDAO DAO for reservation queries/updates
+	 * @param seatingDAO DAO for seating queries/updates
+	 * @param notificationControl notification sender
+	 * @param userDAO DAO for retrieving user contact details
+	 * @param billDAO DAO for bill CRUD/updates
+	 * @param seatingControl SeatingControl used for checkout and assigning next waiting customer
+	 */
 	public BillingControl(ReservationDAO reservationDAO, SeatingDAO seatingDAO,NotificationControl notificationControl,UserDAO userDAO,BillDAO billDAO,SeatingControl seatingControl) {
 		
 		this.reservationDAO = reservationDAO;
@@ -40,6 +63,13 @@ public class BillingControl {
 		this.seatingControl = seatingControl;
 	}
 	
+	/**
+	 * Routes bill requests from the client to the relevant handler.
+	 *
+	 * @param req BillRequest with type + confirmation code (and other fields if needed)
+	 * @return Response containing a BillResponse for the requested operation
+	 * @throws SQLException if a DAO method throws and is not caught inside handlers
+	 */
 	public Response<BillResponse> handleBillRequest(BillRequest req) throws SQLException{
 		if(req==null) return failResponse("request is null");
 		if(req.getType()==null) return failResponse("type is null");
@@ -50,6 +80,14 @@ public class BillingControl {
 		
 		}
 	
+	/**
+	 * Returns the current open bill for a reservation, or creates one if it doesn't exist.
+	 * Applies a discount when the reservation is for a registered user (guestContact is null/blank).
+	 *
+	 *
+	 * @param req BillRequest containing confirmationCode
+	 * @return Response with BillResponseType.ANSWER_TO_REQUEST_TO_SEE_BILL
+	 */
 	private Response<BillResponse> handleRequestToSeeBill(BillRequest req) {
 	    
 	    try (Connection conn = DBManager.getConnection()){
@@ -107,6 +145,15 @@ public class BillingControl {
             return new Response<>(false, "DB connection failed: " + e.getMessage(), null);
         }
 	}
+
+	/**
+	 * Marks the bill as paid and finalizes the reservation.
+	 * Also performs checkout and tries to call the next customer from the waiting list.
+	 *
+	 *
+	 * @param req BillRequest containing confirmationCode
+	 * @return Response with BillResponseType.ANSWER_TO_PAY_BILL
+	 */
 	private Response<BillResponse> handleRequestToPayBill(BillRequest req) {
 	    try (Connection conn = DBManager.getConnection()) {
 	        if (conn == null) return failResponse("DB connection failed");
@@ -182,7 +229,14 @@ public class BillingControl {
 	    }
 	}
 
-	
+	/**
+	 * Sends a "bill paid" confirmation to the correct contact
+	 *
+	 * @param conn active JDBC connection
+	 * @param r reservation entity
+	 * @return true if notification was sent successfully, false otherwise
+	 * @throws SQLException if user lookup fails via DAO
+	 */
 	private boolean sendConfirmationToCorrectContact(Connection conn, Reservation r) throws SQLException {
 		if(r.getGuestContact()==null ||r.getGuestContact().isBlank()) {
 			User user= userDAO.getUserByUserID(conn, r.getUserID());
@@ -193,19 +247,27 @@ public class BillingControl {
 		}
 	}
 
+	/**
+	 * Helper to build a successful Response wrapper.
+	 */
 	private Response<BillResponse> successResponse(String msg, BillResponse bR) {
         return new Response<>(true, msg, bR);
     }
 
+	/**
+	 * Helper to build a failure Response wrapper.
+	 */
     private Response<BillResponse> failResponse(String msg) {
         return new Response<>(false, msg, null);
     }
+
 	/**
-     * 
-     * 
+     * Sends the bill automatically for a seating (typically used by a scheduler).
      *
-     * @return TRUE only if bill was sent and marked as sent.
-     *         FALSE otherwise (including if claim failed / not due / missing contact / notification failed).
+     *
+     * @param conn active JDBC connection (transactional)
+     * @param seatingId seating id to send a bill for
+     * @return true only if bill was sent and marked as sent; false otherwise
      */
     public boolean sendBillAutomatically(Connection conn,int seatingId) {
         if (seatingId <= 0) return false;
@@ -252,9 +314,25 @@ public class BillingControl {
             return false;
         }
     }
+
+	/**
+	 * Builds the default bill message text used for sending notifications.
+	 */
     private String buildBillMessage() {
         return "Your bill is ready.Seating.Thank you!";
     }
+
+	/**
+	 * Sends a bill notification to the correct destination:
+	 *
+	 * @param conn active JDBC connection
+	 * @param guestContact guest contact string (email/phone/etc)
+	 * @param userId user id if the reservation belongs to a registered user
+	 * @param billMessage message body
+	 * @param bill bill amount
+	 * @return true if notification was sent successfully, false otherwise
+	 * @throws SQLException if user lookup fails via DAO
+	 */
     private boolean sendBillToCorrectContact(Connection conn,String guestContact,String userId,String billMessage,double bill) throws SQLException {
     	if (guestContact != null && !guestContact.isBlank()) {
     		return notificationControl.sendBillToGuest(guestContact, billMessage,bill);
@@ -268,7 +346,13 @@ public class BillingControl {
     	}
     	return notificationControl.sendBillToUser(user, billMessage,bill);
     }
-    
+
+	/**
+	 * Generates a random bill amount in range [50, 1000] (inclusive-ish, based on Math.random()).
+	 * Used for testing/demo behavior.
+	 *
+	 * @return random bill sum
+	 */
     private double generateRandomBillSum() {
 	    double bill;
 	    bill = 50 + (double)(Math.random()*(1000-50+1));

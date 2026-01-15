@@ -21,6 +21,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 
+ */
+/**
+ * 
+ */
 public class BillingScheduler {
 
     private final ScheduledExecutorService reminderScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -77,6 +83,9 @@ public class BillingScheduler {
         this.openingHoursDAO=openingHoursDAO;
     }
 
+    /**
+     * function that runs on server start, activates all schedulers.
+     */
     public synchronized void start() {
         if (started) return;
         started = true;
@@ -187,6 +196,12 @@ public class BillingScheduler {
             }
         }, 0, 24, TimeUnit.HOURS);
     }
+    
+    /**
+     * checks for the next 30 days, that we have the opening hours of the restaurant for each day.
+     * @param conn
+     * @throws SQLException
+     */
     public void ensureOpeningHoursNext30Days(Connection conn) throws SQLException {
         LocalDate startDate = LocalDate.now();
         LocalDate endExclusive = startDate.plusDays(30); 
@@ -210,6 +225,12 @@ public class BillingScheduler {
             }
         }
     }
+    
+    /**
+     * helper method for ensureOpeningHoursNext30Days.
+     * @param d- the current date
+     * @return the day of the week for the current date as a String
+     */
     private String dayNameEnglish(LocalDate d) {
         switch (d.getDayOfWeek()) {
             case SUNDAY: return "Sunday";
@@ -222,7 +243,12 @@ public class BillingScheduler {
             default: throw new IllegalStateException("Unexpected day: " + d.getDayOfWeek());
         }
     }
-
+    
+    /**
+     * reminder to all the customers whose reservation is in two hours.
+     * @param conn
+     * @throws SQLException
+     */
     private void findPrior2HourReservation(Connection conn) throws SQLException {
         List<Reservation> reservations = reservationDAO.getReservationsDueForReminder(conn);
         for (Reservation r : reservations) {
@@ -266,8 +292,13 @@ public class BillingScheduler {
             }
         }
     }
-
+    
    
+    /**
+     * sending the bill to all the customers who are seating at a table for 2 hours without requesting a bill.
+     * @param conn
+     * @throws SQLException
+     */
     private void mark2HoursSeating(Connection conn) throws SQLException {
         List<Integer> dueSeatingIds = seatingDAO.getSeatingsDueForBill(conn);
         for (int seatingId : dueSeatingIds) {
@@ -287,6 +318,11 @@ public class BillingScheduler {
     }
 
   
+    /**
+     * chaning the reservation status to NO_SHOW and informing customer about the cancelation of his reservation due to him being late
+     * @param conn
+     * @throws SQLException
+     */
     private void markNoShows(Connection conn) throws SQLException {
         LocalDate today = LocalDate.now();
         LocalTime cutoff = LocalTime.now().minusMinutes(15);
@@ -294,10 +330,21 @@ public class BillingScheduler {
         List<Integer> reservationIds = reservationDAO.getReservationsDueForNoShow(conn, today, cutoff);
 
         for (int reservationId : reservationIds) {
+        	Reservation reservation=reservationDAO.getReservationByReservationID(conn, reservationId);
+        	int confirmationCode=reservation.getConfirmationCode();
             reservationDAO.updateStatusByReservationID(conn, reservationId, "NO_SHOW");
+            if(reservation.getGuestContact()==null||reservation.getGuestContact().isBlank()) {
+            	notificationControl.sendCancelledReservation(reservation.getUserID(), "Your reservation with confirmation code "+confirmationCode+" has been canceled");
+            }
+            else {
+            	notificationControl.sendCancelledReservation(reservation.getGuestContact(), "Your reservation with confirmation code "+confirmationCode+" has been canceled");
+            }
         }
     }
-
+    
+    /**
+     * stopping all the schedulers
+     */
     public synchronized void stop() {
         scheduler.shutdownNow();
         reminderScheduler.shutdownNow();

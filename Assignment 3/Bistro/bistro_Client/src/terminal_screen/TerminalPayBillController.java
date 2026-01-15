@@ -12,6 +12,9 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import requests.BillRequest.BillRequestType;
 
+// terminal view for fetching and paying bills
+// two-step process: fetch bill, then pay
+// accepts confirmation code or user ID
 public class TerminalPayBillController implements ClientControllerAware {
 
 	@FXML private TextField reservationOrTableField;
@@ -23,12 +26,15 @@ public class TerminalPayBillController implements ClientControllerAware {
     private ClientController clientController;
     private boolean connected;
 
+    // tracks whether bill has been fetched
     private boolean billLoaded = false;
+    // cached values from fetch step
     private Double lastBaseTotal;
     private Integer lastConfirmationCode;
 
     @FXML
     private void initialize() {
+    	// restrict input to numeric only
     	if (reservationOrTableField != null) {
             reservationOrTableField.setTextFormatter(new TextFormatter<String>(change -> { 
                 String newText = change.getControlNewText();
@@ -39,6 +45,7 @@ public class TerminalPayBillController implements ClientControllerAware {
         }
     	if (billItemsList != null)  billItemsList.getItems().setAll("Bill will appear here...");
                   
+        // pay button disabled until bill is fetched
         if (payBtn != null) payBtn.setDisable(true);
                     
         setStatus("",false);
@@ -51,6 +58,7 @@ public class TerminalPayBillController implements ClientControllerAware {
     }
 
     @FXML
+    // step 1: fetch bill total from server
     private void onFetchBill() {
     	Integer code = parseConfirmationCode();
         if (code == null) return;
@@ -58,6 +66,7 @@ public class TerminalPayBillController implements ClientControllerAware {
         	setStatus("Terminal is offline.", true);
         	return;
         }
+        // reset state for new fetch
         billLoaded = false;
         lastBaseTotal = null;
         lastConfirmationCode = code;
@@ -75,6 +84,7 @@ public class TerminalPayBillController implements ClientControllerAware {
     }
 
     @FXML
+    // step 2: process payment after bill is fetched
     private void onPay() {
     	Integer code = lastConfirmationCode != null ? lastConfirmationCode : parseConfirmationCode();
         if (code == null) return;
@@ -94,6 +104,7 @@ public class TerminalPayBillController implements ClientControllerAware {
     }
 
     @FXML
+    // resets all fields to initial state
     private void onClear() {
     	if (reservationOrTableField != null) reservationOrTableField.clear();
         if (billItemsList != null) billItemsList.getItems().setAll("Bill will appear here...");
@@ -106,18 +117,21 @@ public class TerminalPayBillController implements ClientControllerAware {
         setStatus("",false);
     }
 
+    // called by TerminalScreenController when bill total arrives from server
     public void onBillTotalLoaded(double baseTotal) {
         lastBaseTotal = baseTotal;
         billLoaded = true;
         if (billItemsList != null) {
             billItemsList.getItems().setAll("Total due: " + formatMoney(baseTotal));
         }
+        // enable pay button after successful fetch
         if (payBtn != null) {
             payBtn.setDisable(false);
         }
         setStatus("Bill ready.", false);
     }
 
+    // called by TerminalScreenController when payment succeeds
     public void onBillPaid() {
         billLoaded = false;
         lastBaseTotal = null;
@@ -130,6 +144,7 @@ public class TerminalPayBillController implements ClientControllerAware {
         setStatus("Payment completed.", false);
     }
 
+    // called by TerminalScreenController when billing operation fails
     public void onBillingError(String message) {
         billLoaded = false;
         if (payBtn != null) {
@@ -138,6 +153,7 @@ public class TerminalPayBillController implements ClientControllerAware {
         setStatus(message == null ? "Billing failed." : message, true);
     }
 
+    // validates and parses confirmation code from input field
     private Integer parseConfirmationCode() {
         String txt = reservationOrTableField == null ? "" : reservationOrTableField.getText().trim();
         if (txt.isEmpty()) {
@@ -160,7 +176,10 @@ public class TerminalPayBillController implements ClientControllerAware {
             return null;
         }
     }
+    
     @FXML
+    // alternative flow: resolve confirmation code from user ID
+    // uses callback pattern to retrieve code from server
     private void onUseUserId() {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Use user ID");
@@ -178,12 +197,14 @@ public class TerminalPayBillController implements ClientControllerAware {
                 return;
             }
 
+            // set callback to receive resolved code from server
             clientController.setLostCodeListener(code -> {
                 clientController.clearLostCodeListener();
                 if (code == null || code <= 0) {
                     setStatus("Failed to resolve confirmation code.", true);
                     return;
                 }
+                // populate field and trigger bill fetch
                 if (reservationOrTableField != null) {
                     reservationOrTableField.setText(String.valueOf(code));
                 }
@@ -198,6 +219,7 @@ public class TerminalPayBillController implements ClientControllerAware {
         return String.format("%.2f", value);
     }
 
+    // updates status label with color based on error state
     private void setStatus(String msg, boolean error) {
         if (statusLabel == null) return;
         statusLabel.setText(msg == null ? "" : msg);

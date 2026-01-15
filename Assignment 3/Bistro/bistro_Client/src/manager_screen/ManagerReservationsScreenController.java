@@ -19,6 +19,8 @@ import responses.ReservationResponse;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+// manager view for viewing reservations by date
+// displays reservation list and provides button to create new reservations
 public class ManagerReservationsScreenController implements ClientControllerAware {
 
     @FXML private DatePicker datePicker;
@@ -32,10 +34,13 @@ public class ManagerReservationsScreenController implements ClientControllerAwar
     private ClientController clientController;
     private boolean connected;
 
+    // observable list for reactive UI updates
     private final ObservableList<ReservationResponse> reservations = FXCollections.observableArrayList();
+    // callback to trigger reservation flow (set by DesktopScreenController)
     private Runnable onStartReservationFlow;
 
     @FXML
+    // sets up table columns to display reservation data
     private void initialize() {
         if (colContact != null) colContact.setCellValueFactory(new PropertyValueFactory<>("newGuestContact"));
                     
@@ -52,11 +57,14 @@ public class ManagerReservationsScreenController implements ClientControllerAwar
     }
 
     @Override
+    // dependency injection from DesktopScreenController
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
     }
+    
     @FXML
+    // triggers reservation creation flow via callback
     private void onOpenReservationFlow() {
         if (onStartReservationFlow != null) {
             onStartReservationFlow.run();
@@ -65,6 +73,7 @@ public class ManagerReservationsScreenController implements ClientControllerAwar
 
 
     @FXML
+    // loads reservations for selected date
     private void onLoad() {
         if (!readyForServer()) return;
         LocalDate date = datePicker == null ? null : datePicker.getValue();
@@ -76,6 +85,7 @@ public class ManagerReservationsScreenController implements ClientControllerAwar
         setInfo("Loading reservations...");
     }
 
+    // populates table with reservation data from server
     public void handleManagerResponse(ManagerResponse response) {
         if (response == null || response.getResponseCommand() == null) return;
         if (response.getResponseCommand() != ManagerResponseCommand.RESERVATION_BY_DATE_RESPONSE) return;
@@ -89,10 +99,13 @@ public class ManagerReservationsScreenController implements ClientControllerAwar
             }
         }        
     }
+    
+    // sets callback for "Make Reservation" button
     public void setOnStartReservationFlow(Runnable onStartReservationFlow) {
         this.onStartReservationFlow = onStartReservationFlow;
     }
 
+    // checks connection before sending requests
     private boolean readyForServer() {
         if (!connected || clientController == null) {
             setInfo("Not connected to server.");
@@ -101,6 +114,7 @@ public class ManagerReservationsScreenController implements ClientControllerAwar
         return true;
     }
 
+    // updates info label
     private void setInfo(String msg) {
         if (infoLabel != null) infoLabel.setText(msg == null ? "" : msg);
     }

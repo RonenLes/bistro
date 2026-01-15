@@ -8,6 +8,9 @@ import javafx.scene.control.ToggleGroup;
 
 import java.util.function.BiConsumer;
 
+// first step of manager reservation flow
+// allows manager to choose whether reservation is for subscriber or guest
+// validates input and passes data to next step via callbacks
 public class ManagerReservationStartScreenController {
 
     @FXML private RadioButton subscriberRadio;
@@ -17,10 +20,13 @@ public class ManagerReservationStartScreenController {
     @FXML private TextField guestContactField;
     @FXML private Label infoLabel;
 
+    // callback to pass selected user/guest data to next step
     private BiConsumer<String, String> onContinue;
+    // callback to cancel and return to previous screen
     private Runnable onCancel;
 
     @FXML
+    // sets up radio button listener to toggle field visibility
     private void initialize() {
         if (reservationTargetGroup != null && subscriberRadio != null) {
             subscriberRadio.setSelected(true);
@@ -29,15 +35,18 @@ public class ManagerReservationStartScreenController {
         }
     }
 
+    // sets callback for continue button
     public void setOnContinue(BiConsumer<String, String> onContinue) {
         this.onContinue = onContinue;
     }
 
+    // sets callback for cancel button
     public void setOnCancel(Runnable onCancel) {
         this.onCancel = onCancel;
     }
 
     @FXML
+    // validates input and invokes callback with user ID or guest contact
     private void onContinue() {
         boolean isSubscriber = subscriberRadio != null && subscriberRadio.isSelected();
         boolean isGuest = guestRadio != null && guestRadio.isSelected();
@@ -61,18 +70,21 @@ public class ManagerReservationStartScreenController {
             return;
         }
 
+        // pass selected data to next step
         if (onContinue != null) {
             onContinue.accept(isSubscriber ? userId : null, isGuest ? guestContact : null);
         }
     }
 
     @FXML
+    // invokes cancel callback to return to previous screen
     private void onCancel() {
         if (onCancel != null) {
             onCancel.run();
         }
     }
 
+    // shows appropriate field based on selected radio button
     private void updateTargetFields() {
         boolean isSubscriber = subscriberRadio != null && subscriberRadio.isSelected();
         if (userIdField != null) {
@@ -93,6 +105,7 @@ public class ManagerReservationStartScreenController {
         }
     }
 
+    // updates info label
     private void setInfo(String msg) {
         if (infoLabel != null) infoLabel.setText(msg == null ? "" : msg);
     }

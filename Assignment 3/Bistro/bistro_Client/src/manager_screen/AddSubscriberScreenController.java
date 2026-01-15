@@ -13,6 +13,9 @@ import responses.ManagerResponse;
 import responses.ManagerResponse.ManagerResponseCommand;
 import desktop_screen.DesktopScreenController;
 
+// manager view for adding new subscribers
+// validates input and sends ManagerRequest to server
+// role dropdown restricted based on requester's role (rep vs manager)
 public class AddSubscriberScreenController implements ClientControllerAware {
 
     @FXML private TextField usernameField;
@@ -23,6 +26,7 @@ public class AddSubscriberScreenController implements ClientControllerAware {
     @FXML private ComboBox<String> roleComboBox;
 
     private ClientController clientController;
+    // role of the user opening this screen (determines permissions)
     private DesktopScreenController.Role requesterRole;
     private boolean connected;
     
@@ -32,17 +36,20 @@ public class AddSubscriberScreenController implements ClientControllerAware {
     }
 
     @Override
+    // dependency injection from DesktopScreenController
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
     }
     
+    // sets role for permission-based UI restrictions
     public void setRequesterRole(DesktopScreenController.Role requesterRole) {
         this.requesterRole = requesterRole;
         configureRoleOptions();
     }
 
     @FXML
+    // validates input and sends add subscriber request to server
     private void onSave() {
         if (!readyForServer()) return;
 
@@ -52,6 +59,7 @@ public class AddSubscriberScreenController implements ClientControllerAware {
         String email = getValue(emailField);
         String role = roleComboBox == null ? "" : String.valueOf(roleComboBox.getValue());
         
+        // password validation
         if(password.length()<6 || password.length()>10) {
         	setInfo("password musn be 6-10 chars long.");
             return;
@@ -66,6 +74,7 @@ public class AddSubscriberScreenController implements ClientControllerAware {
             return;
         }
 
+        // send request to server
         ManagerRequest request = new ManagerRequest(
                 ManagerCommand.ADD_NEW_USER,
                 username,
@@ -80,11 +89,13 @@ public class AddSubscriberScreenController implements ClientControllerAware {
     }
 
     @FXML
+    // clears input fields
     private void onClear() {
         clearFields();
         setInfo("");
     }
 
+    // handles server response for add subscriber action
     public void handleManagerResponse(ManagerResponse response) {
         if (response == null || response.getResponseCommand() == null) return;
 
@@ -97,6 +108,7 @@ public class AddSubscriberScreenController implements ClientControllerAware {
         }
     }
 
+    // resets all input fields
     private void clearFields() {
         if (usernameField != null) usernameField.clear();
         if (passwordField != null) passwordField.clear();
@@ -105,6 +117,9 @@ public class AddSubscriberScreenController implements ClientControllerAware {
         if (roleComboBox != null) roleComboBox.getSelectionModel().select("SUBSCRIBER");
     }
     
+    // restricts role options based on requester's permissions
+    // representatives can only add subscribers
+    // managers can add subscribers, reps, and other managers
     private void configureRoleOptions() {
         if (roleComboBox == null) return;
 
@@ -122,11 +137,13 @@ public class AddSubscriberScreenController implements ClientControllerAware {
 
 
 
+    // safely extracts trimmed text from field
     private String getValue(TextField field) {
         if (field == null || field.getText() == null) return "";
         return field.getText().trim();
     }
 
+    // checks connection before sending requests
     private boolean readyForServer() {
         if (!connected || clientController == null) {
             setInfo("Not connected to server.");
@@ -135,6 +152,7 @@ public class AddSubscriberScreenController implements ClientControllerAware {
         return true;
     }
 
+    // updates info label with message
     private void setInfo(String msg) {
         if (infoLabel != null) infoLabel.setText(msg == null ? "" : msg);
     }

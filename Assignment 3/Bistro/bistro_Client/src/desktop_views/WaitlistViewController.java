@@ -5,6 +5,8 @@ import controllers.ClientControllerAware;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 
+// placeholder view for waitlist management from desktop
+// actual waitlist features are handled by terminal screens
 public class WaitlistViewController implements ClientControllerAware {
 
     @FXML private Label statusLabel;

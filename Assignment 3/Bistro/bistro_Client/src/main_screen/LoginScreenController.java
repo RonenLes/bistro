@@ -11,8 +11,12 @@ import javafx.event.ActionEvent;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
+// handles login screen UI for both subscribers and guests
+// toggles between member login (username/password) and guest mode (contact)
+// validates credentials and triggers navigation to desktop
 public class LoginScreenController {
 
+    // input fields
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
     @FXML private TextField guestContactField;
@@ -28,30 +32,37 @@ public class LoginScreenController {
     private ClientController clientController;
     private boolean connected;
 
+    // callbacks set by AppNavigator
     private Runnable onBackToMain;
     private Consumer<DesktopScreenController.Role> onLoginAsRole;
 
+    // tracks whether UI is in guest mode or member mode
     private boolean guestMode;
 
+    // validation patterns for guest contact
     private static final Pattern EMAIL_PATTERN =
             Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
     private static final Pattern PHONE_PATTERN =
             Pattern.compile("^\\+?[0-9]{7,15}$");
 
+    // dependency injection from AppNavigator
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
         updateConnectionStateUI();
     }
 
+    // sets callback for back button
     public void setOnBackToMain(Runnable cb) {
         this.onBackToMain = cb;
     }
 
+    // sets callback for successful login
     public void setOnLoginAsRole(Consumer<DesktopScreenController.Role> cb) {
         this.onLoginAsRole = cb;
     }
 
+    // retrieves username for desktop welcome message
     public String getUsernameForWelcome() {
         if (usernameField == null) return "";
         return usernameField.getText() == null ? "" : usernameField.getText().trim();
@@ -61,6 +72,7 @@ public class LoginScreenController {
     private void initialize() {
         if (statusLabel != null) statusLabel.setText("");
 
+        // allow Enter key to submit login
         if (passwordField != null) {
             passwordField.setOnAction(e -> onLoginClicked());
         }
@@ -73,10 +85,12 @@ public class LoginScreenController {
      * Login button click
      * calls the client controller with a request
      */
+    // handles both guest and subscriber login flows
     @FXML
     private void onLoginClicked() {
 
         if (guestMode) {
+            // guest login: validate contact (email or phone)
             String contact = guestContactField == null ? "" : guestContactField.getText();
             contact = contact == null ? "" : contact.trim();
 
@@ -92,12 +106,14 @@ public class LoginScreenController {
 
             setStatus("Continuing as guest...", false);
 
+            // trigger navigation to desktop with guest role
             if (onLoginAsRole != null) {
                 onLoginAsRole.accept(DesktopScreenController.Role.GUEST);
             }
             return;
         }
 
+        // subscriber login: send credentials to server
         String username = usernameField == null ? "" : usernameField.getText();
         String password = passwordField == null ? "" : passwordField.getText();
 
@@ -106,17 +122,21 @@ public class LoginScreenController {
             return;
         }
 
+        // server will respond with role via LoginResponse
+        // response handled by AppNavigator's navigationHandler
         clientController.requestLogin(username, password);
         setStatus("Logging in...", false);
     }
 
     @FXML
+    // toggles between member and guest UI modes
     private void onContinueAsGuestClicked() {
         // toggle mode
         setGuestMode(!guestMode);
     }
 
     @FXML
+    // returns to main menu
     private void onBackClicked(ActionEvent event) {
         if (onBackToMain != null) {
             onBackToMain.run();
@@ -142,9 +162,12 @@ public class LoginScreenController {
                 : "-fx-text-fill: #2E9B5F; -fx-font-weight: 800;");
     }
 
+    // switches UI between member and guest modes
+    // shows/hides appropriate fields and updates button labels
     private void setGuestMode(boolean guest) {
         this.guestMode = guest;
 
+        // show username/password for members, hide for guests
         if (usernameField != null) {
             usernameField.setVisible(!guest);
             usernameField.setManaged(!guest);
@@ -153,6 +176,7 @@ public class LoginScreenController {
             passwordField.setVisible(!guest);
             passwordField.setManaged(!guest);
         }
+        // show contact field for guests, hide for members
         if (guestContactField != null) {
             guestContactField.setVisible(guest);
             guestContactField.setManaged(guest);
@@ -161,6 +185,7 @@ public class LoginScreenController {
             }
         }
 
+        // update button labels based on mode
         if (loginButton != null) {
             loginButton.setText(guest ? "Continue as guest" : "Login");
         }
@@ -172,6 +197,7 @@ public class LoginScreenController {
         setStatus("", false);
     }
 
+    // validates guest contact as either email or phone
     private boolean isValidContact(String value) {
         if (value == null) return false;
         String v = value.trim();

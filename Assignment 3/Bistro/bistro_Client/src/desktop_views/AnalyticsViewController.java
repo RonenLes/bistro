@@ -5,6 +5,8 @@ import controllers.ClientControllerAware;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 
+// placeholder view for future analytics features
+// currently displays demo message
 public class AnalyticsViewController implements ClientControllerAware {
 
     @FXML private Label infoLabel;

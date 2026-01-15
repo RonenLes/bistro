@@ -12,13 +12,20 @@ import responses.ReportResponse;
  * Implementations (desktop or terminal) receive responses and status updates from
  * {@link ClientController} and render them in the appropriate UI context.
  */
+// defines all callbacks from controller to UI layer
+// separates network/business logic from presentation logic
 public interface ClientUIHandler {
 	
+    // generic message displays
     void showInfo(String title, String message);
     void showWarning(String title, String message);
     void showError(String title, String message);
     void showPayload(Object payload);
+    
+    // navigation
     void routeToDesktop(DesktopScreenController.Role role, String username);
+    
+    // operation-specific callbacks
     void onReservationResponse(ReservationResponse response);
     void onSeatingResponse(SeatingResponse response);
     void onUserHistoryResponse(java.util.List<responses.UserHistoryResponse> rows);

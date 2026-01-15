@@ -21,6 +21,9 @@ import responses.ManagerResponse.ManagerResponseCommand;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 
+// manager view for editing restaurant tables
+// displays table list with inline editable capacity
+// allows adding new tables and disabling existing ones
 public class EditTableScreenController implements ClientControllerAware {
 
     @FXML private Label infoLabel;
@@ -36,20 +39,27 @@ public class EditTableScreenController implements ClientControllerAware {
 
     private ClientController clientController;
     private boolean connected;
+    // observable list for reactive table updates
     private final ObservableList<TableRow> tableItems = FXCollections.observableArrayList();
 
     @FXML
+    // sets up table columns with cell factories
+    // seats column is inline editable
+    // edit and disable columns have action buttons
     private void initialize() {
         if (colTableNo != null) {
             colTableNo.setCellValueFactory(new PropertyValueFactory<>("tableNumber"));
         }
+        // seats column with inline editing
         if (colSeats != null) {
         	colSeats.setEditable(true);
             colSeats.setCellValueFactory(new PropertyValueFactory<>("capacity"));
+            // custom cell factory for editable text field
             colSeats.setCellFactory(column -> new TextFieldTableCell<>(new IntegerStringConverter()) {
                 @Override
                 public void startEdit() {
                     super.startEdit();
+                    // auto-commit on focus loss
                     if (getGraphic() instanceof TextField textField) {
                         textField.focusedProperty().addListener((obs, oldVal, newVal) -> {
                             if (!newVal) {
@@ -59,6 +69,7 @@ public class EditTableScreenController implements ClientControllerAware {
                     }
                 }
             });
+            // validate and update model on edit commit
             colSeats.setOnEditCommit(event -> {
                 TableRow row = event.getRowValue();
                 Integer newValue = event.getNewValue();
@@ -78,6 +89,7 @@ public class EditTableScreenController implements ClientControllerAware {
         if (colNotes != null) {
             colNotes.setCellValueFactory(new PropertyValueFactory<>("notes"));
         }
+        // edit column with save button
         if (colEdit != null) {
             colEdit.setCellFactory(column -> new TableCell<>() {
                 private final Button button = new Button("Save");
@@ -99,6 +111,7 @@ public class EditTableScreenController implements ClientControllerAware {
                 }
             });
         }
+        // disable column with disable button
         if (colDisable != null) {
             colDisable.setCellFactory(column -> new TableCell<>() {
                 private final Button button = new Button("Disable");
@@ -124,18 +137,21 @@ public class EditTableScreenController implements ClientControllerAware {
             tablesTable.setItems(tableItems);
             tablesTable.setEditable(true);
         }
+        // restrict input to numeric only
         initNumericField(newTableNumberField, 4);
         initNumericField(newCapacityField, 3);
         setInfo("Load tables to begin editing.");
     }
 
     @Override
+    // dependency injection from DesktopScreenController
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
     }
 
     @FXML
+    // reloads table list from server
     private void onRefresh() {
         if (!readyForServer()) return;
         clientController.requestManagerAction(new ManagerRequest(ManagerCommand.VIEW_ALL_TABLES));
@@ -143,6 +159,7 @@ public class EditTableScreenController implements ClientControllerAware {
     }
     
     @FXML
+    // adds new table with specified number and capacity
     private void onAddTable() {
         if (!readyForServer()) return;
         Integer tableNumber = parsePositiveInt(newTableNumberField, "Table number");
@@ -157,14 +174,17 @@ public class EditTableScreenController implements ClientControllerAware {
         clearAddFields();
     }
 
+    // called by DesktopScreenController when tab is opened
     public void requestInitialData() {
         onRefresh();
     }
 
+    // handles server responses for table operations
     public void handleManagerResponse(ManagerResponse response) {
         if (response == null || response.getResponseCommand() == null) return;
 
         if (response.getResponseCommand() == ManagerResponseCommand.SHOW_ALL_TABLES_RESPONSE) {
+            // populate table list from server
             tableItems.clear();
             if (response.getTables() != null) {
                 for (Object item : response.getTables()) {
@@ -175,6 +195,7 @@ public class EditTableScreenController implements ClientControllerAware {
             }
             setInfo("Tables updated.");
         } else if (response.getResponseCommand() == ManagerResponseCommand.EDIT_TABLE_RESPONSE){
+                // shows number of reservations that were cancelled due to capacity change
                 setInfo("Table number "+response.getTable().getTableNumber()+" was edited\n Nubmer of cancelled reservations "+response.getTables().size());  // the getTables recvies contacts if later we want to show               
             onRefresh();
         }
@@ -183,10 +204,12 @@ public class EditTableScreenController implements ClientControllerAware {
         	onRefresh();
         }
         else if(response.getResponseCommand() == ManagerResponseCommand.DELETED_TABLE_RESPONSE) {
+            // shows number of reservations that were cancelled due to table deletion
         	setInfo("Table disabled, number of cancelled reservations: "+response.getTables().size());
         }
     }
 
+    // sends edit request for a table row
     private void sendEditRequest(TableRow row) {
         if (!readyForServer()) return;
         if (row.getCapacity() <= 0) {
@@ -198,6 +221,8 @@ public class EditTableScreenController implements ClientControllerAware {
         setInfo("Saving table " + row.getTableNumber() + "...");
     }
 
+    // sends disable request for a table
+    // server will handle cancellation of associated reservations
     private void sendDisableRequest(TableRow row) {
         if (!readyForServer()) return;
         clientController.requestManagerAction(
@@ -206,6 +231,7 @@ public class EditTableScreenController implements ClientControllerAware {
         setInfo("Disabling table " + row.getTableNumber() + "...");
     }
 
+    // checks connection before sending requests
     private boolean readyForServer() {
         if (!connected || clientController == null) {
             setInfo("Not connected to server.");
@@ -214,6 +240,7 @@ public class EditTableScreenController implements ClientControllerAware {
         return true;
     }
     
+    // restricts text field to numeric input only
     private void initNumericField(TextField field, int maxLength) {
         if (field == null) return;
         field.setTextFormatter(new TextFormatter<String>(change -> {
@@ -224,6 +251,7 @@ public class EditTableScreenController implements ClientControllerAware {
         }));
     }
 
+    // parses and validates positive integer from field
     private Integer parsePositiveInt(TextField field, String label) {
         if (field == null) {
             setInfo(label + " is missing.");
@@ -242,16 +270,19 @@ public class EditTableScreenController implements ClientControllerAware {
         return value;
     }
 
+    // clears add table input fields
     private void clearAddFields() {
         if (newTableNumberField != null) newTableNumberField.clear();
         if (newCapacityField != null) newCapacityField.clear();
     }
 
 
+    // updates info label
     private void setInfo(String msg) {
         if (infoLabel != null) infoLabel.setText(msg == null ? "" : msg);
     }
 
+    // data model for table rows in the TableView
     public static class TableRow {
         private int tableNumber;
         private int capacity;
@@ -265,6 +296,7 @@ public class EditTableScreenController implements ClientControllerAware {
             this.notes = "";
         }
 
+        // getters and setters for JavaFX property binding
         public int getTableNumber() {
             return tableNumber;
         }

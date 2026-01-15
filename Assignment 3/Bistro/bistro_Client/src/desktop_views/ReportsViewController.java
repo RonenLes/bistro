@@ -19,12 +19,17 @@ import java.time.Year;
 import java.time.YearMonth;
 import java.util.List;
 
+// generates analytics reports with line charts
+// time chart: arrival/departure patterns by hour
+// daily chart: reservations and waiting list by day of month
+// manager-only feature
 public class ReportsViewController implements ClientControllerAware {
 
     @FXML private ComboBox<Integer> yearPicker;
     @FXML private ComboBox<String> monthPicker;
     @FXML private Label infoLabel;
 
+    // containers for dynamically generated charts
     @FXML private Pane timeChartHost;
     @FXML private Pane dailyChartHost;
 
@@ -59,6 +64,7 @@ public class ReportsViewController implements ClientControllerAware {
     }
 
     @FXML
+    // sends report request to server for selected year/month
     private void onGenerate() {
         if (clientController == null || !connected) {
             setInfo("Not connected to server.");
@@ -85,6 +91,7 @@ public class ReportsViewController implements ClientControllerAware {
 
         YearMonth ym = YearMonth.of(year, m);
 
+        // send report request to server
         requests.ReportRequest payload = new requests.ReportRequest(ym);
         requests.Request<requests.ReportRequest> req =
                 new requests.Request<>(requests.Request.Command.REPORT_REQUEST, payload);
@@ -111,6 +118,8 @@ public class ReportsViewController implements ClientControllerAware {
         };
     }
 
+    // callback from DesktopScreenController with report data
+    // renders both charts on JavaFX thread
     public void onReportResponse(ReportResponse report) {
         if (report == null) {
             setInfo("Empty report response.");
@@ -128,13 +137,16 @@ public class ReportsViewController implements ClientControllerAware {
         });
     }
 
+    // generates line chart showing arrivals and departures by hour
     private void renderTimeChart(List<LocalDateTime[]> visits) {
         if (timeChartHost == null) return;
 
+        // restaurant operating hours
         final int openFrom = 10;
         final int openTo = 23;
         final int len = openTo - openFrom + 1;
 
+        // count arrivals and departures per hour
         int[] arrivals = new int[len];
         int[] departures = new int[len];
 
@@ -197,6 +209,7 @@ public class ReportsViewController implements ClientControllerAware {
         timeChartHost.getChildren().setAll(chart);
     }
 
+    // generates line chart showing daily reservations and waiting list counts
     private void renderDailyChart(String monthKey, Integer[][] dailyCounts) {
         if (dailyChartHost == null) return;
 

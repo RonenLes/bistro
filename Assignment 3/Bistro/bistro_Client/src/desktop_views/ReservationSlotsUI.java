@@ -18,22 +18,28 @@ import java.util.function.BiPredicate;
  * Shared UI builder for reservation slot tiles (availability + suggestions).
  * Used by both ReservationsViewController and EditReservationViewController.
  */
+// utility class for rendering time slot buttons with selection tracking
+// supports both immediate action (reserve) and selection mode (edit reservation)
 public final class ReservationSlotsUI {
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DATE_SHORT = DateTimeFormatter.ofPattern("dd/MM");
 
+    // UI containers passed from parent controller
     private final TilePane slotsTile;
     private final Label slotInfoLabel;
 
+    // slot button dimensions
     private final double slotWidth;
     private final double slotHeight;
 
     // selection state for slot tiles
+    // tracks which slot is currently selected (for edit mode)
     private Button selectedButton;
     private LocalDate selectedDate;
     private LocalTime selectedTime;
 
+    // constructor: receives UI containers and slot dimensions from parent
     public ReservationSlotsUI(TilePane slotsTile, Label slotInfoLabel, double slotWidth, double slotHeight) {
         this.slotsTile = slotsTile;
         this.slotInfoLabel = slotInfoLabel;
@@ -41,16 +47,19 @@ public final class ReservationSlotsUI {
         this.slotHeight = slotHeight;
     }
 
+    // removes all slot buttons and clears selection
     public void clear() {
         if (slotsTile != null) slotsTile.getChildren().clear();
         if (slotInfoLabel != null) slotInfoLabel.setText("");
         clearSelection();
     }
 
+    // displays info message to user
     public void info(String msg) {
         if (slotInfoLabel != null) slotInfoLabel.setText(msg == null ? "" : msg);
     }
 
+    // clears currently selected slot and removes visual indicator
     public void clearSelection() {
         if (selectedButton != null) {
             selectedButton.getStyleClass().remove("slot-selected");
@@ -134,6 +143,8 @@ public final class ReservationSlotsUI {
      * - adds a css marker class "slot-selected"
      * - triggers a single onPick callback when selection changes
      */
+    // renders slots for edit mode where user must select before confirming
+    // tracks selection state and highlights selected button
     public void renderAvailabilitySelectable(
             LocalDate selectedDate,
             List<LocalTime> availableTimes,
@@ -160,6 +171,8 @@ public final class ReservationSlotsUI {
      * - allows selecting suggested date + time
      * - keeps an internal selected slot
      */
+    // renders suggested alternative dates/times in selection mode
+    // used when requested date has no availability
     public void renderSuggestionsSelectable(
             Map<LocalDate, List<LocalTime>> suggestedDates,
             BiPredicate<LocalDate, LocalTime> exclude,

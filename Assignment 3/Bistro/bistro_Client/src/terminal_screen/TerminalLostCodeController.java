@@ -8,6 +8,9 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.control.TextInputDialog;
 
+// terminal view for retrieving lost confirmation codes
+// supports lookup by phone/email or user ID
+// server sends code to customer's registered contact method
 public class TerminalLostCodeController implements ClientControllerAware {
 
     @FXML private TextField phoneOrEmailField;
@@ -38,12 +41,15 @@ public class TerminalLostCodeController implements ClientControllerAware {
     }
 
     @FXML
+    // sends lost code request with phone or email
     private void onSend() {
         String contact = phoneOrEmailField == null ? "" : phoneOrEmailField.getText().trim();
         submitContact(contact, true);
       
     }
+    
     @FXML
+    // alternative: sends lost code request with user ID
     private void onScanQr() {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Scan QR Code");
@@ -67,6 +73,8 @@ public class TerminalLostCodeController implements ClientControllerAware {
     }
     
 
+    // validates and sends lost code request
+    // validateContact determines whether to enforce phone/email format
     private void submitContact(String contact, boolean validateContact) {
         if (contact.isEmpty()) {
             setStatus(validateContact ? "Enter phone or email." : "Enter user ID.");
@@ -79,6 +87,7 @@ public class TerminalLostCodeController implements ClientControllerAware {
         }
 
         if (validateContact) {
+            // basic validation for phone/email format
             boolean email = contact.contains("@") && contact.contains(".");
             boolean phone = contact.matches("[0-9+\\- ]{6,20}");
             if (!email && !phone) {
@@ -92,6 +101,7 @@ public class TerminalLostCodeController implements ClientControllerAware {
             return;
         }
 
+        // server will send code to customer via their registered contact method
         clientController.requestLostCode(contact);
         setStatus("Recovery request sent.");
     }

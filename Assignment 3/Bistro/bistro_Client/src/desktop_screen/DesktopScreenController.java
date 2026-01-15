@@ -44,8 +44,12 @@ import responses.ReportResponse;
  *Handles role-based navigation visibility, single selection across navigation buttons,
  * and content swapping into the content host
  */
+// main desktop UI container that implements ClientUIHandler
+// routes server responses to appropriate child view controllers
+// manages navigation and role-based screen visibility
 public class DesktopScreenController implements ClientUIHandler {
 
+    // user roles that determine which screens are accessible
     public enum Role {
         GUEST,
         SUBSCRIBER,
@@ -53,9 +57,11 @@ public class DesktopScreenController implements ClientUIHandler {
         MANAGER
     }
 
+    // main container where all child views are loaded
     @FXML private StackPane contentHost;
 
     // Role groups (just layout containers)
+    // navigation button groups organized by role
     @FXML private VBox repGroup;
     @FXML private VBox subscriberGroup;
     @FXML private VBox managerGroup;
@@ -64,6 +70,7 @@ public class DesktopScreenController implements ClientUIHandler {
     @FXML private Label welcomeNameLabel;
 
     // Nav buttons
+    // all navigation buttons injected from FXML
     @FXML private ToggleButton reservationsBtn;   // "New Reservations"
     @FXML private ToggleButton waitlistBtn;
     @FXML private ToggleButton tablesBtn;
@@ -83,14 +90,19 @@ public class DesktopScreenController implements ClientUIHandler {
     @FXML private ToggleButton addSubscriberBtn;
     @FXML private ToggleButton viewSubscribersBtn;
 
+    // tracks server connection status
     private boolean connected;
 
+    // ensures only one navigation button is selected at a time
     private final ToggleGroup navToggleGroup = new ToggleGroup();
+    // maps each button to its corresponding screen
     private final Map<ToggleButton, ScreenKey> navMap = new HashMap<>();
 
+    // reference to application controller for server communication
     private ClientController clientController;
 
     // cached controllers for response routing
+    // child view controllers cached when loaded to route responses to them
     private ReservationsViewController reservationsVC;
     private EditReservationViewController editReservationVC;
     private HistoryViewController historyVC;
@@ -105,10 +117,13 @@ public class DesktopScreenController implements ClientUIHandler {
     private SubscribersScreenController subscribersVC;
     private SubscriberMainScreenController subscriberMainVC;
     private ReportsViewController reportsVC;
+    // current user role determining screen access
     private Role role = Role.GUEST;
+    // callback to return to login screen
     private Runnable onLogout;
 
     // Screens
+    // internal keys identifying each available screen
     private enum ScreenKey {
     	SUBSCRIBER_HOME,
         RESERVATIONS,
@@ -128,6 +143,7 @@ public class DesktopScreenController implements ClientUIHandler {
     }
 
     // Role == allowed screens
+    // defines which screens each role can access
     private static final Map<Role, Set<ScreenKey>> ROLE_SCREENS = new EnumMap<>(Role.class);
     static {
         // GUEST -> edit details, new reservations, pay
@@ -177,6 +193,7 @@ public class DesktopScreenController implements ClientUIHandler {
     }
 
     // Public API
+    // dependency injection from MainScreenController
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
@@ -186,17 +203,21 @@ public class DesktopScreenController implements ClientUIHandler {
      * Sets the current user role for this desktop shell.
      * @param role the new role; if {@code null}, defaults to {@link Role#GUEST}.
      */
+    // called after login to configure UI for user's role
+    // applies visibility rules and loads default screen
     public void setRole(Role role) {
         this.role = role != null ? role : Role.GUEST;
         applyRoleVisibility();
         navToggleGroup.selectToggle(null); // clear selection
         selectDefaultForRole(); // pick default screen for this role
         
+        // auto-load upcoming reservations for subscribers
         if (this.role == Role.SUBSCRIBER && clientController != null)  clientController.requestUpcomingReservations();                   
         if (historyVC != null) historyVC.setUserContext(this.role, buildDiscountInfo());
         if (addSubscriberVC != null) addSubscriberVC.setRequesterRole(this.role);
     }
 
+    // updates top bar welcome message with user's name
     public void setWelcomeName(String name) {
         if (welcomeNameLabel != null) {
             String trimmed = name == null ? "" : name.trim();
@@ -211,6 +232,7 @@ public class DesktopScreenController implements ClientUIHandler {
      * Sets a logout callback for returning to the login screen or parent shell.
      * @param onLogout
      */
+    // allows MainScreenController to handle logout navigation
     public void setOnLogout(Runnable onLogout) {
         this.onLogout = onLogout;
     }
@@ -220,7 +242,10 @@ public class DesktopScreenController implements ClientUIHandler {
     /**
      * Initializes navigation button mappings and listeners after FXML injection.
      */
+    // called automatically by JavaFX after FXML elements are loaded
+    // sets up navigation infrastructure
     private void initialize() {
+        // register all navigation buttons with their screen keys
         registerNavButton(reservationsBtn, ScreenKey.RESERVATIONS);
         registerNavButton(waitlistBtn,     ScreenKey.WAITLIST);
         registerNavButton(tablesBtn,       ScreenKey.TABLES);
@@ -240,6 +265,7 @@ public class DesktopScreenController implements ClientUIHandler {
 
         applyRoleVisibility();
 
+        // listen for navigation button clicks and load corresponding screen
         navToggleGroup.selectedToggleProperty().addListener((obs, oldT, newT) -> {
             // Allow no selection so welcome screen can remain visible.
             if (newT instanceof ToggleButton btn) {
@@ -263,6 +289,7 @@ public class DesktopScreenController implements ClientUIHandler {
     /**
      * Applies role-based visibility rules to all registered navigation buttons.
      */
+    // shows/hides navigation buttons based on current role's permissions
     private void applyRoleVisibility() {
         Set<ScreenKey> allowed = ROLE_SCREENS.getOrDefault(role, Set.of());
 
@@ -278,11 +305,13 @@ public class DesktopScreenController implements ClientUIHandler {
         }
 
         // Update groups visibility based on whether they have any visible children
+        // hide entire group containers if all buttons inside are hidden
         updateGroupVisibility(repGroup);
         updateGroupVisibility(subscriberGroup);
         updateGroupVisibility(managerGroup);
     }
 
+    // hides navigation group if it has no visible buttons
     private void updateGroupVisibility(VBox group) {
         if (group == null) return;
 
@@ -298,6 +327,7 @@ public class DesktopScreenController implements ClientUIHandler {
     /**
      * choosing which button each role will see
      */
+    // selects appropriate default screen based on user role
     private void selectDefaultForRole() {
         switch (role) {
             case MANAGER -> selectIfVisible(reportsBtn);       // manager default
@@ -308,6 +338,7 @@ public class DesktopScreenController implements ClientUIHandler {
         }
     }
 
+    // fallback: selects first visible navigation button
     private void selectFirstAvailable() {
         for (Map.Entry<ToggleButton, ScreenKey> entry : navMap.entrySet()) {
             ToggleButton btn = entry.getKey();
@@ -320,6 +351,7 @@ public class DesktopScreenController implements ClientUIHandler {
         if (contentHost != null) contentHost.getChildren().clear();
     }
 
+    // selects button if visible, otherwise falls back to first available
     private void selectIfVisible(ToggleButton btn) {
         if (btn != null && btn.isVisible() && btn.isManaged() && !btn.isDisable()) {
             btn.setSelected(true);
@@ -363,6 +395,7 @@ public class DesktopScreenController implements ClientUIHandler {
      * Navigates to a specific screen by swapping the content host.
      * @param key
      */
+    // maps screen keys to FXML file paths and loads them
     private void navigate(ScreenKey key) {
         switch (key) {
         	case SUBSCRIBER_HOME ->loadIntoContentHost("/subscriber_screen/SubscriberMainScreen.fxml");        			
@@ -387,24 +420,29 @@ public class DesktopScreenController implements ClientUIHandler {
      * Loads an FXML view into the content host and wires its controller.
      * @param fxmlPath
      */
+    // core navigation method: loads FXML, caches controller, injects dependencies
     private void loadIntoContentHost(String fxmlPath) {
         try {
         	//incase of manager reserve for customer clear reset identity back to manager 
+        	// cleanup when leaving reservations screen
         	if (!"/desktop_views/ReservationsView.fxml".equals(fxmlPath) && reservationsVC != null) 
                 reservationsVC.clearReservationIdentity();
             
+            // load FXML file and get its controller
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
             Node view = loader.load();
 
             Object ctrl = loader.getController();
 
             // cache known controllers so we can route responses later
+            // store controller references for routing server responses
             if (ctrl instanceof ReservationsViewController rvc) reservationsVC = rvc;
             if (ctrl instanceof EditReservationViewController edvc) editReservationVC = edvc;
             if (ctrl instanceof HistoryViewController hvc) historyVC = hvc;
             if (ctrl instanceof ReportsViewController rvc) reportsVC = rvc;
             if (ctrl instanceof HistoryViewController hvc) {
                 historyVC = hvc;
+                // pass role and discount info for history display
                 historyVC.setUserContext(role, buildDiscountInfo());
             }
             if (ctrl instanceof TablesViewController tvc) tablesVC = tvc;
@@ -412,6 +450,7 @@ public class DesktopScreenController implements ClientUIHandler {
             if (ctrl instanceof UpdateOpeningHoursScreenController uohc) openingHoursVC = uohc;
             if (ctrl instanceof ManagerReservationsScreenController mrc) {
                 managerReservationsVC = mrc;
+                // wire up manager reservation flow callbacks
                 managerReservationsVC.setOnStartReservationFlow(this::openManagerReservationStart);
             }
             if (ctrl instanceof ManagerReservationStartScreenController startCtrl) {
@@ -426,12 +465,14 @@ public class DesktopScreenController implements ClientUIHandler {
             if (ctrl instanceof SubscribersScreenController ssc) subscribersVC = ssc;
             if (ctrl instanceof SubscriberMainScreenController smc) {
                 subscriberMainVC = smc;
+                // wire up subscriber home screen callbacks
                 subscriberMainVC.setOnEditReservation(this::openEditReservation);
                 subscriberMainVC.setOnPayReservation(this::openPayReservation);
             }
             if (ctrl instanceof PayViewController pvc) payVC = pvc;
 
             // inject controller reference into screens that need it
+            // dependency injection for controllers implementing ClientControllerAware
             if (ctrl instanceof ClientControllerAware aware) aware.setClientController(clientController, connected);
                             
             // manager screens can optionally load initial data when opened
@@ -439,15 +480,21 @@ public class DesktopScreenController implements ClientUIHandler {
                             
             if (ctrl instanceof ShowDataScreenController sdc) sdc.requestInitialData();
                             
+            // swap the view into the content host
             if (contentHost != null) contentHost.getChildren().setAll(view);
 
         } catch (Exception e) {
             e.printStackTrace();
+            // show error message in content area if FXML loading fails
             Label error = new Label("Failed to load screen:\n" + fxmlPath + "\n" + e.getMessage());
             error.getStyleClass().add("muted");
             if (contentHost != null) contentHost.getChildren().setAll(error);
         }
     }
+    // ClientUIHandler implementation
+    // these methods route server responses to appropriate child controllers
+    // all run on JavaFX thread using Platform.runLater
+
     @Override
     public void onReportResponse(ReportResponse reportResponse) {
         javafx.application.Platform.runLater(() -> {
@@ -463,6 +510,7 @@ public class DesktopScreenController implements ClientUIHandler {
     @Override
     public void onReservationResponse(ReservationResponse response) {
         javafx.application.Platform.runLater(() -> {
+            // route to both reservation screens if loaded
             if (reservationsVC != null) reservationsVC.handleServerResponse(response);                                           
             if (editReservationVC != null) editReservationVC.onReservationResponse(response);                                            
         });
@@ -471,9 +519,12 @@ public class DesktopScreenController implements ClientUIHandler {
     @Override
     public void onSeatingResponse(SeatingResponse response) {
         // desktop currently does not handle seating responses
+        // seating is handled by terminal screens
     }
     
     
+    // constructs discount info based on current role
+    // subscribers get 10% discount, others get none
     private HistoryViewController.DiscountInfo buildDiscountInfo() {
         if (role == Role.SUBSCRIBER) return HistoryViewController.DiscountInfo.active("10% subscriber discount", 0.10);                    
         return HistoryViewController.DiscountInfo.none();
@@ -482,6 +533,7 @@ public class DesktopScreenController implements ClientUIHandler {
     @Override
     public void onUserHistoryResponse(java.util.List<responses.UserHistoryResponse> rows) {
         javafx.application.Platform.runLater(() -> {
+            // route history data to whichever history view is loaded
             if (historyVC != null) historyVC.renderHistory(rows);                            
             if (subscribersVC != null)  subscribersVC.renderHistory(rows);                          
         });
@@ -492,6 +544,7 @@ public class DesktopScreenController implements ClientUIHandler {
     	
         javafx.application.Platform.runLater(() -> {
         	 boolean handled = false;
+            // route error to active history view
             if (historyVC != null) {
                 historyVC.showHistoryError(message);
                 handled = true;
@@ -500,6 +553,7 @@ public class DesktopScreenController implements ClientUIHandler {
                 subscribersVC.showHistoryError(message);
                 handled = true;
             }
+            // fallback to alert if no view is loaded
             if(!handled) showError("History", message);            	           
         });
     }
@@ -626,6 +680,7 @@ public class DesktopScreenController implements ClientUIHandler {
         }
     }
 
+    // generic alert display methods from ClientUIHandler interface
     @Override
     public void showInfo(String title, String message) {
         showAlert(title, message, Alert.AlertType.INFORMATION);
@@ -649,8 +704,10 @@ public class DesktopScreenController implements ClientUIHandler {
     @Override
     public void routeToDesktop(Role role, String username) {
         // already in desktop
+        // no-op: this controller is already the desktop
     }
 
+    // shows JavaFX alert dialog on UI thread
     private void showAlert(String title, String msg, Alert.AlertType type) {
         javafx.application.Platform.runLater(() -> {
             Alert a = new Alert(type);

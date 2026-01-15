@@ -8,6 +8,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.control.TextInputDialog;
 
+// terminal view for checking in customers with reservations
+// accepts confirmation code or user ID
 public class TerminalCheckInController implements ClientControllerAware {
 
     @FXML private TextField reservationNumberField;
@@ -18,6 +20,7 @@ public class TerminalCheckInController implements ClientControllerAware {
 
     @FXML
     private void initialize() {
+        // restrict input to numeric only
         if (reservationNumberField != null) {
             reservationNumberField.setTextFormatter(new TextFormatter<String>(change -> {
                 String newText = change.getControlNewText();
@@ -36,6 +39,7 @@ public class TerminalCheckInController implements ClientControllerAware {
     }
 
     @FXML
+    // sends check-in request with confirmation code
     private void onEnter() {
         String txt = reservationNumberField == null ? "" : reservationNumberField.getText().trim();
         if (txt.isEmpty()) { setStatus("Enter reservation number."); return; }
@@ -53,6 +57,8 @@ public class TerminalCheckInController implements ClientControllerAware {
     }
     
     @FXML
+    // alternative flow: resolve confirmation code from user ID
+    // uses callback pattern to retrieve code from server
     private void onUseUserId() {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Use user ID");
@@ -70,12 +76,14 @@ public class TerminalCheckInController implements ClientControllerAware {
                 return;
             }
 
+            // set callback to receive resolved code from server
             clientController.setLostCodeListener(code -> {
                 clientController.clearLostCodeListener();
                 if (code == null || code <= 0) {
                     setStatus("Failed to resolve confirmation code.");
                     return;
                 }
+                // populate field and trigger check-in
                 if (reservationNumberField != null) {
                     reservationNumberField.setText(String.valueOf(code));
                 }
@@ -86,6 +94,7 @@ public class TerminalCheckInController implements ClientControllerAware {
         });
     }
     
+    // called by TerminalScreenController with server response
     public void handleSeatingResponse(responses.SeatingResponse response) {
         if (response == null) {
             setStatus("Unexpected: empty seating response.");

@@ -17,6 +17,9 @@ import requests.TableInfo;
 import responses.ManagerResponse;
 import responses.ManagerResponse.ManagerResponseCommand;
 
+// manager view for table management operations
+// supports viewing, adding, editing, and removing tables
+// displays table number and capacity
 public class TablesViewController implements ClientControllerAware {
 
     @FXML private Label infoLabel;
@@ -28,6 +31,7 @@ public class TablesViewController implements ClientControllerAware {
 
     private ClientController clientController;
     private boolean connected;
+    // observable list backing the table view
     private final ObservableList<TableInfo> tableItems = FXCollections.observableArrayList();
 
     @FXML
@@ -97,6 +101,7 @@ public class TablesViewController implements ClientControllerAware {
         setInfo("Removing table " + tableNumber + "...");
     }
 
+    // callback from DesktopScreenController with manager operation results
     public void handleManagerResponse(ManagerResponse response) {
         if (response == null) return;
         ManagerResponseCommand command = response.getResponseCommand();
@@ -104,6 +109,7 @@ public class TablesViewController implements ClientControllerAware {
 
         switch (command) {
             case SHOW_ALL_TABLES_RESPONSE -> {
+                // refresh table list display
                 tableItems.clear();
                 if (response.getTables() != null) {
                     for (Object item : response.getTables()) {
@@ -114,6 +120,7 @@ public class TablesViewController implements ClientControllerAware {
                 }
                 setInfo("Tables updated.");
             }
+            // after add/edit/delete, refresh the list
             case NEW_TABLE_RESPONSE, EDIT_TABLE_RESPONSE, DELETED_TABLE_RESPONSE -> {
                 onRefreshTables();
             }

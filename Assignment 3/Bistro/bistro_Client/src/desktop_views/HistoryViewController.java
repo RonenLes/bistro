@@ -19,15 +19,20 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+// displays user's reservation history in a table
+// applies subscriber discount to displayed totals
+// supports month filtering (placeholder)
 public class HistoryViewController implements ClientControllerAware {
 
     @FXML private Label infoLabel;
 
+    // discount banner shown only to subscribers
     @FXML private VBox discountBanner;
     @FXML private Label discountValueLabel;
 
     @FXML private ComboBox<String> monthFilter;
 
+    // table displaying history records
     @FXML private TableView<UserHistoryResponse> historyTable;
     @FXML private TableColumn<UserHistoryResponse, String> colDate;
     @FXML private TableColumn<UserHistoryResponse, String> colReservedFor;
@@ -38,12 +43,15 @@ public class HistoryViewController implements ClientControllerAware {
     @FXML private TableColumn<UserHistoryResponse, String> colTotal;
     @FXML private TableColumn<UserHistoryResponse, String> colStatus;
 
+    // observable list backing the table view
     private final ObservableList<UserHistoryResponse> items = FXCollections.observableArrayList();
 
     private ClientController clientController;
     private boolean connected;
+    // prevents duplicate history requests
     private boolean historyRequested;
 
+    // role and discount info set by DesktopScreenController
     private DesktopScreenController.Role role = DesktopScreenController.Role.GUEST;
     private DiscountInfo discountInfo = DiscountInfo.none();
 
@@ -70,12 +78,14 @@ public class HistoryViewController implements ClientControllerAware {
         requestHistoryIfPossible();
     }
 
+    // called by DesktopScreenController to provide role and discount info
     public void setUserContext(DesktopScreenController.Role role, DiscountInfo discountInfo) {
         this.role = role == null ? DesktopScreenController.Role.GUEST : role;
         this.discountInfo = discountInfo == null ? DiscountInfo.none() : discountInfo;
         applyDiscountVisibility();
     }
 
+    // callback from DesktopScreenController with history data
     public void renderHistory(List<UserHistoryResponse> rows) {
         items.clear();
         if (rows != null) {
@@ -84,6 +94,7 @@ public class HistoryViewController implements ClientControllerAware {
         setInfo(items.isEmpty() ? "No history found." : "History loaded.");
     }
 
+    // auto-requests history when controller is set (only once)
     private void requestHistoryIfPossible() {
         if (historyRequested) return;
         if (clientController == null) return;
@@ -94,6 +105,7 @@ public class HistoryViewController implements ClientControllerAware {
         clientController.requestUserHistory();
     }
 
+    // callback when history request fails
     public void showHistoryError(String message) {
         items.clear();
         setInfo(message == null || message.isBlank() ? "failed to load history." : message);

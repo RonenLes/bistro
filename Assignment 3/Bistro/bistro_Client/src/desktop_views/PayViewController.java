@@ -16,6 +16,9 @@ import requests.BillRequest.BillRequestType;
  * Step 2 show summary (total, discount, final amount) and pay
  * Note: bill items are planned for later!!!
  */
+// handles billing and payment for reservations
+// applies subscriber discount (10%) when applicable
+// supports both cash and card payment methods
 public class PayViewController implements ClientControllerAware {
 
     @FXML private TextField confirmationCodeField;
@@ -39,6 +42,7 @@ public class PayViewController implements ClientControllerAware {
     private ClientController clientController;
     private boolean connected;
 
+    // cached for re-enabling pay button after errors
     private Double lastBaseTotal;
 
     @FXML
@@ -120,9 +124,12 @@ public class PayViewController implements ClientControllerAware {
      * called by DesktopScreenController when a bill total is returned
      * client computes discount: guests no discount, subscribers 10%
      */
+    // callback from DesktopScreenController with bill data
+    // calculates discount and displays summary
     public void onBillTotalLoaded(double baseTotal, boolean isCashPayment, boolean isSubscriber) {
         lastBaseTotal = baseTotal;
 
+        // client-side discount calculation
         double discountRate = isSubscriber ? 0.10 : 0.0;
         double discountAmount = roundMoney(baseTotal * discountRate);
         double finalTotal = roundMoney(baseTotal - discountAmount);
@@ -130,6 +137,7 @@ public class PayViewController implements ClientControllerAware {
         setSummary(isCashPayment, baseTotal, discountAmount, finalTotal);
         setStatus("Bill ready.", false);
 
+        // enable pay button once bill is loaded
         if (payBillButton != null) {
             payBillButton.setDisable(false);
         }
@@ -138,6 +146,7 @@ public class PayViewController implements ClientControllerAware {
     /**
      * called by DesktopScreenController when payment is confirmed
      */
+    // callback when payment succeeds
     public void onBillPaid(Integer tableNumber) {
         String msg = "Payment completed.";
         if (tableNumber != null) {
@@ -155,6 +164,7 @@ public class PayViewController implements ClientControllerAware {
     /**
      * called by DesktopScreenController when billing fails
      */
+    // callback when billing operation fails
     public void onBillingError(String message) {
         setStatus(message == null ? "Billing failed." : message, true);
 
@@ -164,6 +174,7 @@ public class PayViewController implements ClientControllerAware {
         }
     }
     
+    // programmatically loads bill (called from subscriber home screen)
     public void loadBillForConfirmationCode(int confirmationCode) {
         if (confirmationCodeField == null) {
             setStatus("Confirmation code field is not available.", true);

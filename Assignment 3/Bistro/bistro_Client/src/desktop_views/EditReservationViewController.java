@@ -25,47 +25,60 @@ import java.util.Map;
  * Step 1 confirmation code
  * Step 2 choose a new time slot (different from current), then send EDIT_RESERVATION
  */
+// handles editing and cancelling existing reservations
+// step 1: load reservation by confirmation code
+// step 2: select new date/time/party (must differ from original)
+// also supports reservation cancellation
 public class EditReservationViewController implements ClientControllerAware {
 
     // Step panes
+    // UI sections for two-step flow
     @FXML private VBox step1Pane;
     @FXML private VBox step2Pane;
 
     // Step 1
+    // step 1: enter confirmation code
     @FXML private TextField confirmationCodeField;
     @FXML private Label codeErrorLabel;
     @FXML private Label statusLabel;
     @FXML private Button loadButton;
 
     // Step 2 (choose date + party + time, then confirm)
+    // step 2: select new reservation details
     @FXML private DatePicker datePicker;
     @FXML private Spinner<Integer> partySizeSpinner;
     @FXML private Label slotInfoLabel;
     @FXML private TilePane slotsTile;
     @FXML private Label actionStatusLabel;
 
+    // shows comparison between original and new reservation
     @FXML private Label originalSummaryLabel;
     @FXML private Label newSummaryLabel;
     @FXML private Button confirmNewDetailsButton;
 
+    // utility for rendering time slot buttons
     private ReservationSlotsUI slotsUI;
 
     private ClientController clientController;
     private boolean connected;
 
+    // user identity for validation
     private boolean guestMode;
     private String guestContact;
     private String userId;
 
+    // loaded reservation details
     private int currentConfirmationCode;
 
     private LocalDate currentReservationDate;
     private LocalTime currentReservationTime;
     private int currentReservationParty;
 
+    // new reservation details being selected
     private LocalDate selectedDate;
     private Integer selectedParty;
 
+    // prevents loading after cancellation
     private boolean cancelledLock;
 
     private static final int MIN_PARTY = 1;
@@ -159,14 +172,18 @@ public class EditReservationViewController implements ClientControllerAware {
         });
     }
     @FXML
+    // button handler: loads reservation details
     private void onLoadReservation() {
         loadReservationByCode(parseConfirmationCode());
     }
 
     
+    // fetches reservation details from server using confirmation code
+    // can be called from button click or programmatically from subscriber home
     public void loadReservationByCode(Integer confirmationCode) {
         clearMessages();
 
+        // prevent loading after cancellation
         if (cancelledLock) {
             setStatus("Reservation was cancelled. Loading by confirmation code is disabled.", true);
             return;
@@ -187,6 +204,7 @@ public class EditReservationViewController implements ClientControllerAware {
             confirmationCodeField.setText(String.valueOf(confirmationCode));
         }
 
+        // request reservation details from server
         clientController.requestNewReservation(
                 ReservationRequestType.SHOW_RESERVATION,
                 null,
@@ -536,11 +554,13 @@ public class EditReservationViewController implements ClientControllerAware {
     /**
      * DesktopScreenController forwards ReservationResponse here.
      */
+    // callback from DesktopScreenController with reservation operation results
     public void onReservationResponse(ReservationResponse resp) {
         if (resp == null) return;
 
         switch (resp.getType()) {
             case SHOW_RESERVATION -> {
+                // server returned existing reservation details
                 currentReservationDate = resp.getNewDate();
                 currentReservationTime = resp.getNewTime();
                 currentReservationParty = resp.getNewPartySize();
@@ -551,6 +571,7 @@ public class EditReservationViewController implements ClientControllerAware {
                 resetStep2State();
                 updateOriginalSummary();
 
+                // pre-fill form with current reservation values
                 try {
                     if (datePicker != null && currentReservationDate != null) datePicker.setValue(currentReservationDate);
                     if (partySizeSpinner != null && currentReservationParty > 0) {
@@ -568,6 +589,7 @@ public class EditReservationViewController implements ClientControllerAware {
                 switchToStep2();
                 setSlotInfo("Pick a time, then confirm.");
 
+                // auto-fetch available times for current date/party
                 onFindTimes();
             }
 
@@ -613,10 +635,12 @@ public class EditReservationViewController implements ClientControllerAware {
             }
 
             case EDIT_RESERVATION -> {
+                // reservation edit confirmed by server
                 currentReservationDate = resp.getNewDate() != null ? resp.getNewDate() : currentReservationDate;
                 currentReservationTime = resp.getNewTime() != null ? resp.getNewTime() : currentReservationTime;
                 currentReservationParty = resp.getNewPartySize() > 0 ? resp.getNewPartySize() : currentReservationParty;
 
+                // return to step 1 and clear form
                 switchToStep1();
                 if (confirmationCodeField != null) confirmationCodeField.setText("");
                 setStatus("Reservation updated successfully.", false);
@@ -626,8 +650,10 @@ public class EditReservationViewController implements ClientControllerAware {
             }
 
             case CANCEL_RESERVATION -> {
+                // reservation cancellation confirmed
                 setActionStatus("Reservation cancelled successfully.", false);
                 switchToStep1();
+                // prevent loading cancelled reservation again
                 lockLoadingAfterCancel();
             }
 

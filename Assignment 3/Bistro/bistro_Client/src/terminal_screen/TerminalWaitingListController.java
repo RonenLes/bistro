@@ -8,6 +8,9 @@ import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TextField;
 
+// terminal view for walk-in customers requesting tables
+// requests immediate seating or adds to waiting list if no tables available
+// accepts both subscriber ID and guest contact
 public class TerminalWaitingListController implements ClientControllerAware {
 
 	@FXML private TextField userIdField;
@@ -20,6 +23,7 @@ public class TerminalWaitingListController implements ClientControllerAware {
 
     @FXML
     private void initialize() {
+        // set up party size spinner with range 1-20, default 2
         if (partySizeField != null) {
             partySizeField.setValueFactory(
                 new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 20, 2)
@@ -36,6 +40,8 @@ public class TerminalWaitingListController implements ClientControllerAware {
     }
 
     @FXML
+    // requests walk-in seating
+    // server attempts immediate seating or adds to waiting list
     private void onJoin() {
     	String userId = userIdField == null ? "" : userIdField.getText().trim();
         String guestContact = guestContactField == null ? "" : guestContactField.getText().trim();
@@ -55,8 +61,7 @@ public class TerminalWaitingListController implements ClientControllerAware {
             setStatus("Demo: added " + contactLabel + " (party of " + size + ") to waiting list.");
         }
 
-        // Later:
-        // clientController.sendRequest(new JoinWaitingListRequest(name, phone, size));
+        // sends walk-in seating request to server
         clientController.requestWalkInSeating(userId, guestContact, size);
         setStatus("Requesting a table...");
     }
@@ -73,6 +78,8 @@ public class TerminalWaitingListController implements ClientControllerAware {
         if (statusLabel != null) statusLabel.setText(msg == null ? "" : msg);
     }
     
+    // called by TerminalScreenController with server response
+    // displays either immediate seating or waiting list confirmation
     public void handleSeatingResponse(responses.SeatingResponse response) {
         if (response == null) return;
         switch (response.getType()) {

@@ -9,15 +9,20 @@ import ocsf.client.AbstractClient;
  * Thin OCSF client responsible ONLY for network communication.
  * This class must remain logic-free and UI-free.
  */
+// extends OCSF's AbstractClient to handle low-level socket communication
+// delegates all message processing to ClientController
 public class BistroEchoClient extends AbstractClient {
 
+    // reference to the controller that processes incoming messages
     private ClientController controller;
 
+    // initialize connection parameters (does not connect yet)
     public BistroEchoClient(String host, int port) {
         super(host, port);
     }
 
     // set up controller
+    // dependency injection: allows ClientController to receive server messages
     public void setClientController(ClientController controller) {
         this.controller = controller;
     }
@@ -37,12 +42,15 @@ public class BistroEchoClient extends AbstractClient {
     }
 
     // lifecycle hooks
+    // these methods are called automatically by OCSF framework during connection lifecycle
 
+    // called when TCP connection succeeds
     @Override
     protected void connectionEstablished() {
         System.out.println("[BistroEchoClient] Connected to server");
     }
 
+    // called when connection is intentionally closed
     @Override
     protected void connectionClosed() {
         System.out.println("[BistroEchoClient] Connection closed");
@@ -51,6 +59,7 @@ public class BistroEchoClient extends AbstractClient {
         }
     }
 
+    // called when connection fails or drops unexpectedly
     @Override
     protected void connectionException(Exception exception) {
         System.err.println("[BistroEchoClient] Connection error: " + exception.getMessage());

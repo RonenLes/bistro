@@ -16,37 +16,49 @@ import subscriber_screen.SubscriberMainScreenController;
  * desktop app and terminal app
  * Keeps MainScreenController lightweight
  */
+// manages navigation between different UI modes (main, login, desktop, terminal)
+// acts as the navigation hub for the entire application
+// provides bridge handlers for routing server responses to active UI
 public class AppNavigator {
 	private static final double APP_W = 1280;
 	private static final double APP_H = 800;
 	
+    // JavaFX stage reference for swapping scenes
     private final Stage stage;
+    // shared controller for server communication
     private final ClientController clientController;
     private final boolean connected;
 
+    // cached root for returning to main menu
     private Parent mainRoot;
 
+    // cached controllers for each UI mode
     private DesktopScreenController desktopController;
     private TerminalScreenController terminalController;
     private SubscriberMainScreenController subscriberController;
 
 
+    // default handler for when no specific UI is active
     private final ClientUIHandler navigationHandler = new NavigationUIHandler();
 
+    // constructor: receives stage and controller from MainScreenController
     public AppNavigator(Stage stage, ClientController clientController, boolean connected) {
         this.stage = stage;
         this.clientController = clientController;
         this.connected = connected;
     }
 
+    // exposes navigation handler for MainScreenController initialization
     public ClientUIHandler getNavigationHandler() {
         return navigationHandler;
     }
 
+    // stores main menu root for back navigation
     public void setMainRoot(Parent mainRoot) {
         this.mainRoot = mainRoot;
     }
 
+    // returns to main menu screen
     public void showMain() {
         runOnFx(() -> {
             if (mainRoot == null) return;
@@ -57,11 +69,14 @@ public class AppNavigator {
             stage.centerOnScreen();
 
             // main screen does not handle server callbacks
+            // use navigation handler for generic alerts
             clientController.setUIHandler(navigationHandler);
         });
     }
 
 
+    // loads and displays login screen
+    // wires up callbacks for back button and successful login
     public void showLogin() {
         runOnFx(() -> {
         	
@@ -72,8 +87,10 @@ public class AppNavigator {
                 LoginScreenController loginCtrl = loader.getController();
                 loginCtrl.setClientController(clientController, connected);
 
+                // set up back button callback
                 loginCtrl.setOnBackToMain(this::showMain);
 
+                // set up successful login callback
                 loginCtrl.setOnLoginAsRole(role -> {
                     String welcome = (role == DesktopScreenController.Role.GUEST) ? "guest" : loginCtrl.getUsernameForWelcome();
                     showDesktop(role, welcome);
@@ -85,6 +102,7 @@ public class AppNavigator {
                 stage.centerOnScreen();
 
                 // while in login, handle popups and routeToDesktop
+                // navigation handler will route to desktop after successful login
                 clientController.setUIHandler(navigationHandler);
 
             } catch (Exception e) {
@@ -95,6 +113,8 @@ public class AppNavigator {
     }
     
 
+    // loads desktop screen with role and welcome name
+    // desktop becomes the active UI handler for server responses
     public void showDesktop(DesktopScreenController.Role role, String welcomeName) {
         runOnFx(() -> {
             try {
@@ -107,6 +127,7 @@ public class AppNavigator {
                 desktopController.setRole(role);
                 desktopController.setWelcomeName(welcomeName);
 
+                // wire up logout callback to return to login
                 desktopController.setOnLogout(() -> {
                     desktopController = null;
                     showLogin();
@@ -118,6 +139,7 @@ public class AppNavigator {
                 stage.centerOnScreen();
 
                 // desktop becomes the active UI handler for all server callbacks
+                // routes responses to child view controllers
                 clientController.setUIHandler(desktopController);
 
             } catch (Exception e) {
@@ -129,6 +151,7 @@ public class AppNavigator {
     
    
     
+    // ensures code runs on JavaFX application thread
     private void runOnFx(Runnable r) {
         if (javafx.application.Platform.isFxApplicationThread()) {
             r.run();
@@ -137,6 +160,8 @@ public class AppNavigator {
         }
     }
     
+    // loads terminal screen for walk-in customer operations
+    // uses TerminalUIBridge to route responses
     public void showTerminal() {
         try {
             String fxml = "/terminal_screen/TerminalScreen.fxml";
@@ -152,6 +177,7 @@ public class AppNavigator {
             terminalController = loader.getController();
             terminalController.setClientController(clientController, connected);
 
+            // wire up back button callback
             terminalController.setOnBackToMain(() -> {
                 terminalController = null;
                 showMain();
@@ -163,6 +189,7 @@ public class AppNavigator {
             stage.centerOnScreen();
 
             // terminal becomes the active UI handler for server callbacks
+            // bridge pattern routes responses to terminal controller
             clientController.setUIHandler(new TerminalUIBridge(terminalController));
 
         } catch (Exception e) {
@@ -171,8 +198,11 @@ public class AppNavigator {
         }
     }
 
+    // default UI handler used when no specific screen is active
+    // handles generic alerts and routes login success to desktop
     private final class NavigationUIHandler implements ClientUIHandler {
 
+        // generic alert displays
         @Override
         public void showInfo(String title, String message) {
             MainScreenController.showAlert(title, message, javafx.scene.control.Alert.AlertType.INFORMATION);
@@ -193,11 +223,14 @@ public class AppNavigator {
             showInfo("Server Message", String.valueOf(payload));
         }
 
+        // called by ClientController after successful login
         @Override
         public void routeToDesktop(DesktopScreenController.Role role, String username) {
             showDesktop(role, username);
         }
 
+        // operation-specific callbacks
+        // most are no-ops here since navigation handler is for transitions only
         @Override
         public void onReservationResponse(responses.ReservationResponse response) {
             // ignore here, desktop will be the handler when reservations are relevant
@@ -234,10 +267,11 @@ public class AppNavigator {
 
 		@Override
 		public void onManagerResponse(ManagerResponse response) {
-			// TODO Auto-generated method stub
+			// not handled by navigation handler
 			
 		}
 
+		// billing callbacks forward to terminal if available
 		@Override
 		public void onBillTotal(double baseTotal, boolean isCash) {
 			terminalController.onBillTotal(baseTotal);
@@ -269,6 +303,8 @@ public class AppNavigator {
     }
     
 
+    // bridge handler for terminal mode
+    // routes terminal-specific responses (seating, billing) to terminal controller
     private static final class TerminalUIBridge implements ClientUIHandler {
 
         private final TerminalScreenController terminalController;
@@ -277,6 +313,7 @@ public class AppNavigator {
             this.terminalController = terminalController;
         }
 
+        // generic alerts
         @Override
         public void showInfo(String title, String message) {
             MainScreenController.showAlert(title, message, javafx.scene.control.Alert.AlertType.INFORMATION);
@@ -311,6 +348,7 @@ public class AppNavigator {
             // terminal does not handle reservations
         }
 
+        // terminal-specific: seating and check-in operations
         @Override
         public void onSeatingResponse(responses.SeatingResponse response) {
             javafx.application.Platform.runLater(() -> terminalController.onSeatingResponse(response));
@@ -337,10 +375,11 @@ public class AppNavigator {
 
 		@Override
 		public void onManagerResponse(ManagerResponse response) {
-			// TODO Auto-generated method stub
+			// terminal does not handle manager responses
 			
 		}
 
+		// terminal-specific: billing operations for walk-in customers
 		@Override
 		public void onBillTotal(double baseTotal, boolean isCash) {
 			if (terminalController == null) {
@@ -373,6 +412,8 @@ public class AppNavigator {
         public void onUserDetailsResponse(String email, String phone) {
             showInfo("Subscriber Details", "Email: " + email + "\nPhone: " + phone);
         }
+        
+        // terminal-specific: waiting list cancellation
 		@Override
         public void onWaitingListCancellation(responses.WaitingListResponse response) {
             if (terminalController == null) {

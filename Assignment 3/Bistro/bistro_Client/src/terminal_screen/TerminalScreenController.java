@@ -16,6 +16,9 @@ import java.util.Map;
  * Manages toolbar navigation, view loading, and routing of server responses
  * to the currently active terminal view.
  */
+// main controller for terminal mode (walk-in customer operations)
+// loads child views on demand and caches them
+// routes server responses to the active child controller
 public class TerminalScreenController {
 
     @FXML private StackPane contentHolder;
@@ -33,15 +36,19 @@ public class TerminalScreenController {
     // Back to main callback (set by the ui navigator)
     private Runnable onBackToMain;
 
+    // enum for terminal sub-views
     private enum View {
     	CHECK_IN, WAITING_LIST, CANCEL_WAITLIST, PAY_BILL, LOST_CODE
     }
 
+    // caches loaded FXML roots and controllers for reuse
     private final Map<View, Parent> cache = new EnumMap<>(View.class);
     private final Map<View, Object> controllerCache = new EnumMap<>(View.class);
+    // tracks which controller should receive server responses
     private Object currentContentController;
     private View currentView;
 
+    // dependency injection from AppNavigator
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
@@ -75,6 +82,8 @@ public class TerminalScreenController {
     /**
      * Enables/disables toolbar actions based on connection state and loads a default view.
      */
+    // updates UI based on connection status
+    // disables all terminal operations if offline
     private void applyConnectionState() {
         boolean online = connected && clientController != null;
 
@@ -127,6 +136,7 @@ public class TerminalScreenController {
      *  Routes waiting list cancellation responses to the active view.
      * @param response
      */
+    // called by TerminalUIBridge when waiting list cancellation response arrives
     public void onWaitingListCancellation(responses.WaitingListResponse response) {
         javafx.application.Platform.runLater(() -> {
             if (currentContentController instanceof TerminalCancelWaitingListController cancelCtrl) {
@@ -139,6 +149,8 @@ public class TerminalScreenController {
      * Routes seating responses to the active view and returns to the main screen.
      * @param response
      */
+    // called by TerminalUIBridge when seating response arrives
+    // handles both check-in and waiting list flows
     public void onSeatingResponse(responses.SeatingResponse response) {
         javafx.application.Platform.runLater(() -> {
             // Route server responses only to the currently displayed view
@@ -147,6 +159,7 @@ public class TerminalScreenController {
             }else if (currentContentController instanceof terminal_screen.TerminalWaitingListController waitingListController) {
                 waitingListController.handleSeatingResponse(response);
             }
+            // return to main after seating operation completes
             returnToMain();
             
         });
@@ -156,6 +169,7 @@ public class TerminalScreenController {
      * Routes bill totals to the pay bill view.
      * @param baseTotal
      */
+    // called by TerminalUIBridge when bill total arrives
     public void onBillTotal(double baseTotal) {
         javafx.application.Platform.runLater(() -> {
             if (currentContentController instanceof TerminalPayBillController payBillCtrl) {
@@ -167,11 +181,13 @@ public class TerminalScreenController {
     /**
      * Routes payment success and returns to the main screen.
      */
+    // called by TerminalUIBridge when payment succeeds
     public void onBillPaid() {
         javafx.application.Platform.runLater(() -> {
             if (currentContentController instanceof TerminalPayBillController payBillCtrl) {
                 payBillCtrl.onBillPaid();
             }
+            // return to main after payment completes
             returnToMain();
         });
     }
@@ -180,6 +196,7 @@ public class TerminalScreenController {
      * Routes billing errors to the pay bill view.
      * @param message
      */
+    // called by TerminalUIBridge when billing operation fails
     public void onBillError(String message) {
         javafx.application.Platform.runLater(() -> {
             if (currentContentController instanceof TerminalPayBillController payBillCtrl) {
@@ -192,6 +209,7 @@ public class TerminalScreenController {
      * Shows a specific terminal view, loading it if needed.
      * @param view
      */
+    // navigates to specified view, loading and caching it on first access
     private void show(View view) {
         if (!isOnline()) {
             // safety - ignore navigation if offline
@@ -202,9 +220,11 @@ public class TerminalScreenController {
             return;
         }
 
+        // loads view on demand, reuses cached views
         Parent root = cache.computeIfAbsent(view, this::loadView);
 
         // keep current controller aligned with the shown view
+        // this determines where server responses are routed
         currentContentController = controllerCache.get(view);
         currentView = view;
 
@@ -217,6 +237,7 @@ public class TerminalScreenController {
         return connected && clientController != null;
     }
     
+    // returns to main screen via callback
     private void returnToMain() {
         if (onBackToMain != null) {
             onBackToMain.run();
@@ -226,6 +247,7 @@ public class TerminalScreenController {
     /**
      * Re-injects the client controller into the current view after reconnect.
      */
+    // updates cached controller with new connection state
     private void reinjectActiveController() {
         if (!isOnline()) return;
         if (currentView == null) return;
@@ -241,6 +263,7 @@ public class TerminalScreenController {
      * @param view
      * @return
      */
+    // loads FXML for specified view and caches both root and controller
     private Parent loadView(View view) {
         try {
             String fxml = switch (view) {
@@ -259,6 +282,7 @@ public class TerminalScreenController {
             // cache controller so we can route async server responses to the active page
             controllerCache.put(view, ctrl);
 
+            // inject dependencies into controller
             if (ctrl instanceof ClientControllerAware aware) {
                 aware.setClientController(clientController, connected);
             }

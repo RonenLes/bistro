@@ -21,14 +21,21 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
+// handles two-phase reservation creation flow
+// phase 1: user selects date/party size, server returns available times
+// phase 2: user picks a time slot, server confirms reservation
+// supports both subscriber and guest reservations
+// managers can override identity to reserve for customers
 public class ReservationsViewController implements ClientControllerAware {
 
     // Step 1
+    // step 1 UI: date and party size selection
     @FXML private Spinner<Integer> partySizeSpinner;
     @FXML private DatePicker datePicker;
     @FXML private Label infoLabel;
 
     // Step 2
+    // step 2 UI: time slot selection
     @FXML private VBox step1Pane;
     @FXML private VBox step2Pane;
     @FXML private TilePane slotsTile;
@@ -38,13 +45,16 @@ public class ReservationsViewController implements ClientControllerAware {
 
     private ClientController clientController;
 
+    // current reservation parameters
     private LocalDate currentDate;
     private int currentPartySize;
     private String userID;
 
+    // identity tracking: guest vs subscriber
     private boolean guestMode;
     private String guestContact;
     private boolean connected;
+    // manager override: allows reserving for specific customer
     private String overrideUserId;
     private String overrideGuestContact;
     private boolean overrideIdentity;
@@ -126,6 +136,7 @@ public class ReservationsViewController implements ClientControllerAware {
     /*
      * helper function to limit the party size using constants
      */
+    // enforces party size bounds (1-20)
     private void clampPartySize() {
         if (partySizeSpinner == null || partySizeSpinner.getValueFactory() == null) return;
 
@@ -143,6 +154,8 @@ public class ReservationsViewController implements ClientControllerAware {
     /*
      * click "Show times" button initializes the first phase
      */
+    // phase 1: sends date and party size to server
+    // server responds with available time slots
     @FXML
     private void onFindTimes() {
         clampPartySize();
@@ -150,6 +163,7 @@ public class ReservationsViewController implements ClientControllerAware {
         Integer partySize = partySizeSpinner == null ? null : partySizeSpinner.getValue();
         LocalDate date = datePicker == null ? null : datePicker.getValue();
 
+        // client-side validation
         if (partySize == null || partySize < MIN_PARTY) { setInfo("Party size must be at least 1."); return; }
         if (partySize > MAX_PARTY) { setInfo("Party size cannot exceed 20."); return; }
         if (date == null) { setInfo("Please choose a date."); return; }
@@ -162,6 +176,7 @@ public class ReservationsViewController implements ClientControllerAware {
         refreshIdentityFromController();
         setInfo("Fetching available times...");
 
+        // determine if guest or subscriber reservation
         String userId = guestMode ? null : this.userID;
         String guestContactLocal = guestMode ? this.guestContact : null;
         if (guestMode && (guestContactLocal == null || guestContactLocal.isBlank())) {
@@ -173,6 +188,7 @@ public class ReservationsViewController implements ClientControllerAware {
             return;
         }
         
+        // send FIRST_PHASE request to server
         clientController.requestNewReservation(
                 ReservationRequestType.FIRST_PHASE,
                 date,
@@ -198,6 +214,8 @@ public class ReservationsViewController implements ClientControllerAware {
      * Called by DesktopScreenController
      * when the server replies to FIRST_PHASE
      */
+    // routes server responses based on reservation phase
+    // handles availability display and confirmation
     public void handleServerResponse(ReservationResponse resp) {
         if (resp == null) return;
 
@@ -205,6 +223,7 @@ public class ReservationsViewController implements ClientControllerAware {
 
         switch (resp.getType()) {
         case FIRST_PHASE_SHOW_AVAILABILITY -> {
+            // server found times for requested date
 
             LocalDate effectiveDate = resp.getNewDate() != null ? resp.getNewDate() : currentDate;
 
@@ -219,9 +238,11 @@ public class ReservationsViewController implements ClientControllerAware {
 
             setInfo("Select a time for " + effectiveDate);
 
+            // display available times as clickable slots
             addSectionHeader("Available times");
             buildTimeSlots(effectiveDate, resp.getAvailableTimes());
 
+            // also show suggested alternative dates if any
             if (resp.getSuggestedDates() != null && !resp.getSuggestedDates().isEmpty()) {
                 addSectionHeader("Or choose a different date:");
                 buildSuggestions(resp.getSuggestedDates());
@@ -300,6 +321,8 @@ public class ReservationsViewController implements ClientControllerAware {
     /**
      * SECOND PHASE: User selected a specific Slot
      */
+    // phase 2: user clicked a time slot, confirm reservation
+    // sends final reservation request with all parameters
     private void sendSecondPhaseRequest(LocalDate date, LocalTime time) {
         setInfo("Confirming reservation for " + date + " at " + time + "...");
         refreshIdentityFromController();
@@ -315,6 +338,7 @@ public class ReservationsViewController implements ClientControllerAware {
         }
 
         
+        // send SECOND_PHASE request to finalize reservation
         clientController.requestNewReservation(
                 ReservationRequestType.SECOND_PHASE,
                 date,
@@ -326,10 +350,12 @@ public class ReservationsViewController implements ClientControllerAware {
         );
     }
     
+    // pulls user identity from session or uses manager override
     private void refreshIdentityFromController() {
         if (clientController == null) {
             return;
         }
+        // manager override takes precedence
         if (overrideIdentity) {
             this.userID = overrideUserId;
             this.guestContact = overrideGuestContact;
@@ -337,6 +363,7 @@ public class ReservationsViewController implements ClientControllerAware {
             return;
         }
 
+        // guest session
         if (clientController.isGuestSession()) {
             this.guestMode = true;
             this.userID = null;
@@ -344,6 +371,7 @@ public class ReservationsViewController implements ClientControllerAware {
             return;
         }
 
+        // subscriber session
         String subId = clientController.getCurrentUserId();
         String username = clientController.getCurrentUsername();
 
@@ -351,6 +379,7 @@ public class ReservationsViewController implements ClientControllerAware {
         this.userID = (subId != null && !subId.isBlank()) ? subId : username;
         this.guestContact = null;
     }
+    // allows manager to reserve for a specific customer
     public void setReservationIdentity(String userId, String guestContact) {
         this.overrideUserId = userId == null || userId.isBlank() ? null : userId.trim();
         this.overrideGuestContact = guestContact == null || guestContact.isBlank() ? null : guestContact.trim();

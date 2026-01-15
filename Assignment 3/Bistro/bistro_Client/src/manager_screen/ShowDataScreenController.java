@@ -19,6 +19,9 @@ import responses.WaitingListResponse;
 
 import java.time.LocalDateTime;
 
+// manager view for displaying real-time restaurant data
+// shows current waiting list and seating status
+// refreshes data on demand via refresh button
 public class ShowDataScreenController implements ClientControllerAware {
 
     
@@ -40,17 +43,21 @@ public class ShowDataScreenController implements ClientControllerAware {
     private ClientController clientController;
     private boolean connected;
 
+    // observable lists for reactive UI updates
     private final javafx.collections.ObservableList<WaitingListResponse> waitingItems = javafx.collections.FXCollections.observableArrayList();
     private final javafx.collections.ObservableList<SeatingRow> seatingItems = javafx.collections.FXCollections.observableArrayList();
 
     @FXML
+    // sets up table columns for waiting list and seating tables
     private void initialize() {
        
+        // waiting list table columns
         if (colWaitingPriority != null) colWaitingPriority.setCellValueFactory(new PropertyValueFactory<>("priority"));
         if (colWaitingTime != null) colWaitingTime.setCellValueFactory(new PropertyValueFactory<>("dateTime"));
         if (colWaitingContact != null) colWaitingContact.setCellValueFactory(new PropertyValueFactory<>("contact"));
         if (waitingTable != null) waitingTable.setItems(waitingItems);
 
+        // seating table columns
         if (colSeatingTable != null) colSeatingTable.setCellValueFactory(new PropertyValueFactory<>("tableNumber"));
         if (colSeatingParty != null) colSeatingParty.setCellValueFactory(new PropertyValueFactory<>("partySize"));
         if (colSeatingCheckIn != null) colSeatingCheckIn.setCellValueFactory(new PropertyValueFactory<>("checkInTime"));
@@ -63,26 +70,31 @@ public class ShowDataScreenController implements ClientControllerAware {
     }
 
     @Override
+    // dependency injection from DesktopScreenController
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
     }
 
     @FXML
+    // refreshes both waiting list and seating data
     private void onRefresh() {
         requestAll();
     }
 
+    // called by DesktopScreenController when tab is opened
     public void requestInitialData() {
         requestAll();
     }
 
+    // handles server responses for waiting list and seating data
     public void handleManagerResponse(ManagerResponse response) {
         if (response == null || response.getResponseCommand() == null) return;
 
         ManagerResponseCommand command = response.getResponseCommand();
 
         if (command == ManagerResponseCommand.CURRENT_WAITING_LIST_RESPONSE) {
+            // populate waiting list table
             waitingItems.clear();
             if (response.getTables() != null) {
                 for (Object item : response.getTables()) {
@@ -95,6 +107,7 @@ public class ShowDataScreenController implements ClientControllerAware {
         }
 
         else if (command == ManagerResponseCommand.VIEW_CURRENT_SEATING_RESPONSE) {
+            // populate seating table
             seatingItems.clear();
             if (response.getTables() != null) {
                 for (Object item : response.getTables()) {
@@ -107,6 +120,7 @@ public class ShowDataScreenController implements ClientControllerAware {
         }
     }
 
+    // sends requests for both waiting list and seating data
     private void requestAll() {
         if (!readyForServer()) return;
 
@@ -117,6 +131,7 @@ public class ShowDataScreenController implements ClientControllerAware {
         setInfo("Refreshing manager data...");
     }
 
+    // checks connection before sending requests
     private boolean readyForServer() {
         if (!connected || clientController == null) {
             setInfo("Not connected to server.");
@@ -125,10 +140,13 @@ public class ShowDataScreenController implements ClientControllerAware {
         return true;
     }
 
+    // updates info label
     private void setInfo(String msg) {
         if (infoLabel != null) infoLabel.setText(msg == null ? "" : msg);
     }
 
+    // data model for seating table rows
+    // converts CurrentSeatingResponse to display-friendly format
     public static class SeatingRow {
         private final int tableNumber;
         private final int partySize;
@@ -144,8 +162,10 @@ public class ShowDataScreenController implements ClientControllerAware {
             this.type = type;
         }
 
+        // factory method: converts server response to table row
         public static SeatingRow from(CurrentSeatingResponse seating) {
             int tableNumber = seating.getTable() == null ? 0 : seating.getTable().getTableNumber();
+            // determines if customer is guest or subscriber based on user ID presence
             String type = seating.getUserID() == null || seating.getUserID().isBlank() ? "Guest" : "Subscriber";
             return new SeatingRow(
                     tableNumber,
@@ -156,6 +176,7 @@ public class ShowDataScreenController implements ClientControllerAware {
             );
         }
 
+        // getters for JavaFX property binding
         public int getTableNumber() {
             return tableNumber;
         }

@@ -14,32 +14,41 @@ import responses.WaitingListResponse;
  * UI callbacks are invoked before a real handler is registered.
 
  */
+// default implementation that safely handles callbacks before UI initializes
+// prevents crashes by logging to console instead of throwing NullPointerException
 public class NullClientUIHandler implements ClientUIHandler {
+    // log info messages to console
     @Override
     public void showInfo(String title, String message) {
         System.out.println("[INFO] " + title + ": " + message);
     }
 
+    // log warnings to console
     @Override
     public void showWarning(String title, String message) {
         System.out.println("[WARN] " + title + ": " + message);
     }
 
+    // log errors to stderr
     @Override
     public void showError(String title, String message) {
         System.err.println("[ERROR] " + title + ": " + message);
     }
 
+    // log generic payload to console
     @Override
     public void showPayload(Object payload) {
         System.out.println("[PAYLOAD] " + payload);
     }
 
+    // log routing request to console
     @Override
     public void routeToDesktop(DesktopScreenController.Role role, String username) {
         System.out.println("[ROUTE] role=" + role + " username=" + username);
     }
 
+    // all operation callbacks are no-ops in this handler
+    // real implementations will process these responses
     @Override
     public void onReservationResponse(ReservationResponse response) {}
 
@@ -75,8 +84,7 @@ public class NullClientUIHandler implements ClientUIHandler {
 
     @Override
     public void onUserDetailsResponse(String email, String phone) {}
+    
     @Override
-    public void onWaitingListCancellation(WaitingListResponse response) {
-        // no-op
-    }
+    public void onWaitingListCancellation(WaitingListResponse response) {}
 }

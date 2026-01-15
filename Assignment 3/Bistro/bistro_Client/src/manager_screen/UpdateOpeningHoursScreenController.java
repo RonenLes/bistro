@@ -27,12 +27,17 @@ import java.time.format.DateTimeFormatter;
 
 import java.util.List;
 
+// manager view for updating restaurant opening hours
+// allows editing opening/closing times and occasion type for each date
+// provides custom time adjustment UI with +/- buttons
 public class UpdateOpeningHoursScreenController implements ClientControllerAware {
 	
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
    
+    // available occasion types for special days
     private static final List<String> OCCASIONS = List.of("REGULAR", "HOLIDAY", "WAR", "STRIKE");
+    // converter for displaying occasion dropdown
     private static final StringConverter<String> OCCASION_CONVERTER = new StringConverter<>() {
         @Override
         public String toString(String value) {
@@ -60,22 +65,28 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
 
     private ClientController clientController;
     private boolean connected;
+    // observable list for reactive UI updates
     private final ObservableList<OpeningHoursRow> rows = FXCollections.observableArrayList();
 
     @FXML
+    // sets up table columns with custom cell factories
+    // open/close columns have +/- buttons for time adjustment
     private void initialize() {
         if (colDate != null) colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
                     
+        // opening time column with custom time adjustment UI
         if (colOpen != null) {
         	colOpen.setEditable(true);
             colOpen.setCellValueFactory(new PropertyValueFactory<>("open"));
             colOpen.setCellFactory(column -> createTimeAdjustCell(true));
         }
+        // closing time column with custom time adjustment UI
         if (colClose != null) {
         	colClose.setEditable(true);
             colClose.setCellValueFactory(new PropertyValueFactory<>("close"));
             colClose.setCellFactory(column -> createTimeAdjustCell(false));
         }
+        // occasion column with dropdown
         if (colOccasion != null) {
             colOccasion.setCellValueFactory(new PropertyValueFactory<>("occasion"));
             colOccasion.setCellFactory(ComboBoxTableCell.forTableColumn(OCCASION_CONVERTER, FXCollections.observableArrayList(OCCASIONS)));
@@ -86,6 +97,7 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
                 }
             });
         }
+        // save button column
         if (colSave != null) {
             colSave.setCellFactory(column -> new TableCell<>() {
                 private final Button button = new Button("Save");
@@ -115,12 +127,14 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
     }
 
     @Override
+    // dependency injection from DesktopScreenController
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
     }
 
     @FXML
+    // loads opening hours for selected date
     private void onLoad() {
         if (!readyForServer()) return;
         LocalDate date = datePicker == null ? null : datePicker.getValue();
@@ -133,6 +147,7 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
     }
 
     @FXML
+    // saves all rows at once
     private void onSaveAll() {
         if (!readyForServer()) return;
         for (OpeningHoursRow row : rows) {
@@ -140,6 +155,7 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
         }
     }
 
+    // populates table with opening hours data from server
     public void handleManagerResponse(ManagerResponse response) {
         if (response == null || response.getResponseCommand() == null) return;
 
@@ -163,6 +179,7 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
         }
     }
 
+    // validates and sends edit request for a single row
     private void sendEditRequest(OpeningHoursRow row) {
         if (!readyForServer()) return;
         if (row.getOpen() == null || row.getClose() == null) {
@@ -189,6 +206,7 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
         setInfo("Saving opening hours for " + row.getDate() + "...");
     }
 
+    // checks connection before sending requests
     private boolean readyForServer() {
         if (!connected || clientController == null) {
             setInfo("Not connected to server.");
@@ -197,10 +215,12 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
         return true;
     }
 
+    // updates info label
     private void setInfo(String msg) {
         if (infoLabel != null) infoLabel.setText(msg == null ? "" : msg);
     }
     
+    // unused helper method for generating time lists
     private static List<LocalTime> buildTimes(LocalTime start, LocalTime end) {
         List<LocalTime> times = new java.util.ArrayList<>();
         for (LocalTime t = start; !t.isAfter(end); t = t.plusHours(1)) {
@@ -209,6 +229,7 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
         return times;
     }
 
+    // data model for opening hours table rows
     public static class OpeningHoursRow {
         private LocalDate date;
         private LocalTime open;
@@ -222,6 +243,7 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
             this.occasion = occasion;
         }
 
+        // getters and setters for JavaFX property binding
         public LocalDate getDate() {
             return date;
         }
@@ -251,6 +273,8 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
         }
     }
 
+    // creates custom table cell with +/- buttons for time adjustment
+    // isOpen determines whether this controls opening or closing time
     private TableCell<OpeningHoursRow, LocalTime> createTimeAdjustCell(boolean isOpen) {
         return new TableCell<>() {
             private final Label timeLabel = new Label();
@@ -261,10 +285,12 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
             {
                 minus.getStyleClass().add("ghost");
                 plus.getStyleClass().add("ghost");
+                // wire up buttons to adjust time by 1 hour
                 minus.setOnAction(event -> adjustTime(-1));
                 plus.setOnAction(event -> adjustTime(1));
             }
 
+            // adjusts time by deltaHours and updates row
             private void adjustTime(int deltaHours) {
                 OpeningHoursRow row = getTableRow() == null ? null : getTableRow().getItem();
                 if (row == null) return;
@@ -275,7 +301,7 @@ public class UpdateOpeningHoursScreenController implements ClientControllerAware
                 if (isOpen)  row.setOpen(updated);                  
                 else row.setClose(updated);
                     
-                
+                // refresh display
                 updateItem(updated, false);
             }
 

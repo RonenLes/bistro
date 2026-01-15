@@ -1,14 +1,24 @@
 package controllers;
 
+// holds current user session data
+// tracks both subscriber sessions and guest sessions
 public class SessionState {
+    // true if user is browsing as guest (not logged in)
     private boolean guestSession;
+    // phone or email used to identify guest
     private String guestContact;
+    // unique subscriber ID from database
     private String currentUserId;
+    // logged-in subscriber username
     private String currentUsername;
+    // username from last login attempt (fallback)
     private String lastLoginUsername;
+    // subscriber email
     private String currentEmail;
+    // subscriber phone
     private String currentPhone;
 
+    // clears all session data on logout
     public void reset() {
         guestSession = false;
         guestContact = null;
@@ -19,6 +29,8 @@ public class SessionState {
         currentPhone = null;
     }
 
+    // attempts to retrieve username with fallback logic
+    // used when server doesn't return username in response
     public String resolveUsername() {
         if (currentUsername != null && !currentUsername.isBlank()) {
             return currentUsername.trim();
@@ -29,6 +41,8 @@ public class SessionState {
         return null;
     }
 
+    // standard getters and setters for session fields
+    
     public boolean isGuestSession() {
         return guestSession;
     }

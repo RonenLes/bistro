@@ -9,6 +9,8 @@ import javafx.scene.control.TextField;
 import responses.WaitingListResponse;
 import javafx.scene.control.TextInputDialog;
 
+// terminal view for cancelling waiting list entries
+// accepts confirmation code or user ID to cancel
 public class TerminalCancelWaitingListController implements ClientControllerAware {
 
     @FXML private TextField confirmationCodeField;
@@ -29,6 +31,7 @@ public class TerminalCancelWaitingListController implements ClientControllerAwar
     }
 
     @FXML
+    // validates confirmation code and sends cancellation request
     private void onCancel() {
         String rawCode = confirmationCodeField == null ? "" : confirmationCodeField.getText().trim();
         if (rawCode.isEmpty()) {
@@ -58,6 +61,7 @@ public class TerminalCancelWaitingListController implements ClientControllerAwar
         setStatus("Submitting cancel request...");
     }
 
+    // called by TerminalScreenController with server response
     public void handleWaitingListResponse(WaitingListResponse response) {
         if (response == null) {
             setStatus("No response received. Please try again.");
@@ -82,6 +86,8 @@ public class TerminalCancelWaitingListController implements ClientControllerAwar
     }
     
     @FXML
+    // alternative flow: resolve confirmation code from user ID
+    // uses callback pattern to retrieve code from server
     private void onUseUserId() {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Use user ID");
@@ -99,12 +105,14 @@ public class TerminalCancelWaitingListController implements ClientControllerAwar
                 return;
             }
 
+            // set callback to receive resolved code from server
             clientController.setLostCodeListener(code -> {
                 clientController.clearLostCodeListener();
                 if (code == null || code <= 0) {
                     setStatus("Failed to resolve confirmation code.");
                     return;
                 }
+                // populate field and trigger cancellation
                 if (confirmationCodeField != null) {
                     confirmationCodeField.setText(String.valueOf(code));
                 }

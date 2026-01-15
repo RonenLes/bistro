@@ -38,7 +38,11 @@ public class UserControl {
 		};
 	}
 
-
+	/**
+	 * method to handle login request 
+	 * @param req contains username and password
+	 * @return Response<LoginResponse> with success/fail login and why
+	 */
     public Response<LoginResponse> login(LoginRequest req)  {
     	
     	try (Connection conn=DBManager.getConnection()){
@@ -64,6 +68,12 @@ public class UserControl {
         
     }
     
+    
+    /**
+     * method to edit email and phone of user
+     * @param req of LoginRequest object new email/phone 
+     * @return
+     */
     public Response<LoginResponse> editDetail(LoginRequest req) {
     	try (Connection conn = DBManager.getConnection()){
     		User user = userDAO.fetchUserByUsername(conn, req.getUsername());
@@ -83,6 +93,13 @@ public class UserControl {
     	}
     }
     
+    
+    /**
+     * method to get reservation history of a user by username
+     * @param req instance of LoginRequest contains username (unique)
+     * @return Response<LoginResponse> upon success: LoginResponse instance will contain
+     * a List on UserHistoryResponse with reservationDate,startTime,checkIn,checkOut,tableNumber,totalPrice,partySize,status
+     */
     public Response<LoginResponse> getHistory(LoginRequest req){
     	try(Connection conn = DBManager.getConnection()){
     		User user = userDAO.fetchUserByUsername(conn, req.getUsername());
@@ -100,6 +117,10 @@ public class UserControl {
     	}
     }
     
+    /**
+     * method to generate unique userID with format U-xxxxx (7 chars)
+     * @return
+     */
     public String generateUserID() {
         try (Connection conn = DBManager.getConnection()) {
             String userID;
@@ -116,7 +137,7 @@ public class UserControl {
     }
     
     /**
-     * method for users to changed his email and phone
+     * method for users to see their email and phone
      * @param req with details to change to
      * @return the same details youve changed
      */
@@ -134,9 +155,9 @@ public class UserControl {
     
     
     /**
-     * method to 
-     * @param req
-     * @return
+     * method to see upcoming reservation, now seated, and in waiting
+     * @param req instance of LoginRequest contains username
+     * @return list of ReservationResponse instances containing reservationDate, party size, checkinTime, confirmation code, userid and status
      */
     public Response<LoginResponse> getUpcomingReservations(LoginRequest req){
     	try(Connection conn = DBManager.getConnection()){

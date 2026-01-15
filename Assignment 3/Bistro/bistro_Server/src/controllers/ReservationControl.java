@@ -54,7 +54,12 @@ public class ReservationControl {
         this.notificationControl = notificationControl;
         this.waitingListDAO=waitingListDAO;
     }
-
+    
+    /**
+     * main method to handle reservation requests
+     * @param req
+     * @return
+     */
     public Response<ReservationResponse> handleReservationRequest(ReservationRequest req) {
         if (req == null) return failResponse("Request is missing");
         if (req.getType() == null) return failResponse("Phase is missing");

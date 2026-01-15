@@ -296,6 +296,13 @@ public class BistroEchoServer extends AbstractServer {
 		        + " username=" + logRes.getData().getUsername());
 	}
 	
+	/**
+	 * method to ensure manager singleton
+	 * @param client
+	 * @param loginReq
+	 * @param loginResp
+	 * @return
+	 */
 	private Response<LoginResponse> handleLoginWithManagerGate(ConnectionToClient client,LoginRequest loginReq,Response<LoginResponse> loginResp) {
 		
 		if (loginReq == null || loginReq.getUserCommand() != LoginRequest.UserCommand.LOGIN_REQUEST) {

@@ -37,7 +37,13 @@ public class UserDAO {
 		
 	//UPDATE
 		private final String UPDATE_USER_DETAILS_BY_ID = "UPDATE `user` SET phone = ?, email = ? WHERE userID = ?";
-				
+		
+		/**
+		 * method for fetching all user from database 
+		 * @param conn from the pool
+		 * @return list of user entities containing userID,username,password,role,phone,email
+		 * @throws SQLException
+		 */
 		public List<User> fetchAllUsers(Connection conn)throws SQLException{
 			List<User> users = new ArrayList<>();
 			try(PreparedStatement ps = conn.prepareStatement(SELECT_ALL_SUBSCRIBER)){
@@ -56,6 +62,17 @@ public class UserDAO {
 			}
 		}
 		
+		/**
+		 * method to insert new user to the database
+		 * @param userID
+		 * @param username
+		 * @param password
+		 * @param role
+		 * @param phone
+		 * @param email
+		 * @return true if database updated successfully
+		 * @throws SQLException
+		 */
 		public boolean insertNewUser(String userID,String username,String password,String role,String phone, String email)throws SQLException{
 			try(Connection conn  = DBManager.getConnection();
 					PreparedStatement ps = conn.prepareStatement(INSERT_NEW_USER)){
@@ -73,9 +90,10 @@ public class UserDAO {
 		
 		
 		/**
+		 * method to get user details by username and password
 		 * @param username- username field
 		 * @param password- password field
-		 * @return the user with matching username and password,null if there are no matches.
+		 * @return the user entity with matching username and password,null if there are no matches.
 		 * @throws SQLException if there is a database error
 		 */
 		public User getUserByUsernameAndPassword(Connection conn,String username, String password) throws SQLException {
@@ -141,6 +159,15 @@ public class UserDAO {
 		    }
 		    
 		    
+		    /**
+		     * update user email and phone in database 
+		     * @param conn
+		     * @param userID
+		     * @param email
+		     * @param phone
+		     * @return true if success
+		     * @throws SQLException
+		     */
 		    public boolean updateUserDetailsByUserID(Connection conn,String userID,String email,String phone)throws SQLException{
 		    	try(PreparedStatement ps = conn.prepareStatement(UPDATE_USER_DETAILS_BY_ID)){
 		    		ps.setString(1, phone);
@@ -150,6 +177,14 @@ public class UserDAO {
 		    	}		    			    	
 		    }
 		    
+		    
+		    /**
+		     * method to fetch user history by userID after checkout 
+		     * @param conn
+		     * @param userID
+		     * @return List<UserHistoryResponse> containing reservationDate,startTime,check in/out time, table number, total price,partySize, status
+		     * @throws SQLException
+		     */
 		    public List<UserHistoryResponse> getHistoryByUserID(Connection conn,String userID) throws SQLException{
 		    	List<UserHistoryResponse> historyList = new ArrayList<>();
 		    	
@@ -181,7 +216,13 @@ public class UserDAO {
 		    	return historyList;
 		    }
 		    
-		    
+		    /**
+		     * method to fetch user detail by username
+		     * @param conn
+		     * @param username
+		     * @return User entity containing userID,username,role,phone,email
+		     * @throws SQLException
+		     */
 		    public User fetchUserByUsername(Connection conn,String username)throws SQLException{
 		    	try(PreparedStatement ps = conn.prepareStatement(SELECT_USER_BY_USERNAME)){
 		    		ps.setString(1,username);

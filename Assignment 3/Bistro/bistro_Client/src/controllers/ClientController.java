@@ -101,8 +101,11 @@ public class ClientController {
     }
 
 
-    // Network -> Controller
-    /** Called ONLY by BistroEchoClient.handleMessageFromServer(msg) */
+    /**
+     *  Handles a raw response from the server, decoding and routing by payload type.
+     *  Called only by {@code BistroEchoClient.handleMessageFromServer(msg)}
+     * @param msg
+     */
     public void handleServerResponse(Object msg) {
         try {
             Object decoded = msg;
@@ -280,6 +283,10 @@ public class ClientController {
         if (lostCodeListener != null) lostCodeListener.accept(confirmationCode);                    
     }
     
+    /**
+     * Requests a waiting list confirmation code lookup for a user or guest contact.
+     * @param contactRaw
+     */
     public void requestWaitingListLostCode(String contactRaw) {
         if (!connected) {
             safeUiWarning("Retrieve Code", "Not connected to server.");
@@ -298,7 +305,12 @@ public class ClientController {
     
     
     
-    
+    /**
+     * Requests a walk-in seating assignment based on user or guest contact.
+     * @param userId
+     * @param guestContact
+     * @param partySize
+     */
     public void requestWalkInSeating(String userId, String guestContact, int partySize) {
         if (!connected) {
             safeUiWarning("Take a seat", "Not connected to server.");
@@ -337,11 +349,17 @@ public class ClientController {
         sendRequest(req);
     }
     
-    
+    /**
+     * Registers a listener to receive a lost confirmation code.
+     * @param listener
+     */
     public void setLostCodeListener(java.util.function.Consumer<Integer> listener) {
         this.lostCodeListener = listener;
     }
-
+    
+    /**
+     * Clears the lost code listener.
+     */
     public void clearLostCodeListener() {
         this.lostCodeListener = null;
     }
@@ -362,7 +380,11 @@ public class ClientController {
         sendRequest(req);
     }
     
-    // Login and information verification
+    /**
+     * Submits a login request for a subscriber.
+     * @param usernameRaw
+     * @param passwordRaw
+     */
     public void requestLogin(String usernameRaw, String passwordRaw) {
         String username = usernameRaw == null ? "" : usernameRaw.trim();
         String password = passwordRaw == null ? "" : passwordRaw.trim();
@@ -381,6 +403,11 @@ public class ClientController {
         sendRequest(req);
     }
     
+    /**
+     * Requests cancellation for a waiting list reservation.
+     *
+     * @param confirmationCode
+     */
     public void requestWaitingListCancellation(int confirmationCode) {
         if (!connected) {
             safeUiWarning("Cancel waitlist", "Not connected to server.");
@@ -398,7 +425,9 @@ public class ClientController {
     }
     
     
-    // User history request
+    /**
+     * Requests the current user's reservation history.
+     */
     public void requestUserHistory() {
         if (!connected) {
             safeUiWarning("History", "Not connected to server.");
@@ -420,6 +449,10 @@ public class ClientController {
         lastUserCommand = UserCommand.HISTORY_REQUEST;
         sendRequest(req);
     }
+    
+    /**
+     * Requests upcoming reservations for the current user.
+     */
     public void requestUpcomingReservations() {
         if (!connected) {
             safeUiWarning("Upcoming Reservations", "Not connected to server.");
@@ -439,7 +472,10 @@ public class ClientController {
         sendRequest(req);
     }
     
-    //for manager use
+    /**
+     * Requests reservation history for a specific subscriber.
+     * @param usernameRaw
+     */
     public void requestUserHistoryForSubscriber(String usernameRaw) {
         if (!connected) {
             safeUiWarning("History", "Not connected to server.");
@@ -461,6 +497,9 @@ public class ClientController {
         sendRequest(req);
     }
     
+    /**
+     * Requests current subscriber detail values.
+     */
     public void requestUserDetails() {
         if (!connected) {
             safeUiWarning("Subscriber Details", "Not connected to server.");
@@ -506,7 +545,10 @@ public class ClientController {
     
     
     
-    // Manager request
+    /**
+     * Submits a manager workflow request.
+     * @param request
+     */
     public void requestManagerAction(ManagerRequest request) {
         if (!connected) {
             safeUiWarning("Manager", "Not connected to server.");
@@ -552,6 +594,9 @@ public class ClientController {
         }
     }
     
+    /**
+     * Logs the user out and clears session state.
+     */
     public void logout() {
     	 if (connected && client != null) {
              Request<Void> req = new Request<>(Request.Command.LOGOUT_REQUEST, null);
@@ -605,8 +650,17 @@ public class ClientController {
         //allow symbols/spaces on password
         return null;
     }
-    // END
-    
+   
+    /**
+     * Requests creation, edit, cancel, or query of a reservation.
+     * @param type
+     * @param reservationDate
+     * @param startTime
+     * @param partySize
+     * @param userID
+     * @param guestContact
+     * @param confirmationCode
+     */
     public void requestNewReservation(
             ReservationRequestType type,
             LocalDate reservationDate,
@@ -687,7 +741,10 @@ public class ClientController {
         this.connected = connected;
     }
 
-    // session identity API (guest)
+    /**
+     * Starts a guest session and stores the guest contact.
+     * @param contact
+     */
     public void startGuestSession(String contact) {
     	 session.setGuestSession(true);
          session.setGuestContact(contact);

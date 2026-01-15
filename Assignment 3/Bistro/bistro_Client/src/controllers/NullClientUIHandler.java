@@ -7,7 +7,13 @@ import responses.ReservationResponse;
 import responses.SeatingResponse;
 import responses.UserHistoryResponse;
 import responses.WaitingListResponse;
+/**
+ * No-op UI handler used when no UI is attached.
+ *
+ * Provides safe console logging and avoids {@code NullPointerException} when
+ * UI callbacks are invoked before a real handler is registered.
 
+ */
 public class NullClientUIHandler implements ClientUIHandler {
     @Override
     public void showInfo(String title, String message) {

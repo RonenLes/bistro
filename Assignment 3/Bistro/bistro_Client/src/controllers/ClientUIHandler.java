@@ -6,7 +6,12 @@ import responses.SeatingResponse;
 import responses.WaitingListResponse;
 import responses.ManagerResponse;
 import responses.ReportResponse;
-//Interface for desktopUI or terminalUI to implement
+/**
+ * UI callback contract for client controllers.
+ *
+ * Implementations (desktop or terminal) receive responses and status updates from
+ * {@link ClientController} and render them in the appropriate UI context.
+ */
 public interface ClientUIHandler {
 	
     void showInfo(String title, String message);

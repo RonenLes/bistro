@@ -40,11 +40,9 @@ import java.util.Set;
 import desktop_views.ReportsViewController;
 import responses.ReportResponse;
 /**
- * Shell controller (top bar + left navigation + center content host)
- * Handles:
- * Role based nav visibility (per button)
- * Single selection across all nav toggle buttons
- * Content swapping into contentHosts
+ *Desktop shell controller (top bar + left navigation + center content host).
+ *Handles role-based navigation visibility, single selection across navigation buttons,
+ * and content swapping into the content host
  */
 public class DesktopScreenController implements ClientUIHandler {
 
@@ -208,13 +206,20 @@ public class DesktopScreenController implements ClientUIHandler {
             else welcomeNameLabel.setText("Hello, " + trimmed + ".");                            
         }
     }
-
+    
+    /**
+     * Sets a logout callback for returning to the login screen or parent shell.
+     * @param onLogout
+     */
     public void setOnLogout(Runnable onLogout) {
         this.onLogout = onLogout;
     }
 
-    // Initialization
+   
     @FXML
+    /**
+     * Initializes navigation button mappings and listeners after FXML injection.
+     */
     private void initialize() {
         registerNavButton(reservationsBtn, ScreenKey.RESERVATIONS);
         registerNavButton(waitlistBtn,     ScreenKey.WAITLIST);
@@ -290,6 +295,9 @@ public class DesktopScreenController implements ClientUIHandler {
         group.setManaged(hasVisibleChild);
     }
 
+    /**
+     * choosing which button each role will see
+     */
     private void selectDefaultForRole() {
         switch (role) {
             case MANAGER -> selectIfVisible(reportsBtn);       // manager default
@@ -323,6 +331,10 @@ public class DesktopScreenController implements ClientUIHandler {
 
     // 
     @FXML
+    /**
+     * Handles navigation button click events from the sidebar.
+     * @param event
+     */
     private void onNavClicked(javafx.event.ActionEvent event) {
         if (!(event.getSource() instanceof ToggleButton btn)) return;
         ScreenKey key = navMap.get(btn);
@@ -333,21 +345,24 @@ public class DesktopScreenController implements ClientUIHandler {
     }
 
     @FXML
+    /**
+     *  Handles logout click events and routes back to the login flow.
+     */
     private void onLogoutClicked() {
-        // 1) Tell controller to log out + disconnect from server
-        if (clientController != null) clientController.logout();
-                    
-        // 2) Let the outer UI (MainScreenController) do its thing (go back to login window, etc.)
+       
+        if (clientController != null) clientController.logout();                            
         if (onLogout != null)  onLogout.run();           
-        else {
-            // Fallback: reset this shell to a “guest / empty” state
+        else {            
             setRole(Role.GUEST);
             setWelcomeName("");
             if (contentHost != null) contentHost.getChildren().clear();
         }
     }
 
-    // Navigation (REAL SCREEN LOADING)
+    /**
+     * Navigates to a specific screen by swapping the content host.
+     * @param key
+     */
     private void navigate(ScreenKey key) {
         switch (key) {
         	case SUBSCRIBER_HOME ->loadIntoContentHost("/subscriber_screen/SubscriberMainScreen.fxml");        			
@@ -367,7 +382,11 @@ public class DesktopScreenController implements ClientUIHandler {
             case PAY ->loadIntoContentHost("/desktop_views/PayView.fxml");
         }
     }
-
+    
+    /**
+     * Loads an FXML view into the content host and wires its controller.
+     * @param fxmlPath
+     */
     private void loadIntoContentHost(String fxmlPath) {
         try {
         	//incase of manager reserve for customer clear reset identity back to manager 
@@ -506,7 +525,10 @@ public class DesktopScreenController implements ClientUIHandler {
             else showInfo("Subscriber Details", "Email: " + email + "\nPhone: " + phone);                            
         });
     }
-
+    
+    /**
+     * Routes manager responses to whichever manager view is currently loaded.
+     */
     @Override
     public void onManagerResponse(ManagerResponse response) {
         javafx.application.Platform.runLater(() -> {
@@ -522,6 +544,9 @@ public class DesktopScreenController implements ClientUIHandler {
         });
     }
     
+    /**
+     * Displays waiting list cancellation results.
+     */
     @Override
     public void onWaitingListCancellation(WaitingListResponse response) {
         javafx.application.Platform.runLater(() -> {
@@ -534,7 +559,10 @@ public class DesktopScreenController implements ClientUIHandler {
         });
     }
 
-    // bill callbacks are required by ClientUIHandler, even if pay screen is not fully wired yet
+   /**
+    * Displays bill totals and applies subscriber discounts in the pay view.
+     *
+    */
     @Override
     public void onBillTotal(double baseTotal, boolean isCash) {
     	javafx.application.Platform.runLater(() -> {
@@ -560,6 +588,10 @@ public class DesktopScreenController implements ClientUIHandler {
             reservationsVC.setReservationIdentity(userId, guestContact);
         }
     }
+    
+    /**
+     * Displays bill-paid confirmation in the pay view or via alert fallback.
+     */
     @Override
     public void onBillPaid(Integer tableNumber) {
     	javafx.application.Platform.runLater(() -> {

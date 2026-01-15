@@ -11,7 +11,11 @@ import javafx.scene.layout.StackPane;
 
 import java.util.EnumMap;
 import java.util.Map;
-
+/**
+ * Terminal shell controller for walk-in
+ * Manages toolbar navigation, view loading, and routing of server responses
+ * to the currently active terminal view.
+ */
 public class TerminalScreenController {
 
     @FXML private StackPane contentHolder;
@@ -45,7 +49,11 @@ public class TerminalScreenController {
         // FXML fields might already be injected at this point
         applyConnectionState();
     }
-
+    
+    /**
+     * Sets a callback that returns the UI to the main screen.
+     * @param onBackToMain
+     */
     public void setOnBackToMain(Runnable onBackToMain) {
         this.onBackToMain = onBackToMain;
     }
@@ -57,13 +65,16 @@ public class TerminalScreenController {
     }
 
     // Toolbar actions
-    @FXML private void onBackToMain()      { if (onBackToMain != null) onBackToMain.run(); }
-    @FXML private void onCheckIn()         { show(View.CHECK_IN); }
-    @FXML private void onJoinWaitingList() { show(View.WAITING_LIST); }
-    @FXML private void onCancelWaitlist()  { show(View.CANCEL_WAITLIST); }
-    @FXML private void onPayBill()         { show(View.PAY_BILL); }
-    @FXML private void onLostCode()        { show(View.LOST_CODE); }
+    @FXML private void onBackToMain()      { if (onBackToMain != null) onBackToMain.run(); }//Returns to the main screen.
+    @FXML private void onCheckIn()         { show(View.CHECK_IN); }//Shows the check-in flow.
+    @FXML private void onJoinWaitingList() { show(View.WAITING_LIST); }//Shows the waiting list join flow.
+    @FXML private void onCancelWaitlist()  { show(View.CANCEL_WAITLIST); }//Shows the waiting list cancellation flow.
+    @FXML private void onPayBill()         { show(View.PAY_BILL); }//Shows the pay bill flow.
+    @FXML private void onLostCode()        { show(View.LOST_CODE); }//Shows the lost code flow
 
+    /**
+     * Enables/disables toolbar actions based on connection state and loads a default view.
+     */
     private void applyConnectionState() {
         boolean online = connected && clientController != null;
 
@@ -112,6 +123,10 @@ public class TerminalScreenController {
         }
     }
     
+    /**
+     *  Routes waiting list cancellation responses to the active view.
+     * @param response
+     */
     public void onWaitingListCancellation(responses.WaitingListResponse response) {
         javafx.application.Platform.runLater(() -> {
             if (currentContentController instanceof TerminalCancelWaitingListController cancelCtrl) {
@@ -120,7 +135,10 @@ public class TerminalScreenController {
         });
     }
 
-
+    /**
+     * Routes seating responses to the active view and returns to the main screen.
+     * @param response
+     */
     public void onSeatingResponse(responses.SeatingResponse response) {
         javafx.application.Platform.runLater(() -> {
             // Route server responses only to the currently displayed view
@@ -133,6 +151,11 @@ public class TerminalScreenController {
             
         });
     }
+    
+    /**
+     * Routes bill totals to the pay bill view.
+     * @param baseTotal
+     */
     public void onBillTotal(double baseTotal) {
         javafx.application.Platform.runLater(() -> {
             if (currentContentController instanceof TerminalPayBillController payBillCtrl) {
@@ -140,7 +163,10 @@ public class TerminalScreenController {
             }
         });
     }
-
+    
+    /**
+     * Routes payment success and returns to the main screen.
+     */
     public void onBillPaid() {
         javafx.application.Platform.runLater(() -> {
             if (currentContentController instanceof TerminalPayBillController payBillCtrl) {
@@ -149,7 +175,11 @@ public class TerminalScreenController {
             returnToMain();
         });
     }
-
+    
+    /**
+     * Routes billing errors to the pay bill view.
+     * @param message
+     */
     public void onBillError(String message) {
         javafx.application.Platform.runLater(() -> {
             if (currentContentController instanceof TerminalPayBillController payBillCtrl) {
@@ -157,7 +187,11 @@ public class TerminalScreenController {
             }
         });
     }
-
+    
+    /**
+     * Shows a specific terminal view, loading it if needed.
+     * @param view
+     */
     private void show(View view) {
         if (!isOnline()) {
             // safety - ignore navigation if offline
@@ -188,7 +222,10 @@ public class TerminalScreenController {
             onBackToMain.run();
         }
     }
-
+    
+    /**
+     * Re-injects the client controller into the current view after reconnect.
+     */
     private void reinjectActiveController() {
         if (!isOnline()) return;
         if (currentView == null) return;
@@ -199,7 +236,11 @@ public class TerminalScreenController {
         }
     }
 
-    // View loader for the fxml sub-pages inside terminal UI
+    /**
+     * Loads an FXML view and caches its controller for response routing.
+     * @param view
+     * @return
+     */
     private Parent loadView(View view) {
         try {
             String fxml = switch (view) {

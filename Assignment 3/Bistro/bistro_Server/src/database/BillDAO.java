@@ -21,7 +21,15 @@ public class BillDAO {
 	        "SET status = 'PAID', paidAt = NOW() " +
 	        "WHERE seatingID = ? AND paidAt IS NULL";
 	
-
+	/**
+	 * insert new bill in the database
+	 * @param conn
+	 * @param seatingID
+	 * @param totalPrice
+	 * @param createdAt
+	 * @return the key of the new bill entry
+	 * @throws SQLException
+	 */
 	public int insertNewBill(Connection conn,int seatingID,double totalPrice,LocalDateTime createdAt) throws SQLException {
 		if (conn == null) throw new IllegalArgumentException("conn is null");
 		try (PreparedStatement pstmt =conn.prepareStatement(INSERT_NEW_BILL, Statement.RETURN_GENERATED_KEYS)) {
@@ -43,6 +51,14 @@ public class BillDAO {
 			throw e;
 		}
 	}
+	
+	/**
+	 * update bill status to 'PAID'
+	 * @param conn
+	 * @param seatingId
+	 * @return
+	 * @throws SQLException
+	 */
 	public boolean markBillAsPaidBySeatingId(Connection conn, int seatingId) throws SQLException {
 
 	    try (PreparedStatement ps = conn.prepareStatement(UPDATE_BILL_TO_PAID_BY_SEATING_ID)) {
@@ -51,6 +67,14 @@ public class BillDAO {
 	        return updatedRows > 0;
 	    }
 	}
+	
+	/**
+	 * fetch bill details by FK seatingID (bill no paid)
+	 * @param conn
+	 * @param seatingId
+	 * @return Bill entity with its data
+	 * @throws SQLException
+	 */
 	public Bill getOpenBillBySeatingId(Connection conn, int seatingId) throws SQLException {
 
 	    try (PreparedStatement ps = conn.prepareStatement(SELECT_OPEN_BILL_BY_SEATING_ID)) {
@@ -75,7 +99,13 @@ public class BillDAO {
 	}
 
 
-	
+	/**
+	 * 
+	 * @param conn
+	 * @param seatingId
+	 * @return
+	 * @throws SQLException
+	 */
 	public Double getOpenBillTotalBySeatingId(Connection conn, int seatingId) throws SQLException {
 	    if (conn == null) throw new IllegalArgumentException("conn is null");
 

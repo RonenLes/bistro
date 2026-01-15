@@ -109,13 +109,14 @@ public class TableDAO {
 		return -1;
 	}
 	
-	
-	public Table findAvailableTable(int allocatedCapacity) throws SQLException {
-	    try (Connection conn = DBManager.getConnection()) {
-	        return findAvailableTable(conn, allocatedCapacity); // delegate
-	    }
-	}
-	
+		
+	/**
+	 * fetch an available table that is not being used
+	 * @param conn
+	 * @param allocatedCapacity
+	 * @return Table entity with all its details
+	 * @throws SQLException
+	 */
 	public Table findAvailableTable(Connection conn,int allocatedCapacity) throws SQLException{
 		
 		Table table = null;
@@ -136,7 +137,14 @@ public class TableDAO {
 				
 	}
 	
-	
+	/**
+	 * update an existing table by table number (unique)
+	 * @param conn
+	 * @param tableNumber
+	 * @param newCap
+	 * @return true if success
+	 * @throws SQLException
+	 */
 	public boolean updateTableByTableNumber(Connection conn,int tableNumber,int newCap)throws SQLException{
 		try(PreparedStatement ps = conn.prepareStatement(UPDATE_TABLE_BY_TABLE_NUMBER)){
 			ps.setInt(1, newCap);
@@ -146,6 +154,12 @@ public class TableDAO {
 		}
 	}
 	
+	/**
+	 * fetching all tables that isAvailable =1 
+	 * @param conn
+	 * @return List<TableInfo> number table and cap
+	 * @throws SQLException
+	 */
 	public List<TableInfo> fetchAllTables(Connection conn)throws SQLException{
 		List<TableInfo> tables = new ArrayList<>();
 		try(PreparedStatement ps = conn.prepareStatement(SELECT_ALL_TABLES)){
@@ -157,7 +171,13 @@ public class TableDAO {
 		}
 	}
 	
-	
+	/**
+	 * fetching the capacity of the table by its number
+	 * @param conn
+	 * @param tableNumber
+	 * @return
+	 * @throws SQLException
+	 */
 	public Integer getCapacityByTableNumber(Connection conn, int tableNumber) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(SELECT_CAPACITY_BY_TABLE_NUMBER)) {
             ps.setInt(1, tableNumber);
@@ -167,6 +187,13 @@ public class TableDAO {
         }
     }
 	
+	/**
+	 * checking if a table is currenctly occupied in seating
+	 * @param conn
+	 * @param tableNumber
+	 * @return
+	 * @throws SQLException
+	 */
 	public boolean isTableOccupiedNow(Connection conn, int tableNumber) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(SELECT_IS_TABLE_OCCUPIED_NOW_BY_NUMBER)) {
             ps.setInt(1, tableNumber);
@@ -176,6 +203,13 @@ public class TableDAO {
         }
     }
 	
+	/**
+	 * count how many tables are active
+	 * @param conn
+	 * @param capacity
+	 * @return
+	 * @throws SQLException
+	 */
 	public int countActiveTablesByCapacity(Connection conn, int capacity) throws SQLException {
 	    try (PreparedStatement ps = conn.prepareStatement(SELECT_ACTIVE_COUNT_BY_CAPACITY)) {
 	        ps.setInt(1, capacity);
@@ -185,6 +219,13 @@ public class TableDAO {
 	    }
 	}
 	
+	/**
+	 * set isAvailable = 0 (like delete)
+	 * @param conn
+	 * @param tableNumber
+	 * @return
+	 * @throws SQLException
+	 */
 	public boolean deactivateTableByNumber(Connection conn, int tableNumber) throws SQLException {
 	    try (PreparedStatement ps = conn.prepareStatement(UPDATE_DEACTIVATE_TABLE_BY_NUMBER)) {
 	        ps.setInt(1, tableNumber);

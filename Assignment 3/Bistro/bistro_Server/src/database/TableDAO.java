@@ -90,7 +90,7 @@ public class TableDAO {
 	}
 	
 	/**
-	 * 
+	 * getting the closest table capacity to a given party size 
 	 * @param partySize of the current desired reservation
 	 * @return closest capacity of a table to the give partySize 
 	 * @throws SQLException

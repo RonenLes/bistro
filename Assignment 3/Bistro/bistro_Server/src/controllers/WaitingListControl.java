@@ -12,7 +12,9 @@ import entities.WaitingList;
 import requests.WaitingListRequest;
 import responses.Response;
 import responses.WaitingListResponse;
-
+/**
+ * class to control waitinglist logic
+ */
 public class WaitingListControl {
 
 	private final WaitingListDAO waitingListDAO;
@@ -31,6 +33,11 @@ public class WaitingListControl {
 		
 	}
 	
+	/**
+	 * Cancels a waiting list entry and its reservation based on a confirmation code.
+	 * @param req waiting list cancellation request
+	 * @return response indicating cancellation success or failure
+	 */
 	public Response<WaitingListResponse> cancelWaitingList(WaitingListRequest req) {
 		try (Connection conn = DBManager.getConnection()) {
 	        if (conn == null) {
@@ -69,6 +76,10 @@ public class WaitingListControl {
 	    }
 	}
 	
+	/**
+	 * Cancels expired called reservations, frees associated seating, and tries to
+	 * assign the next waiting list reservation to freed tables.
+	 */
 	public void cancelLateArrivalsFromWaitingListToTable() {
 	    try (Connection conn = DBManager.getConnection()) {
 	        if (conn == null) {

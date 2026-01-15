@@ -168,10 +168,7 @@ public class ReservationDAO {
 	
 	/**
 	 * Finds all overbooked slots for a given allocated capacity after reducing the number of active tables
-	 * flow:
-	 * Find distinct future slots (date + startTime) for the given capacity
-	 * Count how many reservations overlap each slot (2-hour window)
-	 * Return those where @code booked > newTotalTables
+	 * 
 	 * @param conn
 	 * @param allocatedCapacity
 	 * @param newTotalTables
@@ -276,7 +273,7 @@ public class ReservationDAO {
 	/**
 	 * Returns reservation IDs that should be processed as "no-show candidates" for a specific date
 	 * @code reservationDate = date
-	 * @code status IN ('NEW','CONFIRMED')
+	 * @code status IN ('CONFIRMED')
 	 * @code startTime <= lateCutoffTime
 	 * @param conn
 	 * @param date
@@ -343,20 +340,7 @@ public class ReservationDAO {
 	    }
 	}
 
-	
-	/**
-	 * Cancels a reservation by setting its status to 'CANCELLED'.
-	 * Convenience wrapper that opens/closes its own connection.
-	 */
-	public boolean updateStatus(int confirmationCode,String status) throws SQLException {
-	    try (Connection conn = DBManager.getConnection()) {
-	        return updateStatus(conn, confirmationCode,status);
-	    }
-	}
-
-	
-	
-
+				
 	
 	/**
 	 * method to add a new reservation
@@ -401,13 +385,7 @@ public class ReservationDAO {
 	        throw e;
 	    }
 	}
-	
-	
-	public Reservation getReservationByConfirmationCode(int code) throws SQLException {
-        try (Connection conn = DBManager.getConnection()) {
-            return getReservationByConfirmationCode(conn, code); // delegate
-        }
-    }
+			
 	
 	/**
 	 * Fetches a reservation by confirmation code using an existing connection.
@@ -424,10 +402,8 @@ public class ReservationDAO {
 
 	        try (ResultSet rs = ps.executeQuery()) {
 
-	            if (!rs.next()) {
-	                return null; // No reservation with this confirmation code
-	            }
-
+	            if (!rs.next())  return null; // No reservation with this confirmation code
+	               	            
 	            return new Reservation(
 	                rs.getInt("reservationID"),
 	                rs.getDate("reservationDate").toLocalDate(),
@@ -524,7 +500,7 @@ public class ReservationDAO {
 
 	
 	/**
-	 * Checks if a confirmation code already exists in the database
+	 * generates a unique confirmation code not used by any reservation
 	 * @param conn
 	 * @return
 	 * @throws SQLException
@@ -603,6 +579,17 @@ public class ReservationDAO {
         }
         return idList;
 	}
+	
+	
+	/**
+	 * Picks reservations that are in conflict with the updated new opening hours
+	 * @param conn
+	 * @param date
+	 * @param openTime
+	 * @param closeTime
+	 * @return conflicted List<Reservation>
+	 * @throws SQLException
+	 */
 	public List<Reservation> pickReservationToCancelDueToOpenHours(Connection conn,LocalDate date,LocalTime openTime,LocalTime closeTime)throws SQLException{
 		List<Reservation> idList = new ArrayList<>();
 		try(PreparedStatement ps = conn.prepareStatement(SELECT_RESERVATIONS_OVERLAPING_WITH_CLOSE_HOURS)){
@@ -620,6 +607,14 @@ public class ReservationDAO {
 		return idList;
 	}
 	
+	/**
+	 * Computes the count of reservations per day of month between two timestamps.
+	 * @param conn
+	 * @param start
+	 * @param end
+	 * @return array of counts indexed by day-of-month minus one
+	 * @throws SQLException
+	 */
 	public Integer[] getCountOfReservationsBetween(Connection conn, LocalDateTime start, LocalDateTime end) throws SQLException {
 	    Integer[] counts = new Integer[31];
 	    for (int i = 0; i < counts.length; i++) counts[i] = 0;
@@ -644,7 +639,14 @@ public class ReservationDAO {
 	    }
 	    return counts;
 	}
-
+	
+	/**
+	 * Fetches reservations for a given date.
+	 * @param conn
+	 * @param date
+	 * @return
+	 * @throws SQLException
+	 */
 	public List<Reservation> fetchReservationsByDate(Connection conn, LocalDate date) throws SQLException {
 
 	    List<Reservation> reservations = new ArrayList<>();
@@ -667,6 +669,12 @@ public class ReservationDAO {
 	    return reservations;
 	}
 	
+	/**
+	 * Reads a {@code timeOfCreation} column if present in the result set.
+	 * @param rs
+	 * @return parsed {@link LocalDateTime} or null if missing
+	 * @throws SQLException
+	 */
 	private LocalDateTime readTimeOfCreation(ResultSet rs) throws SQLException {
 	    if (!hasColumn(rs, "timeOfCreation")) {
 	        return null;
@@ -674,7 +682,14 @@ public class ReservationDAO {
 	    Timestamp timestamp = rs.getTimestamp("timeOfCreation");
 	    return timestamp != null ? timestamp.toLocalDateTime() : null;
 	}
-
+	
+	/**
+	 * Checks whether a result set contains a column name.
+	 * @param rs
+	 * @param columnName
+	 * @return true if the column exists
+	 * @throws SQLException
+	 */
 	private boolean hasColumn(ResultSet rs, String columnName) throws SQLException {
 	    ResultSetMetaData metaData = rs.getMetaData();
 	    int count = metaData.getColumnCount();
@@ -717,7 +732,13 @@ public class ReservationDAO {
 	}
 
 
-	
+	/**
+	 * Fetches the best confirmation code for a user based on status and date.
+	 * @param conn
+	 * @param userId
+	 * @return confirmation code or -1 when none found
+	 * @throws SQLException
+	 */
 	public int fetchBestConfirmationCodeByUserId(Connection conn, String userId) throws SQLException {
 	    if (userId == null || userId.isBlank()) return -1;
 	    try (PreparedStatement ps = conn.prepareStatement(SELECT_BEST_CODE_BY_USERID)) {
@@ -727,7 +748,14 @@ public class ReservationDAO {
 	        }
 	    }
 	}
-
+	
+	/**
+	 *  Fetches the best confirmation code for a guest contact.
+	 * @param conn
+	 * @param contact
+	 * @return confirmation code or -1 when none found
+	 * @throws SQLException
+	 */
 	public int fetchBestConfirmationCodeByGuestContact(Connection conn, String contact) throws SQLException {
 	    if (contact == null || contact.isBlank()) return -1;
 	    try (PreparedStatement ps = conn.prepareStatement(SELECT_BEST_CODE_BY_GUEST)) {
@@ -738,6 +766,13 @@ public class ReservationDAO {
 	    }
 	}
 	
+	/**
+	 * Fetches the next waiting list confirmation code for a user.
+	 * @param conn
+	 * @param userId
+	 * @return confirmation code or -1 when none found
+	 * @throws SQLException
+	 */
 	public int fetchWaitingListConfirmationCodeByUserId(Connection conn, String userId) throws SQLException {
 	    if (userId == null || userId.isBlank()) return -1;
 	    try (PreparedStatement ps = conn.prepareStatement(SELECT_WAITLIST_CODE_BY_USERID)) {
@@ -747,7 +782,14 @@ public class ReservationDAO {
 	        }
 	    }
 	}
-
+	
+	/**
+	 * Fetches the next waiting list confirmation code for a guest contact.
+	 * @param conn
+	 * @param contact
+	 * @return
+	 * @throws SQLException
+	 */
 	public int fetchWaitingListConfirmationCodeByGuestContact(Connection conn, String contact) throws SQLException {
 	    if (contact == null || contact.isBlank()) return -1;
 	    try (PreparedStatement ps = conn.prepareStatement(SELECT_WAITLIST_CODE_BY_GUEST)) {

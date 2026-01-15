@@ -20,7 +20,7 @@ public class OpeningHoursDAO {
 	private final String UPDATE_OPENINGHOURS ="UPDATE `opening_hours` SET openTime = ?, closeTime = ?, occasion = ? WHERE date = ?";
 	
 	/**
-	 * 
+	 * fetch the restaurant detail by date
 	 * @param date of the desired date to check
 	 * @return OpeningHours entity 
 	 * @throws SQLException
@@ -48,6 +48,16 @@ public class OpeningHoursDAO {
 		
 	}
 	
+	/**
+	 * update existing entry in the opening hours table
+	 * @param conn
+	 * @param open
+	 * @param close
+	 * @param date
+	 * @param occasion
+	 * @return
+	 * @throws SQLException
+	 */
 	public boolean updateOpeningHours(Connection conn,LocalTime open,LocalTime close,LocalDate date,String occasion)throws SQLException{
 		java.sql.Date theDate = java.sql.Date.valueOf(date);
 		java.sql.Time newOpenTime = java.sql.Time.valueOf(open);
@@ -61,6 +71,16 @@ public class OpeningHoursDAO {
 		}
 	}
 	
+	/**
+	 * insert new opening hour 
+	 * @param conn
+	 * @param date
+	 * @param day
+	 * @param openTime
+	 * @param closeTime
+	 * @return
+	 * @throws SQLException
+	 */
 	public boolean insertNewOpeningHour(Connection conn, LocalDate date, String day, LocalTime openTime,LocalTime closeTime)throws SQLException{
 		java.sql.Date theDate = java.sql.Date.valueOf(date);
 		java.sql.Time theOpenTime = java.sql.Time.valueOf(openTime);
@@ -75,6 +95,13 @@ public class OpeningHoursDAO {
 		}
 	}
 	
+	/**
+	 * fetching the next 30 days details of opening hours
+	 * @param conn
+	 * @param startDate
+	 * @return List<OpeningHours>
+	 * @throws SQLException
+	 */
 	public List<OpeningHours> fetchOpeningHoursNext30Days(Connection conn,LocalDate startDate)throws SQLException{
 		List<OpeningHours> out = new ArrayList<>();
 		

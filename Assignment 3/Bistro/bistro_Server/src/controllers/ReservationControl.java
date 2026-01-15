@@ -17,16 +17,9 @@ import java.time.LocalTime;
 import java.util.*;
 
 /**
- * ReservationControl (Controller owns the Connection and passes it to DAOs)
+ * Coordinates reservation workflows and delegates persistence to DAOs.
  *
- * This version matches YOUR ReservationResponse:
- * - For SECOND_PHASE / EDIT / SHOW / CANCEL:
- *   ReservationResponse(LocalDate date, int partySize, LocalTime time,
- *                       int confirmationCode, String userID, String guestContact, ReservationResponseType type)
- *   and sets userID OR guestContact (one is null)
- *
- * - For FIRST_PHASE:
- *   ReservationResponse(type, availableTimes, suggestedDates, confirmationCode)
+ * 
  */
 public class ReservationControl {
 
@@ -57,8 +50,9 @@ public class ReservationControl {
     
     /**
      * main method to handle reservation requests
-     * @param req
-     * @return
+     * FIRST_PHASE,SECOND_PHASE,EDIT_RESERVATION,CANCEL_RESERVATION,SHOW_RESERVATION
+     * @param ReservationRequest req containing one the Reservation commands
+     * @return Response<ReservationResponse>
      */
     public Response<ReservationResponse> handleReservationRequest(ReservationRequest req) {
         if (req == null) return failResponse("Request is missing");
@@ -74,14 +68,20 @@ public class ReservationControl {
     }
 
     // ---------------- FIRST PHASE ----------------
+    /**
+     * method to handle first phase where client enters desired reservation date and party size
+     * @param @ReservationRequest req contains @LocalDate reservationDate request and @int party size
+     * @return @Response<ReservationResponse> containing a list of @LocalTime available times if exist
+     * if not than @Map<LocalDate, List<LocalTime>> of future dates and their available times
+     * of failed
+     */
     private Response<ReservationResponse> handleFirstPhase(ReservationRequest req) {
         if (req.getReservationDate() == null) return failResponse("Missing reservation date");
         if (req.getPartySize() <= 0) return failResponse("Invalid party size");
 
         try (Connection conn = DBManager.getConnection()) {
-        	
-        	System.out.println(req.getReservationDate()+" received");
-        	
+        	        	
+        	//list of available times based on date and party size
             List<LocalTime> availableTimes =getAvailableTimes(conn, req.getReservationDate(), req.getPartySize());            
 
             if (availableTimes != null && !availableTimes.isEmpty()) {
@@ -90,9 +90,8 @@ public class ReservationControl {
                 return successResponse("Available times found", rr);
             }
 
-            Map<LocalDate, List<LocalTime>> suggestions =
-                    getSuggestionsForNextDays(conn, req.getReservationDate(), req.getPartySize());
-
+            Map<LocalDate, List<LocalTime>> suggestions = getSuggestionsForNextDays(conn, req.getReservationDate(), req.getPartySize());
+                   
             boolean hasAnySuggestion = suggestions != null && suggestions.values().stream().anyMatch(list -> list != null && !list.isEmpty());
                     
             if (hasAnySuggestion) {
@@ -101,7 +100,7 @@ public class ReservationControl {
                 return successResponse("No availability on requested date, showing suggestions", rr);
             }
 
-            // IMPORTANT: your failResponse returns rr=null. If UI expects a type, return rr as SUCCESS.
+            
             ReservationResponse rr = new ReservationResponse(ReservationResponseType.FIRST_PHASE_NO_AVAILABILITY_OR_SUGGESTIONS,null,null, null);
                                                                                            
             return successResponse("No availability or suggestions found", rr);
@@ -113,15 +112,16 @@ public class ReservationControl {
         }
     }
 
-    // ---------------- SECOND PHASE ----------------
+        
+    
     private static String q(String s) { return s == null ? "null" : ("'" + s + "'"); }
-
-    private Response<ReservationResponse> handleSecondPhase(ReservationRequest req) {
-    	System.out.println("[SERVER SECOND_PHASE] userID=" + q(req.getUserID())
-        + " guestContact=" + q(req.getGuestContact())
-        + " date=" + req.getReservationDate()
-        + " time=" + req.getStartTime()
-        + " party=" + req.getPartySize());
+    
+    /**
+     * method to create a reservation with chosen time after finishing first phase
+     * @param @ReservationRequest req with @LocalTime chosen time
+     * @return @Response<ReservationResponse>
+     */
+    private Response<ReservationResponse> handleSecondPhase(ReservationRequest req) {    	
         if (req.getReservationDate() == null || req.getStartTime() == null)
             return failResponse("Missing reservation date/time");
         if (req.getPartySize() <= 0) return failResponse("Invalid party size");
@@ -140,13 +140,15 @@ public class ReservationControl {
     }
 
     /**
-     * Transaction:
-     * - availability check + generate code + insert are done in ONE transaction
-     * - commit first, then notify
+     * method to create a new reservation 
+     * validating userID/guestContact and if the time available AGAIN
+     * generating unique confirmation code and sending it to the client
+     * @param ReservationRequest req with userID/guestContact
+     * @param type type of ReservationRequest
+     * @return Response<ReservationResponse> with all the details of the reservation
+     * @throws SQLException
      */
-    private Response<ReservationResponse> createReservation(ReservationRequest req,
-                                                           ReservationResponseType type) throws SQLException {
-
+    private Response<ReservationResponse> createReservation(ReservationRequest req, ReservationResponseType type) throws SQLException {                                                          
         boolean hasUser = req.getUserID() != null && !req.getUserID().isBlank();
         String userID = hasUser ? req.getUserID() : null;
         String guestContact = hasUser ? null : req.getGuestContact();
@@ -195,7 +197,12 @@ public class ReservationControl {
         return successResponse("Reservation created", rr);
     }
 
-    // ---------------- EDIT ----------------
+    /**
+     * method to handle edit existing reservation 
+     * validation of existness 
+     * @param req
+     * @return
+     */
     private Response<ReservationResponse> handleEdit(ReservationRequest req) {
         if (req.getConfirmationCode() <= 0) return failResponse("Missing confirmation code");
         if (req.getReservationDate() == null || req.getStartTime() == null)
@@ -212,18 +219,16 @@ public class ReservationControl {
         }
     }
 
+    
     /**
-     * IMPORTANT NOTE:
-     * Availability check during edit SHOULD exclude the existing reservation itself,
-     * otherwise keeping the same time may fail.
-     *
-     * Best fix: add DAO method:
-     *   reservationDAO.getBookedTablesByCapacityExcluding(conn, date, start, end, confirmationCode)
-     * and use it here.
-     *
-     * In this controller, I show BOTH options:
-     * - default uses normal check (works but may be too strict)
-     * - if you implement the excluding method, switch the call in one line below.
+     * the main method that edit the reservation and contacs the reservationDAO
+     * @param reservationDate
+     * @param startTime
+     * @param partySize
+     * @param newGuestContact
+     * @param confirmationCode
+     * @return
+     * @throws SQLException
      */
     public Response<ReservationResponse> editReservation(LocalDate reservationDate,LocalTime startTime,int partySize,String newGuestContact,int confirmationCode) throws SQLException {
 
@@ -288,29 +293,9 @@ public class ReservationControl {
         }
     }
 
-    // OPTIONAL helper if you implement exclude DAO:
-    /*
-    private boolean isStillAvailableExcluding(Connection conn,
-                                              LocalDate date,
-                                              LocalTime startTime,
-                                              int allocatedCapacity,
-                                              int excludeConfirmationCode) throws SQLException {
+    
 
-        LocalTime end = startTime.plusMinutes(RESERVATION_DURATION_MIN);
-
-        Map<Integer, Integer> totals = tableDAO.getTotalTablesByCapacity(conn);
-        int totalForCap = totals.getOrDefault(allocatedCapacity, 0);
-        if (totalForCap <= 0) return false;
-
-        Map<Integer, Integer> booked =
-                reservationDAO.getBookedTablesByCapacityExcluding(conn, date, startTime, end, excludeConfirmationCode);
-
-        int bookedForCap = booked.getOrDefault(allocatedCapacity, 0);
-        return bookedForCap < totalForCap;
-    }
-    */
-
-    // ---------------- CANCEL ----------------
+   
     private Response<ReservationResponse> handleCancel(ReservationRequest req) {
         if (req.getConfirmationCode() <= 0) return failResponse("Missing confirmation code");
         try {
@@ -319,7 +304,13 @@ public class ReservationControl {
             return failResponse("Failed to interact with DB");
         }
     }
-
+    
+    /**
+     * method to cancel existing reservation using confimration code 
+     * @param confirmationCode
+     * @return
+     * @throws SQLException
+     */
     public Response<ReservationResponse> cancelReservation(int confirmationCode) throws SQLException {
         try (Connection conn = DBManager.getConnection()) {
             conn.setAutoCommit(false);
@@ -367,7 +358,11 @@ public class ReservationControl {
         }
     }
 
-    // ---------------- SHOW ----------------
+    /**
+     * method to show an existing reservation using confirmation code
+     * @param confirmationCode
+     * @return
+     */
     public Response<ReservationResponse> showReservation(int confirmationCode) {
         if (confirmationCode <= 0) return failResponse("Missing confirmation code");
 
@@ -405,7 +400,17 @@ public class ReservationControl {
     private Response<ReservationResponse> failResponse(String msg) {
         return new Response<>(false, msg, null);
     }
-
+    
+    
+    /**
+     * method to check second time if a reservation can be made incase of race conditions
+     * @param conn
+     * @param date
+     * @param startTime
+     * @param allocatedCapacity
+     * @return
+     * @throws SQLException
+     */
     private boolean isStillAvailable(Connection conn,LocalDate date,LocalTime startTime,int allocatedCapacity) throws SQLException {
 
         LocalTime end = startTime.plusMinutes(RESERVATION_DURATION_MIN);
@@ -420,7 +425,16 @@ public class ReservationControl {
 
         return bookedForCap < totalForCap;
     }
-
+    
+    
+    /**
+     * Returns available reservation times for a date and party size.
+     * @param conn
+     * @param date
+     * @param partySize
+     * @return list of available start times
+     * @throws SQLException
+     */
     public List<LocalTime> getAvailableTimes(Connection conn, LocalDate date, int partySize) throws SQLException {
         if (date == null) return new ArrayList<>();
 
@@ -487,12 +501,19 @@ public class ReservationControl {
         return total;
     }
 
-
+    /**
+     * creates a map of dates as its key and list of available times for that date
+     * @param conn
+     * @param requestedDate
+     * @param partySize
+     * @return Map<LocalDate, List<LocalTime>>
+     * @throws SQLException
+     */
     public Map<LocalDate, List<LocalTime>> getSuggestionsForNextDays(Connection conn,
                                                                      LocalDate requestedDate,
                                                                      int partySize) throws SQLException {
         Map<LocalDate, List<LocalTime>> suggestions = new LinkedHashMap<>();
-        for (int i = 1; i <= 7; i++) {
+        for (int i = 1; i <= 29; i++) {
             LocalDate dateToCheck = requestedDate.plusDays(i);
             suggestions.put(dateToCheck, getAvailableTimes(conn, dateToCheck, partySize));
         }
@@ -503,12 +524,12 @@ public class ReservationControl {
         // Controller owns the connection -> pass conn
         return tableDAO.getMinimalTableSize(conn, partySize);
     }
-    /*
+    
     /**
-     * Notification AFTER commit.
-     * Here we send based on userID/guestContact fields (your design).
-     * If your NotificationControl requires full User object, you can fetch it using userDAO + new connection,
-     * but do NOT do it inside the DB transaction.
+     * using stub to send emails/sms
+     * @param userID
+     * @param guestContact
+     * @param confirmationCode
      */
     private void sendConfirmationNotification(String userID, String guestContact, int confirmationCode) {
         try {
@@ -530,7 +551,13 @@ public class ReservationControl {
         }
     }
     
-    
+    /**
+     * Retrieves the best confirmation code for a user or guest input string.
+     * Supports direct confirmation lookup as well as waiting list lookup via
+     * the {@code WAITLIST:}
+     * @param keyRaw
+     * @return containing the confirmation code
+     */
     public Response<Integer> retrieveConfirmationCode(String keyRaw) {
         try (Connection conn = DBManager.getConnection()) {
             String key = keyRaw == null ? null : keyRaw.trim();

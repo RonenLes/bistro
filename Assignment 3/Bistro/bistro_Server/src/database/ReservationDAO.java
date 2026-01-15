@@ -66,7 +66,7 @@ public class ReservationDAO {
 	        ") slots " +
 	        "JOIN reservation r2 ON r2.reservationDate = slots.reservationDate " +
 	        "AND r2.allocatedCapacity <= ? " +
-	        "AND r2.status IN ('NEW','CONFIRMED') " +
+	        "AND r2.status = 'CONFIRMED' " +
 	        "AND (slots.startTime < ADDTIME(r2.startTime, '02:00:00') " +
 	        "AND ADDTIME(slots.startTime, '02:00:00') > r2.startTime) " +
 	        "GROUP BY slots.reservationDate, slots.startTime " +

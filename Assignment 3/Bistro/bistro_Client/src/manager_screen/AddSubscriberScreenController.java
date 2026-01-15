@@ -11,6 +11,7 @@ import requests.ManagerRequest;
 import requests.ManagerRequest.ManagerCommand;
 import responses.ManagerResponse;
 import responses.ManagerResponse.ManagerResponseCommand;
+import desktop_screen.DesktopScreenController;
 
 public class AddSubscriberScreenController implements ClientControllerAware {
 
@@ -22,20 +23,23 @@ public class AddSubscriberScreenController implements ClientControllerAware {
     @FXML private ComboBox<String> roleComboBox;
 
     private ClientController clientController;
+    private DesktopScreenController.Role requesterRole;
     private boolean connected;
     
     @FXML
-    private void initialize() {
-        if (roleComboBox != null) {
-            roleComboBox.setItems(FXCollections.observableArrayList("SUBSCRIBER", "REPRESENTATIVE", "MANAGER"));
-            roleComboBox.getSelectionModel().select("SUBSCRIBER");
-        }
+    private void initialize() {   	
+    	 configureRoleOptions();
     }
 
     @Override
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
+    }
+    
+    public void setRequesterRole(DesktopScreenController.Role requesterRole) {
+        this.requesterRole = requesterRole;
+        configureRoleOptions();
     }
 
     @FXML
@@ -100,6 +104,23 @@ public class AddSubscriberScreenController implements ClientControllerAware {
         if (emailField != null) emailField.clear();
         if (roleComboBox != null) roleComboBox.getSelectionModel().select("SUBSCRIBER");
     }
+    
+    private void configureRoleOptions() {
+        if (roleComboBox == null) return;
+
+        boolean subscriberOnly = requesterRole == DesktopScreenController.Role.REP;
+        if (subscriberOnly) {
+            roleComboBox.setItems(FXCollections.observableArrayList("SUBSCRIBER"));
+            roleComboBox.getSelectionModel().select("SUBSCRIBER");
+            roleComboBox.setDisable(true);
+        } else {
+            roleComboBox.setItems(FXCollections.observableArrayList("SUBSCRIBER", "REPRESENTATIVE", "MANAGER"));
+            roleComboBox.getSelectionModel().select("SUBSCRIBER");
+            roleComboBox.setDisable(false);
+        }
+    }
+
+
 
     private String getValue(TextField field) {
         if (field == null || field.getText() == null) return "";

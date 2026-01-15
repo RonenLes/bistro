@@ -195,7 +195,8 @@ public class DesktopScreenController implements ClientUIHandler {
         selectDefaultForRole(); // pick default screen for this role
         
         if (this.role == Role.SUBSCRIBER && clientController != null)  clientController.requestUpcomingReservations();                   
-        if (historyVC != null) historyVC.setUserContext(this.role, buildDiscountInfo());                   
+        if (historyVC != null) historyVC.setUserContext(this.role, buildDiscountInfo());
+        if (addSubscriberVC != null) addSubscriberVC.setRequesterRole(this.role);
     }
 
     public void setWelcomeName(String name) {
@@ -399,7 +400,10 @@ public class DesktopScreenController implements ClientUIHandler {
                 startCtrl.setOnCancel(this::openManagerReservations);
             }
             if (ctrl instanceof ShowDataScreenController sdc) showDataVC = sdc;
-            if (ctrl instanceof AddSubscriberScreenController asc) addSubscriberVC = asc;
+            if (ctrl instanceof AddSubscriberScreenController asc) {
+                addSubscriberVC = asc;
+                addSubscriberVC.setRequesterRole(role);
+            }
             if (ctrl instanceof SubscribersScreenController ssc) subscribersVC = ssc;
             if (ctrl instanceof SubscriberMainScreenController smc) {
                 subscriberMainVC = smc;

@@ -249,16 +249,13 @@ public class ManagementControl {
 	    try {
 	        conn = DBManager.getConnection();
 	        conn.setAutoCommit(false);
-	        System.out.println("[DEACTIVATE] conn works");
+	        
 	        Integer cap = validateTableCanBeDeactivated(conn, tableNumber);
 	        if (cap == null) safeRollback(conn, "Table not found (or already inactive)");
-	        System.out.println("[DEACTIVATE] cap=" + cap);
-	        		            
+	        	        		            
 	        int newTotal = computeNewTotalAfterDeactivation(conn, cap, tableNumber);
 	        if (newTotal == -1) safeRollback(conn, "Cannot deactivate the last active table of capacity " + cap);
-	        System.out.println("[DEACTIVATE] newTotal=" + newTotal);
-	        
-	        System.out.println("[DEACTIVATE] calling cancelVictims...");   
+	        	        	           
 	        cancelVictimsForOverbookedSlots(conn, cap, newTotal, cancelledReservation, victimContacts);
 	        
 	        System.out.println("[DEACTIVATE] deactivating table...");
@@ -267,8 +264,7 @@ public class ManagementControl {
 
 	        conn.commit();
 
-	    } catch (Exception e) {
-	    	System.out.println("[DEACTIVATE] FAILED HERE: " + e);
+	    } catch (Exception e) {	    	
 	        e.printStackTrace();
 	        safeRollback(conn, "DB error: " + e.getMessage());
 	        return new Response<>(false, "Deactivate failed: " + e.getMessage(), null);	        

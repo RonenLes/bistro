@@ -68,7 +68,7 @@ public class BillingControl {
 		        }
 		        Bill existingBill = billDAO.getOpenBillBySeatingId(conn, seatingId);
 		        if(existingBill!=null) {
-		        	BillResponse br = new BillResponse(BillResponseType.ANSWER_TO_REQUEST_TO_SEE_BILL,existingBill.getBillID(),true);
+		        	BillResponse br = new BillResponse(BillResponseType.ANSWER_TO_REQUEST_TO_SEE_BILL,existingBill.getTotalPrice(),true);
 		        	return successResponse("Here is your bill", br);
 		        }
 		        

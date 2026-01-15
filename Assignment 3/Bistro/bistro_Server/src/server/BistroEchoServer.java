@@ -155,7 +155,7 @@ public class BistroEchoServer extends AbstractServer {
 	    try {
 	        Object decoded = msg;
 	        if (msg instanceof byte[] bytes)  decoded = KryoUtil.deserialize(bytes);	
-	        System.out.println("SERVER decoded request ");
+	        
 	                
 
 	        if (!(decoded instanceof Request<?> request)) {response = new Response<>(false, "Invalid request type", null);}
@@ -166,7 +166,7 @@ public class BistroEchoServer extends AbstractServer {
 
 	                case USER_REQUEST -> {
 	                	LoginRequest loginReq = (LoginRequest) request.getData();
-	                    Response<LoginResponse> loginResp = userControl.handleUserRequest(loginReq);
+	                    Response<LoginResponse> loginResp = userControl.handleUserRequest(loginReq);	                    
 	                    response = handleLoginWithManagerGate(client, loginReq, loginResp);
 	                    if (loginReq != null && loginReq.getUserCommand() == LoginRequest.UserCommand.LOGIN_REQUEST) {
 	                        if (session == null) {

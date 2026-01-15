@@ -37,12 +37,10 @@ public class TerminalPayBillController implements ClientControllerAware {
                 return change;
             }));
         }
-    	if (billItemsList != null) {
-            billItemsList.getItems().setAll("Bill will appear here...");
-        }
-        if (payBtn != null) {
-            payBtn.setDisable(true);
-        }
+    	if (billItemsList != null)  billItemsList.getItems().setAll("Bill will appear here...");
+                  
+        if (payBtn != null) payBtn.setDisable(true);
+                    
         setStatus("",false);
     }
 

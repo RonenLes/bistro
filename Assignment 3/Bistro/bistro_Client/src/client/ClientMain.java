@@ -45,13 +45,13 @@ public class ClientMain {
 			 System.out.println(host);
 			
 		}catch(Exception e) {
-			// silently fail - host will remain null
+			System.out.println("error loading");
 		}
 	}
 
     // main entry point: sets up networking, controller, and launches UI
     public static void main(String[] args) {
-
+    	loadServerDetails();
         // config connection
         //String host = "localhost";
         int port = 5555;

@@ -55,7 +55,7 @@ public class ClientMain {
         // config connection
         //String host = "localhost";
         int port = 5555;
-
+        loadServerDetails();
         // networking
         // create OCSF client (does not connect yet)
         BistroEchoClient echoClient = new BistroEchoClient(host, port);

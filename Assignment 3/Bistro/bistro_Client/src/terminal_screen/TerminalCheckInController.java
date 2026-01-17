@@ -8,8 +8,20 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.control.TextInputDialog;
 
-// terminal view for checking in customers with reservations
-// accepts confirmation code or user ID
+/**
+ * JavaFX controller for a terminal screen that performs reservation check-in.
+ * <p>
+ * Supports two check-in flows:
+ * <ul>
+ *   <li>Check-in by confirmation code (entered directly)</li>
+ *   <li>Check-in by subscriber user ID (resolves the confirmation code from the server, then checks in)</li>
+ * </ul>
+ * </p>
+ * <p>
+ * When connected, the controller sends requests through {@link ClientController}.
+ * When offline (not connected or missing controller), it shows an "Offline Mode" message instead of sending requests.
+ * </p>
+ */
 public class TerminalCheckInController implements ClientControllerAware {
 
     @FXML private TextField reservationNumberField;
@@ -18,6 +30,13 @@ public class TerminalCheckInController implements ClientControllerAware {
     private ClientController clientController;
     private boolean connected;
 
+    /**
+     * JavaFX lifecycle callback invoked after the FXML fields are injected.
+     * <p>
+     * Applies a {@link TextFormatter} to restrict input to digits only and limits the input length.
+     * Initializes the status label.
+     * </p>
+     */
     @FXML
     private void initialize() {
         // restrict input to numeric only
@@ -32,17 +51,39 @@ public class TerminalCheckInController implements ClientControllerAware {
         setStatus("");
     }
 
+    /**
+     * Injects the {@link ClientController} used to communicate with the server and sets the current
+     * connection state.
+     *
+     * @param controller the application-level client controller used for server communication
+     * @param connected  {@code true} if connected to the server; {@code false} otherwise
+     */
     @Override
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
     }
 
+    /**
+     * UI handler that sends a check-in request using the confirmation code entered in {@link #reservationNumberField}.
+     * <p>
+     * Validation rules:
+     * <ul>
+     *   <li>Value must not be blank</li>
+     *   <li>Value is expected to be numeric (enforced by {@link TextFormatter})</li>
+     * </ul>
+     * </p>
+     * <p>
+     * If the client is not connected (or controller is missing), the method displays an offline message and returns.
+     * </p>
+     */
     @FXML
-    // sends check-in request with confirmation code
     private void onEnter() {
         String txt = reservationNumberField == null ? "" : reservationNumberField.getText().trim();
-        if (txt.isEmpty()) { setStatus("Enter reservation number."); return; }
+        if (txt.isEmpty()) {
+            setStatus("Enter reservation number.");
+            return;
+        }
 
         int confirmationCode = Integer.parseInt(txt);
 
@@ -52,13 +93,25 @@ public class TerminalCheckInController implements ClientControllerAware {
         }
 
         setStatus("Checking in...");
-        
         clientController.requestSeatingCheckInByConfirmationCode(confirmationCode);
     }
-    
+
+    /**
+     * UI handler for an alternative flow: check-in using subscriber user ID.
+     * <p>
+     * The method:
+     * <ol>
+     *   <li>Prompts the user to enter a subscriber user ID.</li>
+     *   <li>Requests the confirmation code from the server (lost-code flow).</li>
+     *   <li>Registers a callback listener to receive the resolved confirmation code.</li>
+     *   <li>When the code is received, fills the confirmation code field and triggers {@link #onEnter()}.</li>
+     * </ol>
+     * </p>
+     * <p>
+     * If not connected, the method displays an offline message and does not attempt resolution.
+     * </p>
+     */
     @FXML
-    // alternative flow: resolve confirmation code from user ID
-    // uses callback pattern to retrieve code from server
     private void onUseUserId() {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Use user ID");
@@ -93,8 +146,20 @@ public class TerminalCheckInController implements ClientControllerAware {
             clientController.requestLostCode(userId);
         });
     }
-    
-    // called by TerminalScreenController with server response
+
+    /**
+     * Handles a seating response returned from the server after a check-in request.
+     * <p>
+     * Expected behaviors (based on {@code response.getType()}):
+     * <ul>
+     *   <li>{@code CUSTOMER_CHECKED_IN}: shows a success message, including table number/capacity if provided</li>
+     *   <li>{@code CUSTOMER_IN_WAITINGLIST}: indicates no table was available and the customer was added to waiting list</li>
+     * </ul>
+     * For any other type, an "Unknown seating response" message is shown.
+     * </p>
+     *
+     * @param response seating response received from the server; may be {@code null}
+     */
     public void handleSeatingResponse(responses.SeatingResponse response) {
         if (response == null) {
             setStatus("Unexpected: empty seating response.");
@@ -119,6 +184,11 @@ public class TerminalCheckInController implements ClientControllerAware {
         }
     }
 
+    /**
+     * Updates the status label displayed on the screen.
+     *
+     * @param msg message to show; if {@code null}, an empty string is displayed
+     */
     private void setStatus(String msg) {
         if (statusLabel != null) statusLabel.setText(msg == null ? "" : msg);
     }

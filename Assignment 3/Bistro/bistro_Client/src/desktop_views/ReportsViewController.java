@@ -19,26 +19,47 @@ import java.time.Year;
 import java.time.YearMonth;
 import java.util.List;
 
-// generates analytics reports with line charts
-// time chart: arrival/departure patterns by hour
-// daily chart: reservations and waiting list by day of month
-// manager-only feature
+/**
+ * Controller for generating and displaying analytics reports for managers.
+ * <p>
+ * Produces two line charts based on {@link ReportResponse} data:
+ * <ul>
+ *   <li><b>Time chart</b>: arrivals and departures by hour (within restaurant operating hours).</li>
+ *   <li><b>Daily chart</b>: reservations and waiting-list counts by day of the selected month.</li>
+ * </ul>
+ * <p>
+ * The screen allows selecting a year and month, then sends a report request to the server.
+ * <p>
+ * Implements {@link ClientControllerAware} to receive a {@link ClientController} reference and connection status
+ * from the parent desktop shell.
+ */
 public class ReportsViewController implements ClientControllerAware {
 
+    /** Year selector used for report generation. */
     @FXML private ComboBox<Integer> yearPicker;
+    /** Month selector used for report generation (month name strings). */
     @FXML private ComboBox<String> monthPicker;
+    /** Status/info label displayed to the user. */
     @FXML private Label infoLabel;
 
-    // containers for dynamically generated charts
+    /** Host pane for the generated time-based line chart (arrivals/departures by hour). */
     @FXML private Pane timeChartHost;
+    /** Host pane for the generated daily line chart (reservations/waiting list by day). */
     @FXML private Pane dailyChartHost;
 
+    /** Reference to the client controller used for server communication (injected by parent shell). */
     private ClientController clientController;
+    /** Indicates whether the client is currently connected to the server (injected by parent shell). */
     private boolean connected;
 
+    /**
+     * Initializes the view after FXML injection.
+     * <p>
+     * Called automatically by JavaFX once {@code @FXML} fields are injected.
+     * Populates month and year pickers and sets an initial instruction message.
+     */
     @FXML
     private void initialize() {
-        // months
         if (monthPicker != null) {
             monthPicker.getItems().addAll(
                     "January", "February", "March", "April",
@@ -47,24 +68,34 @@ public class ReportsViewController implements ClientControllerAware {
             );
         }
 
-        // years (tune the range however you like)
         if (yearPicker != null) {
             int y = Year.now().getValue();
             yearPicker.getItems().addAll(y - 3, y - 2, y - 1, y, y + 1);
-            yearPicker.setValue(y); // default current year
+            yearPicker.setValue(y);
         }
 
         setInfo("Select year + month and generate report.");
     }
 
+    /**
+     * Injects the {@link ClientController} reference and connection status into this view controller.
+     *
+     * @param controller the client controller used to communicate with the server
+     * @param connected  whether the client is currently connected to the server
+     */
     @Override
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
     }
 
+    /**
+     * Button handler: sends a report request for the selected year and month.
+     * <p>
+     * Validates selections, converts the selected month name to a {@link Month},
+     * builds a {@link YearMonth}, and sends a request to the server via {@link ClientController}.
+     */
     @FXML
-    // sends report request to server for selected year/month
     private void onGenerate() {
         if (clientController == null || !connected) {
             setInfo("Not connected to server.");
@@ -91,7 +122,6 @@ public class ReportsViewController implements ClientControllerAware {
 
         YearMonth ym = YearMonth.of(year, m);
 
-        // send report request to server
         requests.ReportRequest payload = new requests.ReportRequest(ym);
         requests.Request<requests.ReportRequest> req =
                 new requests.Request<>(requests.Request.Command.REPORT_REQUEST, payload);
@@ -100,6 +130,12 @@ public class ReportsViewController implements ClientControllerAware {
         setInfo("Requesting reports for " + ym + "...");
     }
 
+    /**
+     * Maps a month name string (as used in {@link #monthPicker}) to {@link Month}.
+     *
+     * @param monthName month name string (e.g., "January")
+     * @return matching {@link Month}, or {@code null} if the input is not recognized
+     */
     private Month parseMonth(String monthName) {
         return switch (monthName) {
             case "January" -> Month.JANUARY;
@@ -118,8 +154,13 @@ public class ReportsViewController implements ClientControllerAware {
         };
     }
 
-    // callback from DesktopScreenController with report data
-    // renders both charts on JavaFX thread
+    /**
+     * Callback invoked by the desktop shell when report data is received.
+     * <p>
+     * Renders both charts on the JavaFX application thread using {@link Platform#runLater(Runnable)}.
+     *
+     * @param report report response payload; if {@code null}, an informational message is shown and no charts are rendered
+     */
     public void onReportResponse(ReportResponse report) {
         if (report == null) {
             setInfo("Empty report response.");
@@ -137,16 +178,26 @@ public class ReportsViewController implements ClientControllerAware {
         });
     }
 
-    // generates line chart showing arrivals and departures by hour
+    /**
+     * Renders a line chart showing arrivals and departures per hour.
+     * <p>
+     * Input is a list of visit intervals where each entry is expected to be a {@code LocalDateTime[2]}
+     * containing:
+     * <ul>
+     *   <li>index 0: arrival/check-in time</li>
+     *   <li>index 1: departure/check-out time</li>
+     * </ul>
+     * Hours outside the defined operating hours are ignored.
+     *
+     * @param visits list of visit intervals; may be {@code null}
+     */
     private void renderTimeChart(List<LocalDateTime[]> visits) {
         if (timeChartHost == null) return;
 
-        // restaurant operating hours
         final int openFrom = 10;
         final int openTo = 23;
         final int len = openTo - openFrom + 1;
 
-        // count arrivals and departures per hour
         int[] arrivals = new int[len];
         int[] departures = new int[len];
 
@@ -190,18 +241,15 @@ public class ReportsViewController implements ClientControllerAware {
         }
 
         chart.getData().setAll(sArr, sDep);
-     
+
         chart.applyCss();
         chart.layout();
 
-        
         sArr.getNode().lookup(".chart-series-line")
                 .setStyle("-fx-stroke: #2ecc71; -fx-stroke-width: 3px;");
 
-       
         sDep.getNode().lookup(".chart-series-line")
                 .setStyle("-fx-stroke: #e74c3c; -fx-stroke-width: 3px;");
-
 
         chart.prefWidthProperty().bind(timeChartHost.widthProperty());
         chart.prefHeightProperty().bind(timeChartHost.heightProperty());
@@ -209,7 +257,19 @@ public class ReportsViewController implements ClientControllerAware {
         timeChartHost.getChildren().setAll(chart);
     }
 
-    // generates line chart showing daily reservations and waiting list counts
+    /**
+     * Renders a line chart showing daily reservations and waiting-list counts for a month.
+     * <p>
+     * The {@code dailyCounts} matrix is interpreted by day index (0-based):
+     * <ul>
+     *   <li>{@code dailyCounts[dayIndex][0]}: reservations count</li>
+     *   <li>{@code dailyCounts[dayIndex][1]}: waiting list count</li>
+     * </ul>
+     * Missing/null values are treated as zero.
+     *
+     * @param monthKey     a {@link YearMonth} parseable string (used only to determine number of days); may be invalid
+     * @param dailyCounts  per-day counts matrix; may be {@code null}
+     */
     private void renderDailyChart(String monthKey, Integer[][] dailyCounts) {
         if (dailyChartHost == null) return;
 
@@ -217,7 +277,7 @@ public class ReportsViewController implements ClientControllerAware {
         try {
             daysInMonth = YearMonth.parse(monthKey).lengthOfMonth();
         } catch (Exception e) {
-            daysInMonth = 31; // fallback
+            daysInMonth = 31;
         }
 
         CategoryAxis xAxis = new CategoryAxis();
@@ -234,10 +294,10 @@ public class ReportsViewController implements ClientControllerAware {
 
         XYChart.Series<String, Number> sRes = new XYChart.Series<>();
         sRes.setName("Reservations");
-        
+
         XYChart.Series<String, Number> sWait = new XYChart.Series<>();
-        
         sWait.setName("Waiting List");
+
         for (int day = 1; day <= daysInMonth; day++) {
             int i = day - 1;
 
@@ -264,6 +324,11 @@ public class ReportsViewController implements ClientControllerAware {
         dailyChartHost.getChildren().setAll(chart);
     }
 
+    /**
+     * Sets the informational text displayed to the user.
+     *
+     * @param msg the message to display; may be {@code null}
+     */
     private void setInfo(String msg) {
         if (infoLabel != null) infoLabel.setText(msg == null ? "" : msg);
     }

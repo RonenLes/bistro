@@ -15,31 +15,54 @@ import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 
 /**
- * Shared UI builder for reservation slot tiles (availability + suggestions).
- * Used by both ReservationsViewController and EditReservationViewController.
+ * Shared UI helper for rendering reservation slot buttons (availability and suggestions).
+ * <p>
+ * This class is used by both {@code ReservationsViewController} and {@code EditReservationViewController}
+ * to build time-slot tiles into a {@link TilePane}. It supports:
+ * <ul>
+ *   <li>Non-selectable mode: clicking a slot immediately triggers an action callback.</li>
+ *   <li>Selectable mode: clicking a slot updates an internal selection state and adds a CSS marker class.</li>
+ * </ul>
+ * <p>
+ * Selection behavior (selectable mode):
+ * <ul>
+ *   <li>Tracks {@link #selectedDate} and {@link #selectedTime}.</li>
+ *   <li>Adds/removes CSS class {@code "slot-selected"} on the currently selected {@link Button}.</li>
+ *   <li>Still calls {@code onPick} whenever a slot is clicked.</li>
+ * </ul>
  */
-// utility class for rendering time slot buttons with selection tracking
-// supports both immediate action (reserve) and selection mode (edit reservation)
 public final class ReservationSlotsUI {
 
+    /** Time formatter used for slot labels (HH:mm). */
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
+    /** Short date formatter used for slot labels (dd/MM). */
     private static final DateTimeFormatter DATE_SHORT = DateTimeFormatter.ofPattern("dd/MM");
 
-    // UI containers passed from parent controller
+    /** Container where slot buttons are rendered. */
     private final TilePane slotsTile;
+    /** Label used to display informational messages near the slot area. */
     private final Label slotInfoLabel;
 
-    // slot button dimensions
+    /** Preferred slot button width. */
     private final double slotWidth;
+    /** Preferred slot button height. */
     private final double slotHeight;
 
-    // selection state for slot tiles
-    // tracks which slot is currently selected (for edit mode)
+    /** Currently selected slot button (selectable mode). */
     private Button selectedButton;
+    /** Currently selected slot date (selectable mode). */
     private LocalDate selectedDate;
+    /** Currently selected slot time (selectable mode). */
     private LocalTime selectedTime;
 
-    // constructor: receives UI containers and slot dimensions from parent
+    /**
+     * Creates a new slot UI helper.
+     *
+     * @param slotsTile     tile container where slot buttons should be rendered
+     * @param slotInfoLabel label used to show informational text to the user
+     * @param slotWidth     preferred width for each slot button
+     * @param slotHeight    preferred height for each slot button
+     */
     public ReservationSlotsUI(TilePane slotsTile, Label slotInfoLabel, double slotWidth, double slotHeight) {
         this.slotsTile = slotsTile;
         this.slotInfoLabel = slotInfoLabel;
@@ -47,19 +70,28 @@ public final class ReservationSlotsUI {
         this.slotHeight = slotHeight;
     }
 
-    // removes all slot buttons and clears selection
+    /**
+     * Clears all rendered slot buttons and resets informational text and selection state.
+     */
     public void clear() {
         if (slotsTile != null) slotsTile.getChildren().clear();
         if (slotInfoLabel != null) slotInfoLabel.setText("");
         clearSelection();
     }
 
-    // displays info message to user
+    /**
+     * Displays an informational message to the user.
+     *
+     * @param msg message to display; if {@code null}, an empty string is shown
+     */
     public void info(String msg) {
         if (slotInfoLabel != null) slotInfoLabel.setText(msg == null ? "" : msg);
     }
 
-    // clears currently selected slot and removes visual indicator
+    /**
+     * Clears the current selection (selectable mode) and removes the {@code "slot-selected"} CSS class
+     * from the previously selected button.
+     */
     public void clearSelection() {
         if (selectedButton != null) {
             selectedButton.getStyleClass().remove("slot-selected");
@@ -69,33 +101,59 @@ public final class ReservationSlotsUI {
         selectedTime = null;
     }
 
+    /**
+     * Returns the currently selected date (selectable mode).
+     *
+     * @return selected date, or {@code null} if nothing is selected
+     */
     public LocalDate getSelectedDate() {
         return selectedDate;
     }
 
+    /**
+     * Returns the currently selected time (selectable mode).
+     *
+     * @return selected time, or {@code null} if nothing is selected
+     */
     public LocalTime getSelectedTime() {
         return selectedTime;
     }
 
+    /**
+     * Indicates whether a slot is currently selected (selectable mode).
+     *
+     * @return {@code true} if both selected date and time are set; otherwise {@code false}
+     */
     public boolean hasSelection() {
         return selectedDate != null && selectedTime != null;
     }
 
+    /**
+     * Renders available time slots for a specific date (non-selectable variant).
+     * <p>
+     * Each rendered button triggers {@code onPick} when clicked.
+     * Slots can be filtered out using {@code exclude}.
+     *
+     * @param selectedDate   date to associate with all provided {@code availableTimes}
+     * @param availableTimes list of available times to display; may be {@code null}
+     * @param exclude        predicate to skip rendering a specific (date,time) slot; may be {@code null}
+     * @param onPick         callback invoked when the user clicks a slot; may be {@code null}
+     */
     public void renderAvailability(
             LocalDate selectedDate,
             List<LocalTime> availableTimes,
             BiPredicate<LocalDate, LocalTime> exclude,
             BiConsumer<LocalDate, LocalTime> onPick
     ) {
-    	if (slotsTile == null) return;
+        if (slotsTile == null) return;
 
-    	slotsTile.getChildren().clear();
-    	clearSelection();
+        slotsTile.getChildren().clear();
+        clearSelection();
 
-    	if (selectedDate == null) {
-    	    info("Select a date to see available times.");
-    	    return;
-    	}
+        if (selectedDate == null) {
+            info("Select a date to see available times.");
+            return;
+        }
 
         if (slotsTile == null) return;
 
@@ -112,6 +170,15 @@ public final class ReservationSlotsUI {
         if (!addedAny) info("No available times for this date.");
     }
 
+    /**
+     * Renders suggested alternative slots across multiple dates (non-selectable variant).
+     * <p>
+     * Suggested dates are rendered in sorted date order. Each slot triggers {@code onPick} when clicked.
+     *
+     * @param suggestedDates map of suggested dates to their available times; may be {@code null} or empty
+     * @param exclude        predicate to skip rendering a specific (date,time) slot; may be {@code null}
+     * @param onPick         callback invoked when the user clicks a slot; may be {@code null}
+     */
     public void renderSuggestions(
             Map<LocalDate, List<LocalTime>> suggestedDates,
             BiPredicate<LocalDate, LocalTime> exclude,
@@ -138,13 +205,20 @@ public final class ReservationSlotsUI {
     }
 
     /**
-     * Selectable variant
-     * - keeps an internal selected slot
-     * - adds a css marker class "slot-selected"
-     * - triggers a single onPick callback when selection changes
+     * Renders available time slots for a specific date (selectable variant).
+     * <p>
+     * In selectable mode, clicking a slot:
+     * <ul>
+     *   <li>Updates internal selection state ({@link #selectedDate}, {@link #selectedTime}).</li>
+     *   <li>Adds CSS class {@code "slot-selected"} to the chosen button and removes it from the previous one.</li>
+     *   <li>Invokes {@code onPick} callback.</li>
+     * </ul>
+     *
+     * @param selectedDate   date to associate with all provided {@code availableTimes}
+     * @param availableTimes list of available times to display; may be {@code null}
+     * @param exclude        predicate to skip rendering a specific (date,time) slot; may be {@code null}
+     * @param onPick         callback invoked when the user selects a slot; may be {@code null}
      */
-    // renders slots for edit mode where user must select before confirming
-    // tracks selection state and highlights selected button
     public void renderAvailabilitySelectable(
             LocalDate selectedDate,
             List<LocalTime> availableTimes,
@@ -167,12 +241,15 @@ public final class ReservationSlotsUI {
     }
 
     /**
-     * Selectable variant for suggestions
-     * - allows selecting suggested date + time
-     * - keeps an internal selected slot
+     * Renders suggested alternative slots across multiple dates (selectable variant).
+     * <p>
+     * In selectable mode, clicking a slot updates the internal selection and applies the {@code "slot-selected"}
+     * CSS class, then triggers {@code onPick}.
+     *
+     * @param suggestedDates map of suggested dates to their available times; may be {@code null} or empty
+     * @param exclude        predicate to skip rendering a specific (date,time) slot; may be {@code null}
+     * @param onPick         callback invoked when the user selects a slot; may be {@code null}
      */
-    // renders suggested alternative dates/times in selection mode
-    // used when requested date has no availability
     public void renderSuggestionsSelectable(
             Map<LocalDate, List<LocalTime>> suggestedDates,
             BiPredicate<LocalDate, LocalTime> exclude,
@@ -198,6 +275,16 @@ public final class ReservationSlotsUI {
         if (!addedAny.get()) info("No alternative suggestions available.");
     }
 
+    /**
+     * Creates a single slot button with consistent styling and click handling.
+     *
+     * @param date       slot date (may be {@code null} to display time only)
+     * @param time       slot time (must not be {@code null} for meaningful display)
+     * @param styleClass base style class to apply (e.g., "ghost" or "primary")
+     * @param onPick     callback invoked when the button is clicked; may be {@code null}
+     * @param selectable whether clicking the button should update internal selection state
+     * @return a configured {@link Button} instance
+     */
     private Button createSlotButton(
             LocalDate date,
             LocalTime time,
@@ -205,9 +292,9 @@ public final class ReservationSlotsUI {
             BiConsumer<LocalDate, LocalTime> onPick,
             boolean selectable
     ) {
-    	String text = date == null
-    	        ? time.format(TIME_FMT)
-    	        : time.format(TIME_FMT) + "\n" + date.format(DATE_SHORT);
+        String text = date == null
+                ? time.format(TIME_FMT)
+                : time.format(TIME_FMT) + "\n" + date.format(DATE_SHORT);
         Button btn = new Button(text);
 
         btn.getStyleClass().addAll(styleClass, "slot-btn");
@@ -225,6 +312,15 @@ public final class ReservationSlotsUI {
         return btn;
     }
 
+    /**
+     * Applies selection styling and stores the selected date/time.
+     * <p>
+     * Removes {@code "slot-selected"} from the previously selected button, then applies it to {@code btn}.
+     *
+     * @param btn  the button that was selected
+     * @param date the selected slot date
+     * @param time the selected slot time
+     */
     private void applySelection(Button btn, LocalDate date, LocalTime time) {
         if (btn == null) return;
 

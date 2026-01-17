@@ -8,25 +8,62 @@ import javafx.scene.control.ToggleGroup;
 
 import java.util.function.BiConsumer;
 
-// first step of manager reservation flow
-// allows manager to choose whether reservation is for subscriber or guest
-// validates input and passes data to next step via callbacks
+/**
+ * JavaFX controller for the first step in the manager reservation flow.
+ * <p>
+ * Allows a manager to choose whether a reservation should be created for:
+ * <ul>
+ *   <li>a subscriber (by entering a subscriber/user ID), or</li>
+ *   <li>a guest (by entering guest contact information).</li>
+ * </ul>
+ * <p>
+ * This controller does not perform server requests. It validates the local input and forwards the
+ * chosen identity to the next step using callbacks.
+ */
 public class ManagerReservationStartScreenController {
 
+    /** Radio button for selecting "subscriber reservation". */
     @FXML private RadioButton subscriberRadio;
+
+    /** Radio button for selecting "guest reservation". */
     @FXML private RadioButton guestRadio;
+
+    /** Toggle group that enforces a single choice between subscriber/guest. */
     @FXML private ToggleGroup reservationTargetGroup;
+
+    /** Input field for subscriber/user ID (enabled when subscriber is selected). */
     @FXML private TextField userIdField;
+
+    /** Input field for guest contact (enabled when guest is selected). */
     @FXML private TextField guestContactField;
+
+    /** Label used for validation feedback and informational messages. */
     @FXML private Label infoLabel;
 
-    // callback to pass selected user/guest data to next step
+    /**
+     * Callback invoked when the user presses "Continue" and the input is valid.
+     * <p>
+     * The callback receives two values:
+     * <ul>
+     *   <li>subscriber user ID (non-null only when subscriber was selected)</li>
+     *   <li>guest contact (non-null only when guest was selected)</li>
+     * </ul>
+     */
     private BiConsumer<String, String> onContinue;
-    // callback to cancel and return to previous screen
+
+    /**
+     * Callback invoked when the user cancels this step (e.g., presses "Back" / "Cancel").
+     * Provided by the parent controller to navigate away.
+     */
     private Runnable onCancel;
 
+    /**
+     * Initializes the view after FXML injection.
+     * <p>
+     * Sets default selection to subscriber and wires a listener to toggle the input fields
+     * based on the selected radio button.
+     */
     @FXML
-    // sets up radio button listener to toggle field visibility
     private void initialize() {
         if (reservationTargetGroup != null && subscriberRadio != null) {
             subscriberRadio.setSelected(true);
@@ -35,18 +72,35 @@ public class ManagerReservationStartScreenController {
         }
     }
 
-    // sets callback for continue button
+    /**
+     * Sets the callback that is invoked when the user proceeds to the next step successfully.
+     *
+     * @param onContinue callback receiving (userId, guestContact). One of them will be {@code null}
+     *                   depending on the selected reservation target.
+     */
     public void setOnContinue(BiConsumer<String, String> onContinue) {
         this.onContinue = onContinue;
     }
 
-    // sets callback for cancel button
+    /**
+     * Sets the callback that is invoked when the user cancels this step.
+     *
+     * @param onCancel callback to run (may be {@code null})
+     */
     public void setOnCancel(Runnable onCancel) {
         this.onCancel = onCancel;
     }
 
+    /**
+     * Button handler that validates input and forwards the chosen reservation target to the next step.
+     * <p>
+     * Validation rules:
+     * <ul>
+     *   <li>If subscriber is selected: user ID must be provided.</li>
+     *   <li>If guest is selected: guest contact must be provided.</li>
+     * </ul>
+     */
     @FXML
-    // validates input and invokes callback with user ID or guest contact
     private void onContinue() {
         boolean isSubscriber = subscriberRadio != null && subscriberRadio.isSelected();
         boolean isGuest = guestRadio != null && guestRadio.isSelected();
@@ -70,23 +124,30 @@ public class ManagerReservationStartScreenController {
             return;
         }
 
-        // pass selected data to next step
         if (onContinue != null) {
             onContinue.accept(isSubscriber ? userId : null, isGuest ? guestContact : null);
         }
     }
 
+    /**
+     * Button handler that cancels this step and returns control to the parent controller.
+     */
     @FXML
-    // invokes cancel callback to return to previous screen
     private void onCancel() {
         if (onCancel != null) {
             onCancel.run();
         }
     }
 
-    // shows appropriate field based on selected radio button
+    /**
+     * Updates which input field is visible and enabled according to the selected reservation target.
+     * <p>
+     * When subscriber is selected: enables userIdField and hides guestContactField.
+     * When guest is selected: enables guestContactField and hides userIdField.
+     */
     private void updateTargetFields() {
         boolean isSubscriber = subscriberRadio != null && subscriberRadio.isSelected();
+
         if (userIdField != null) {
             userIdField.setDisable(!isSubscriber);
             userIdField.setManaged(isSubscriber);
@@ -95,6 +156,7 @@ public class ManagerReservationStartScreenController {
                 userIdField.clear();
             }
         }
+
         if (guestContactField != null) {
             guestContactField.setDisable(isSubscriber);
             guestContactField.setManaged(!isSubscriber);
@@ -105,7 +167,11 @@ public class ManagerReservationStartScreenController {
         }
     }
 
-    // updates info label
+    /**
+     * Updates the info label.
+     *
+     * @param msg message to display (null-safe)
+     */
     private void setInfo(String msg) {
         if (infoLabel != null) infoLabel.setText(msg == null ? "" : msg);
     }

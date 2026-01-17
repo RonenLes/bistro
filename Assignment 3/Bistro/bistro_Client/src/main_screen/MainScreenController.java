@@ -94,7 +94,7 @@ public class MainScreenController extends Application {
 
             Scene scene = new Scene(root);
 
-            var css = getClass().getResource("/styles/app.css");
+            var css = getClass().getResource("/styles/stylesheet.css");
             System.out.println("CSS url = " + css);
             if (css != null) scene.getStylesheets().add(css.toExternalForm());
             stage.setScene(scene);

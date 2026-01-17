@@ -1,0 +1,4 @@
+1)open bat with text file
+2)edit: cd /d "C:\xxxx\xxxxx\xxxx\bistro server" change to the directory of the jar
+3)set FX_HOME=C:\xxxx\xxxx\xxxx\bistro server\javafx-sdk-25.0.1 change the directory to the javaFX folder that is in the same directory of the jar
+

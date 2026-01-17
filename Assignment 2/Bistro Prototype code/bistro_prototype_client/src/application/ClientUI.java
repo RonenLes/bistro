@@ -1,0 +1,120 @@
+package application;
+
+import controllers.ClientController;
+import gui.MainScreenController;
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.stage.Stage;
+import responses.*;
+
+public class ClientUI extends Application {
+
+    private static ClientController controller;
+    private static boolean isConnected;
+    private static ClientUI instance;
+
+    public static void startUI(ClientController c, boolean connected) {
+        controller = c;
+        isConnected = connected;
+        launch();
+    }
+
+    @Override
+    public void start(Stage stage) {
+        instance = this;
+
+        try {
+            
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/gui/MainScreen.fxml"));
+            Parent root = loader.load();
+
+            
+            MainScreenController mainController = loader.getController();
+            mainController.setClientController(controller);
+
+            Scene scene = new Scene(root);
+            stage.setScene(scene);
+            stage.setTitle("Bistro Client");
+
+            stage.show();
+
+            // Show connection status popup
+            if (isConnected) {
+                showAlert("Connected",
+                        "Successfully connected to the Bistro server.",
+                        Alert.AlertType.INFORMATION);
+            } else {
+                showAlert("Connection Failed",
+                        "Cannot connect to the server.\nUI will open but actions may fail.",
+                        Alert.AlertType.ERROR);
+            }
+
+        } catch (Exception e) {            
+            showAlert("Fatal Error", "Failed to load main screen.", Alert.AlertType.ERROR);
+        }
+    }
+
+    
+    // RESPONSE HANDLERS (from ClientController)
+    public static void handleError(ErrorResponse res) {
+        showAlert("Error", res.toString(), Alert.AlertType.ERROR);
+    }
+
+    public static void handleShowData(ShowDataResponse res) {
+        Platform.runLater(() -> {
+
+            StringBuilder sb = new StringBuilder();
+
+            if (!res.getIsSuccess()) {
+                sb.append("Server Error:\n").append(res.toString());
+            }
+            else if (res.getReservationList() == null || res.getReservationList().isEmpty()) {
+                sb.append("No reservations found.");
+            }
+            else {
+                res.getReservationList().forEach(r -> sb.append(
+                        "Reservation ID: " + r.getReservationID() + "\n" +
+                        "Date: " + r.getReservationDate() + "\n" +
+                        "Guests: " + r.getNumberOfGuests() + "\n" +
+                        "Confirmation Code: " + r.getConfirmationCode() + "\n" +
+                        "Subscriber ID: " + r.getSubscriberId() + "\n" +
+                        "Placed On: " + r.getDateOfPlacingOrder() + "\n" +
+                        "------------------------------\n"
+                ));
+            }
+
+            // Show the data in an alert OR send it to ShowAll screen
+            showAlert("Reservations", sb.toString(), Alert.AlertType.INFORMATION);
+        });
+    }
+
+    public static void handleReservationResponse(ReservationResponse res) {
+        String msg;
+
+        if (res.getIsReservationSuccess()) {
+            msg = "Reservation created successfully.\n" +
+                  "Confirmation Code: " + res.getConfirmationCode() + "\n" +
+                  res.getMsg();
+            showAlert("Reservation Success", msg, Alert.AlertType.INFORMATION);
+        } else {
+            msg = "Failed to create reservation.\nReason: " + res.getMsg();
+            showAlert("Reservation Failed", msg, Alert.AlertType.ERROR);
+        }
+    }
+
+    
+    // SHARED ALERT POPUP FUNCTION
+    private static void showAlert(String title, String msg, Alert.AlertType type) {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(type);
+            alert.setTitle(title);
+            alert.setHeaderText(null);
+            alert.setContentText(msg);
+            alert.showAndWait();
+        });
+    }
+}

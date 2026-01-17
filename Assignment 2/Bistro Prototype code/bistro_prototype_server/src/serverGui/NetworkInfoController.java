@@ -1,0 +1,86 @@
+package serverGui;
+
+import java.io.IOException;
+
+import javafx.application.Platform;
+import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.stage.Stage;
+import server.BistroEchoServer;
+
+public class NetworkInfoController {
+
+    @FXML
+    private Label hostLabel;    
+
+    @FXML
+    private Label ipLabel;     
+
+    private BistroEchoServer server;
+    
+    @FXML
+    private Button btnStart;
+    
+    @FXML
+    private Label lblPort;
+    
+    @FXML
+    private Button btnExt;
+
+   
+    public void setServer(BistroEchoServer server) {
+        this.server = server;
+    }
+
+   
+    @FXML
+    private void initialize() {
+    	this.btnStart.setText("Start Server");
+    }
+    
+    @FXML
+    private void exitServerScreen(ActionEvent event) {
+        try {
+            if (server != null) {
+                server.stopListening();   
+                server.close();           
+                System.out.println("Server stopped and closed.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error closing server: " + e.getMessage());
+        }
+        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        try {
+			server.close();
+		} catch (IOException e) {
+			
+			System.err.println("failed to close server");
+		}
+        stage.close();
+        Platform.exit();
+        System.exit(0);
+    }
+    
+    @FXML
+    private void showConnectionInfo() {
+
+        if (server == null) {
+            hostLabel.setText("Server is not running");
+            ipLabel.setText("");
+            return;
+        }
+        String serverHost = server.getServerHostName();
+        String serverIp   = server.getServerIpAddress();
+        String clientIp = server.getLastClientIp();
+        Integer port = server.getPort();
+        String serverPort = port.toString();
+        this.lblPort.setText("Server Port: "+serverPort);
+        this.btnStart.setText("Show info");
+        hostLabel.setText("Server Host: " + serverHost + " (" + serverIp + ")");
+        ipLabel.setText("Client IP: " + clientIp);
+    }
+
+}

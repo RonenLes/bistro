@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
+
+<AnchorPane prefHeight="455.0" prefWidth="584.0"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="gui.EditReservationFormController">
+
+    <children>
+
+        <!-- Title Row -->
+        <HBox spacing="10" alignment="CENTER_LEFT" layoutX="40" layoutY="40">
+            <Label text="Enter Confirmation Code:" />
+            <TextArea fx:id="txtCode" prefWidth="200" prefHeight="40"/>
+            <Button fx:id="btnSearch" text="Search" onAction="#searchReservation"/>
+        </HBox>
+
+        <!-- Editable Fields (initially hidden by controller) -->
+        <VBox spacing="15" layoutX="150" layoutY="140" alignment="CENTER_LEFT">
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label fx:id="lblDate" text="Choose Date:"/>
+                <DatePicker fx:id="datePick" prefWidth="150"/>
+            </HBox>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label fx:id="lblGuest" text="Choose number of guests:"/>
+                <ComboBox fx:id="dinerPick" prefWidth="120"/>
+            </HBox>
+
+            <Button fx:id="btnSave" text="Save Changes"
+                    prefWidth="180" prefHeight="40"
+                    onAction="#saveChanges"/>
+        </VBox>
+
+        <!-- Back + Exit -->
+        <Button fx:id="btnBack" text="Back" layoutX="30" layoutY="400"
+                prefWidth="80" onAction="#backToMain"/>
+
+        <Button fx:id="btnExit" text="Exit" layoutX="470" layoutY="400"
+                prefWidth="80" onAction="#exit"/>
+
+    </children>
+
+</AnchorPane>

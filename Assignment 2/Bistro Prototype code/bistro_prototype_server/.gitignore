@@ -1,0 +1,8 @@
+# -------------------------------------
+# 1. SECRETS AND CONFIGURATION (Mandatory)
+# -------------------------------------
+# Exclude the file containing the DB password
+dbDetails.properties
+dbDetailsLaptop.properties
+*.env
+

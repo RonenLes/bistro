@@ -44,6 +44,9 @@ import responses.WaitingListResponse;
  */
 // acts as the single point of coordination between UI and network layers
 // enforces separation of concerns: UI never touches network, network never touches UI
+/**
+ * 
+ */
 public class ClientController {
 
     // network layer reference
@@ -67,7 +70,11 @@ public class ClientController {
 
     
     
-    // constructor: sets up client reference and registers all response handlers
+   
+    /**
+     *  constructor: sets up client reference and registers all response handlers
+     * @param client
+     */
     public ClientController(BistroEchoClient client) {
         this.client = client;
         registerResponseHandlers();
@@ -79,8 +86,12 @@ public class ClientController {
     	 this.ui = ui == null ? new NullClientUIHandler() : ui;
     }
     
-    //connected boolean
-    // used by UI to determine if server operations are available
+   
+    /**
+     * connected boolean
+     * used by UI to determine if server operations are available
+     * @return
+     */
     public boolean isConnected() {
         return connected;
     }
@@ -174,8 +185,11 @@ public class ClientController {
             
             
     
-    // maps each response class to its handler method
-    // called once during construction to set up routing table
+    
+    /**
+     * maps each response class to its handler method
+     * called once during construction to set up routing table
+     */
     private void registerResponseHandlers() {
         responseHandlers.put(LoginResponse.class, payload -> handleLoginResponse((LoginResponse) payload));
         responseHandlers.put(ReservationResponse.class, payload -> handleReservationResponse((ReservationResponse) payload));
@@ -195,13 +209,20 @@ public class ClientController {
         return response;
     }
     
-    // forwards waiting list cancellation result to UI
+    
+    /**
+     * forwards waiting list cancellation result to UI
+     * @param waitingListResponse - response from server
+     */
     private void handleWaitingListResponse(WaitingListResponse waitingListResponse) {
     	ui.onWaitingListCancellation(waitingListResponse);
     }
 
-    // handles list responses by checking lastUserCommand to determine context
-    // necessary because lists are generic and we need to know what was requested
+    /**
+     * handles list responses by checking lastUserCommand to determine context
+     * necessary because lists are generic and we need to know what was requested
+     * @param list
+     */
     private void handleListResponse(java.util.List<?> list) {
         if (list.isEmpty()) {
             // use lastUserCommand to route empty lists correctly
@@ -235,8 +256,12 @@ public class ClientController {
     }
     
     
-    // handles multiple login-related operations based on response command
-    // includes login, profile editing, history requests, etc.
+    
+    /**
+     * handles multiple login-related operations based on response command
+     * includes login, profile editing, history requests, etc.
+     * @param loginResponse
+     */
     private void handleLoginResponse(LoginResponse loginResponse) {
         switch (loginResponse.getResponseCommand()) {
             case LOGIN_RESPONSE -> {
@@ -288,7 +313,11 @@ public class ClientController {
     }
     
     
-    // handles reservation creation/modification responses
+    
+    /**
+     * handles reservation creation/modification responses
+     * @param reservationResponse- response from server
+     */
     private void handleReservationResponse(ReservationResponse reservationResponse) {
         // show confirmation code when reservation is successfully confirmed
         if (reservationResponse.getType() == ReservationResponse.ReservationResponseType.SECOND_PHASE_CONFIRMED) {
@@ -299,7 +328,11 @@ public class ClientController {
         ui.onReservationResponse(reservationResponse);
     }
     
-    // handles walk-in seating and check-in responses
+    
+    /**
+     * handles walk-in seating and check-in responses
+     * @param seatingResponse-response from server
+     */
     private void handleSeatingResponse(SeatingResponse seatingResponse) {
         if (seatingResponse.getType() == SeatingResponse.SeatingResponseType.CUSTOMER_CHECKED_IN) {
             // customer was seated at a table
@@ -315,18 +348,30 @@ public class ClientController {
         ui.onSeatingResponse(seatingResponse);
     }
 
-    // forwards report data to UI
+    
+    /**
+     * forwards report data to UI
+     * @param reportResponse-response from server
+     */
     private void handleReportResponse(ReportResponse reportResponse) {
         ui.onReportResponse(reportResponse);
     }
 
-    // forwards manager operation results to UI
+    
+    /**
+     * forwards manager operation results to UI
+     * @param managerResponse- response from server
+     */
     private void handleManagerResponse(ManagerResponse managerResponse) {
         ui.onManagerResponse(managerResponse);
     }
     
-    // handles lost confirmation code retrieval
-    // uses listener pattern for terminal screens
+
+    /**
+     * handles lost confirmation code retrieval
+     * uses listener pattern for terminal screens
+     * @param confirmationCode 
+     */
     private void handleLostCode(Integer confirmationCode) {
         if (lostCodeListener != null) lostCodeListener.accept(confirmationCode);                    
     }
@@ -388,7 +433,11 @@ public class ClientController {
 
         sendRequest(req);
     }
-    // requests analytics or operational reports from server
+    
+    /**
+     * requests analytics or operational reports from server
+     * @param reportRequest-request of client to see reports
+     */
     public void requestReports(ReportRequest reportRequest) {
         if (!connected) {
             safeUiWarning("Reports", "Not connected to server.");
@@ -420,7 +469,11 @@ public class ClientController {
         this.lostCodeListener = null;
     }
 
-    // retrieves lost reservation confirmation code by contact info
+    
+    /**
+     * retrieves lost reservation confirmation code by contact info
+     * @param contactRaw 
+     */
     public void requestLostCode(String contactRaw) {
         if (!connected) {
             safeUiWarning("Retrieve Code", "Not connected to server.");
@@ -439,11 +492,9 @@ public class ClientController {
     
     /**
      * Submits a login request for a subscriber.
-     * @param usernameRaw
-     * @param passwordRaw
+     * @param usernameRaw-user's username
+     * @param passwordRaw-user's password
      */
-    // validates credentials and sends login request to server
-    // stores username for session recovery
     public void requestLogin(String usernameRaw, String passwordRaw) {
         String username = usernameRaw == null ? "" : usernameRaw.trim();
         String password = passwordRaw == null ? "" : passwordRaw.trim();
@@ -587,7 +638,12 @@ public class ClientController {
         sendRequest(req);
     }
 
-    // updates subscriber's email and/or phone number
+    
+    /**
+     * updates subscriber's email and/or phone number
+     * @param emailRaw-updated email
+     * @param phoneRaw-updated phone
+     */
     public void requestEditDetails(String emailRaw, String phoneRaw) {
         if (!connected) {
             safeUiWarning("Subscriber Details", "Not connected to server.");
@@ -651,7 +707,11 @@ public class ClientController {
         sendRequest(req);
     }
     
-    // routes bill responses based on operation type
+    
+    /**
+     * routes bill responses based on operation type
+     * @param response-response from server
+     */
     private void handleBillResponse(BillResponse response) {
         if (ui == null) return;
 
@@ -683,7 +743,10 @@ public class ClientController {
          
     }
     
-    // cleanly closes TCP connection when application exits
+    
+    /**
+     * cleanly closes TCP connection when application exits
+     */
     public void closeConnectionForExit() {
     	 if (client != null) {
              try {
@@ -697,7 +760,11 @@ public class ClientController {
     }
 
 
-    // checks in a customer with an existing reservation using confirmation code
+    
+    /**
+     * checks in a customer with an existing reservation using confirmation code
+     * @param confirmationCode-code user entered for check in.
+     */
     public void requestSeatingCheckInByConfirmationCode(int confirmationCode) {
         if (!connected) {
             safeUiWarning("Check-in", "Not connected to server.");
@@ -711,8 +778,13 @@ public class ClientController {
         sendRequest(req);
     }
     
-    // helper function for requestLogin
-    // client-side validation to catch common errors before sending to server
+
+    /**
+     * helper function for requestLogin
+     * client-side validation to catch common errors before sending to server
+     * @param u
+     * @return
+     */
     private String validateUsername(String u) {
         if (u.isEmpty()) return "Username is required.";
         if (u.length() < 3 || u.length() > 20) return "Username must be 3-20 characters.";
@@ -721,8 +793,13 @@ public class ClientController {
         return null;
     }
     
-    // helper function for requestLogin
-    // ensures password meets minimum security requirements
+
+    /**
+     * helper function for requestLogin
+     * ensures password meets minimum security requirements
+     * @param p-the password
+     * @return
+     */
     private String validatePassword(String p) {
         if (p.isEmpty()) return "Password is required.";
         if (p.length() < 6 || p.length() > 64) return "Password must be 6-64 characters.";
@@ -771,9 +848,14 @@ public class ClientController {
         Request<ReservationRequest> req = new Request<>(Request.Command.RESERVATION_REQUEST, payload);
         sendRequest(req);
     }
-    //role mapper
-    // converts server role strings to UI Role enum
-    // handles normalization and fallback for safety
+ 
+    /**
+     * role mapper
+     * converts server role strings to UI Role enum
+     * handles normalization and fallback for safety
+     * @param rawRole
+     * @return
+     */
     private DesktopScreenController.Role mapRoleFromServer(String rawRole) {
         if (rawRole == null) {
             return DesktopScreenController.Role.GUEST;
@@ -796,7 +878,11 @@ public class ClientController {
         }
     }
 
-    // called by BistroEchoClient when connection drops
+    
+    /**
+     * called by BistroEchoClient when connection drops
+     * @param message
+     */
     public void handleConnectionLost(String message) {
         if (ui != null) {
             ui.showError("Connection Lost", message);

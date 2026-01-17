@@ -11,33 +11,58 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
 
-// JavaFX application entry point and main menu screen
-// displays connection status and navigation buttons
-// delegates actual navigation to AppNavigator
+/**
+ * JavaFX application entry point and controller for the main menu screen.
+ * <p>
+ * Responsibilities:
+ * <ul>
+ *   <li>Bootstraps the JavaFX UI with a {@link ClientController} provided by {@code ClientMain}.</li>
+ *   <li>Loads {@code MainScreen.fxml} and shows the primary {@link Stage}.</li>
+ *   <li>Displays connection status (connected/offline).</li>
+ *   <li>Routes navigation actions to {@link AppNavigator} (login/desktop and terminal modes).</li>
+ *   <li>Provides a static alert helper for showing popups from any thread.</li>
+ * </ul>
+ */
 public class MainScreenController extends Application {
 
-    // Static boot injection
-    // controller passed from ClientMain before JavaFX launch
+    /** Controller injected from {@code ClientMain} before JavaFX launch. */
     private static ClientController controller;
+    /** Initial connection status injected from {@code ClientMain}. */
     private static boolean connected;
 
-    // called by ClientMain to start JavaFX with controller
+    /**
+     * Launches the JavaFX UI with a pre-created {@link ClientController}.
+     * <p>
+     * Called by {@code ClientMain} before starting the JavaFX application thread.
+     *
+     * @param c           the shared client controller instance
+     * @param isConnected whether the client is connected to the server
+     */
     public static void launchUI(ClientController c, boolean isConnected) {
         controller = c;
         connected = isConnected;
         launch();
     }
 
+    /** Primary JavaFX stage. */
     private Stage stage;
-    // handles all navigation between UI modes
+    /** Navigator responsible for switching between screens and setting the active UI handler. */
     private AppNavigator navigator;
 
-    // Keep the already-loaded main root so we can go back without reloading
+    /** Cached main root node so it can be restored without reloading FXML. */
     private Parent mainRoot;
 
+    /** Label that shows current connection status on the main menu screen. */
     @FXML private Label connectionStatusLabel;
 
-    // JavaFX lifecycle: called automatically after launch()
+    /**
+     * JavaFX application lifecycle entry point.
+     * <p>
+     * Loads {@code MainScreen.fxml}, wires the {@link ClientController} UI handler,
+     * and shows the main menu scene.
+     *
+     * @param stage the primary stage created by JavaFX
+     */
     @Override
     public void start(Stage stage) {
         this.stage = stage;
@@ -47,7 +72,6 @@ public class MainScreenController extends Application {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/main_screen/MainScreen.fxml"));
 
-            // custom factory to inject this instance as controller
             loader.setControllerFactory(type -> {
                 if (type == MainScreenController.class) return this;
                 try {
@@ -61,7 +85,6 @@ public class MainScreenController extends Application {
             this.mainRoot = root;
             navigator.setMainRoot(this.mainRoot);
 
-            // set up controller with navigation handler
             if (controller != null) {
                 controller.setUIHandler(navigator.getNavigationHandler());
                 controller.setConnected(connected);
@@ -73,7 +96,6 @@ public class MainScreenController extends Application {
             stage.setTitle("Bistro Client");
             stage.show();
 
-            // warn user if server connection failed
             if (!connected) {
                 showAlert("Offline Mode", "Server connection failed. UI is running offline.", Alert.AlertType.WARNING);
             }
@@ -84,26 +106,41 @@ public class MainScreenController extends Application {
         }
     }
 
-    // updates connection status label on main screen
+    /**
+     * Updates the main screen connection label using the injected {@link #connected} flag.
+     */
     private void updateConnectionLabel() {
         if (connectionStatusLabel != null) {
             connectionStatusLabel.setText(connected ? "Connection: Connected" : "Connection: Offline");
         }
     }
 
+    /**
+     * Button handler: navigates to the login screen (desktop mode entry).
+     */
     @FXML
-    // navigates to login screen (desktop mode)
     private void onRemoteClicked() {
         navigator.showLogin();
     }
 
+    /**
+     * Button handler: navigates to the terminal screen (walk-in customer mode).
+     */
     @FXML
-    // navigates to terminal screen (walk-in customer mode)
     private void onTerminalClicked() {
         navigator.showTerminal();
     }
 
-    // static helper for showing alerts from any context
+    /**
+     * Displays a JavaFX alert safely from any thread.
+     * <p>
+     * This method uses {@link Platform#runLater(Runnable)} to ensure the dialog is shown
+     * on the JavaFX application thread.
+     *
+     * @param title dialog title
+     * @param msg   dialog message (null-safe)
+     * @param type  alert type (information/warning/error)
+     */
     static void showAlert(String title, String msg, Alert.AlertType type) {
         Platform.runLater(() -> {
             Alert a = new Alert(type);
@@ -113,9 +150,11 @@ public class MainScreenController extends Application {
             a.showAndWait();
         });
     }
-    
+
+    /**
+     * Button handler: closes the network connection (if available) and exits the application.
+     */
     @FXML
-    // cleanly closes connection and exits application
     private void onExitClicked() {
         if (controller != null) {
             controller.closeConnectionForExit();

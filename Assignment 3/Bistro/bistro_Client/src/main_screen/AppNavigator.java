@@ -13,52 +13,82 @@ import subscriber_screen.SubscriberMainScreenController;
 
 /**
  * Central UI router that swaps between the two client applications:
- * desktop app and terminal app
- * Keeps MainScreenController lightweight
+ * desktop app and terminal app.
+ * <p>
+ * Responsibilities:
+ * <ul>
+ *   <li>Loads FXML screens and swaps the {@link Stage}'s scene root.</li>
+ *   <li>Wires callbacks between screens (back navigation, logout, login success).</li>
+ *   <li>Sets the active {@link controllers.ClientUIHandler} on the {@link ClientController}
+ *       according to the currently displayed UI mode.</li>
+ *   <li>Provides bridge handlers for routing server responses to the active UI controller.</li>
+ * </ul>
+ * Keeps {@code MainScreenController} lightweight by concentrating navigation logic here.
  */
-// manages navigation between different UI modes (main, login, desktop, terminal)
-// acts as the navigation hub for the entire application
-// provides bridge handlers for routing server responses to active UI
 public class AppNavigator {
-	private static final double APP_W = 1280;
-	private static final double APP_H = 800;
-	
-    // JavaFX stage reference for swapping scenes
+    private static final double APP_W = 1280;
+    private static final double APP_H = 800;
+
+    /** JavaFX stage reference used for swapping scenes/roots. */
     private final Stage stage;
-    // shared controller for server communication
+    /** Shared controller used for server communication across screens. */
     private final ClientController clientController;
+    /** Indicates whether the client is currently connected to the server. */
     private final boolean connected;
 
-    // cached root for returning to main menu
+    /** Cached root node for returning back to the main menu. */
     private Parent mainRoot;
 
-    // cached controllers for each UI mode
+    /** Cached desktop shell controller, when the desktop mode is active. */
     private DesktopScreenController desktopController;
+    /** Cached terminal controller, when the terminal mode is active. */
     private TerminalScreenController terminalController;
+    /** Cached subscriber home controller (not necessarily active at all times). */
     private SubscriberMainScreenController subscriberController;
 
-
-    // default handler for when no specific UI is active
+    /** Default handler used when no specific screen should receive server callbacks. */
     private final ClientUIHandler navigationHandler = new NavigationUIHandler();
 
-    // constructor: receives stage and controller from MainScreenController
+    /**
+     * Constructs a navigator for the given stage and shared client controller.
+     *
+     * @param stage           the JavaFX stage used to swap scene roots
+     * @param clientController shared controller used for server communication
+     * @param connected       initial connection status of the client
+     */
     public AppNavigator(Stage stage, ClientController clientController, boolean connected) {
         this.stage = stage;
         this.clientController = clientController;
         this.connected = connected;
     }
 
-    // exposes navigation handler for MainScreenController initialization
+    /**
+     * Returns the default navigation handler.
+     * <p>
+     * Typically used by {@code MainScreenController} during initialization so
+     * generic popups can be shown even when no specific screen is active.
+     *
+     * @return a {@link ClientUIHandler} for generic alerts and navigation routing
+     */
     public ClientUIHandler getNavigationHandler() {
         return navigationHandler;
     }
 
-    // stores main menu root for back navigation
+    /**
+     * Stores the main menu root for back navigation.
+     *
+     * @param mainRoot the root node of the main menu screen
+     */
     public void setMainRoot(Parent mainRoot) {
         this.mainRoot = mainRoot;
     }
 
-    // returns to main menu screen
+    /**
+     * Returns to the main menu screen.
+     * <p>
+     * Also assigns the {@link #navigationHandler} as the active UI handler so
+     * server callbacks are handled as generic alerts while in the main menu.
+     */
     public void showMain() {
         runOnFx(() -> {
             if (mainRoot == null) return;
@@ -68,18 +98,24 @@ public class AppNavigator {
             stage.sizeToScene();
             stage.centerOnScreen();
 
-            // main screen does not handle server callbacks
-            // use navigation handler for generic alerts
             clientController.setUIHandler(navigationHandler);
         });
     }
 
-
-    // loads and displays login screen
-    // wires up callbacks for back button and successful login
+    /**
+     * Loads and displays the login screen.
+     * <p>
+     * Wires callbacks for:
+     * <ul>
+     *   <li>Back to main menu</li>
+     *   <li>Successful login (routes to desktop with the selected role)</li>
+     * </ul>
+     * While in login, sets {@link #navigationHandler} as active handler for generic alerts
+     * and for routing login success to the desktop screen.
+     */
     public void showLogin() {
         runOnFx(() -> {
-        	
+
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/main_screen/LoginScreen.fxml"));
                 Parent loginRoot = loader.load();
@@ -87,12 +123,12 @@ public class AppNavigator {
                 LoginScreenController loginCtrl = loader.getController();
                 loginCtrl.setClientController(clientController, connected);
 
-                // set up back button callback
                 loginCtrl.setOnBackToMain(this::showMain);
 
-                // set up successful login callback
                 loginCtrl.setOnLoginAsRole(role -> {
-                    String welcome = (role == DesktopScreenController.Role.GUEST) ? "guest" : loginCtrl.getUsernameForWelcome();
+                    String welcome = (role == DesktopScreenController.Role.GUEST)
+                            ? "guest"
+                            : loginCtrl.getUsernameForWelcome();
                     showDesktop(role, welcome);
                 });
 
@@ -101,8 +137,6 @@ public class AppNavigator {
                 stage.sizeToScene();
                 stage.centerOnScreen();
 
-                // while in login, handle popups and routeToDesktop
-                // navigation handler will route to desktop after successful login
                 clientController.setUIHandler(navigationHandler);
 
             } catch (Exception e) {
@@ -111,14 +145,20 @@ public class AppNavigator {
             }
         });
     }
-    
 
-    // loads desktop screen with role and welcome name
-    // desktop becomes the active UI handler for server responses
+    /**
+     * Loads and displays the desktop application shell with the given role and welcome name.
+     * <p>
+     * Sets the desktop controller as the active UI handler so server responses are routed
+     * to the currently loaded desktop views.
+     *
+     * @param role        the role used to configure desktop navigation and permissions
+     * @param welcomeName the display name shown in the desktop top bar
+     */
     public void showDesktop(DesktopScreenController.Role role, String welcomeName) {
         runOnFx(() -> {
             try {
-            	
+
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/desktop_screen/DesktopScreen.fxml"));
                 Parent desktopRoot = loader.load();
 
@@ -127,7 +167,6 @@ public class AppNavigator {
                 desktopController.setRole(role);
                 desktopController.setWelcomeName(welcomeName);
 
-                // wire up logout callback to return to login
                 desktopController.setOnLogout(() -> {
                     desktopController = null;
                     showLogin();
@@ -138,8 +177,6 @@ public class AppNavigator {
                 stage.sizeToScene();
                 stage.centerOnScreen();
 
-                // desktop becomes the active UI handler for all server callbacks
-                // routes responses to child view controllers
                 clientController.setUIHandler(desktopController);
 
             } catch (Exception e) {
@@ -148,10 +185,12 @@ public class AppNavigator {
             }
         });
     }
-    
-   
-    
-    // ensures code runs on JavaFX application thread
+
+    /**
+     * Ensures that a runnable is executed on the JavaFX Application Thread.
+     *
+     * @param r the runnable to execute
+     */
     private void runOnFx(Runnable r) {
         if (javafx.application.Platform.isFxApplicationThread()) {
             r.run();
@@ -159,9 +198,14 @@ public class AppNavigator {
             javafx.application.Platform.runLater(r);
         }
     }
-    
-    // loads terminal screen for walk-in customer operations
-    // uses TerminalUIBridge to route responses
+
+    /**
+     * Loads and displays the terminal screen used for walk-in customer operations.
+     * <p>
+     * Sets a {@link TerminalUIBridge} as the active UI handler so that terminal-related
+     * server callbacks (seating, billing, waiting list cancellation) are routed to the
+     * {@link TerminalScreenController}.
+     */
     public void showTerminal() {
         try {
             String fxml = "/terminal_screen/TerminalScreen.fxml";
@@ -177,7 +221,6 @@ public class AppNavigator {
             terminalController = loader.getController();
             terminalController.setClientController(clientController, connected);
 
-            // wire up back button callback
             terminalController.setOnBackToMain(() -> {
                 terminalController = null;
                 showMain();
@@ -188,8 +231,6 @@ public class AppNavigator {
             stage.sizeToScene();
             stage.centerOnScreen();
 
-            // terminal becomes the active UI handler for server callbacks
-            // bridge pattern routes responses to terminal controller
             clientController.setUIHandler(new TerminalUIBridge(terminalController));
 
         } catch (Exception e) {
@@ -198,102 +239,168 @@ public class AppNavigator {
         }
     }
 
-    // default UI handler used when no specific screen is active
-    // handles generic alerts and routes login success to desktop
+    /**
+     * Default UI handler used when no specific screen is active.
+     * <p>
+     * Shows generic alerts and routes a successful login to the desktop screen.
+     * Most operation-specific callbacks are intentionally no-ops here because
+     * the relevant UI handler will be set when the appropriate screen is active.
+     */
     private final class NavigationUIHandler implements ClientUIHandler {
 
-        // generic alert displays
+        /**
+         * Displays an informational alert dialog.
+         *
+         * @param title   dialog title
+         * @param message dialog content
+         */
         @Override
         public void showInfo(String title, String message) {
             MainScreenController.showAlert(title, message, javafx.scene.control.Alert.AlertType.INFORMATION);
         }
 
+        /**
+         * Displays a warning alert dialog.
+         *
+         * @param title   dialog title
+         * @param message dialog content
+         */
         @Override
         public void showWarning(String title, String message) {
             MainScreenController.showAlert(title, message, javafx.scene.control.Alert.AlertType.WARNING);
         }
 
+        /**
+         * Displays an error alert dialog.
+         *
+         * @param title   dialog title
+         * @param message dialog content
+         */
         @Override
         public void showError(String title, String message) {
             MainScreenController.showAlert(title, message, javafx.scene.control.Alert.AlertType.ERROR);
         }
 
+        /**
+         * Displays an arbitrary payload as an informational alert.
+         *
+         * @param payload payload to display
+         */
         @Override
         public void showPayload(Object payload) {
             showInfo("Server Message", String.valueOf(payload));
         }
 
-        // called by ClientController after successful login
+        /**
+         * Called by {@link ClientController} after a successful login.
+         * Routes directly to the desktop shell.
+         *
+         * @param role     the logged-in user's role
+         * @param username username/display name for the desktop welcome label
+         */
         @Override
         public void routeToDesktop(DesktopScreenController.Role role, String username) {
             showDesktop(role, username);
         }
 
-        // operation-specific callbacks
-        // most are no-ops here since navigation handler is for transitions only
+        /** Not handled here (desktop becomes handler when relevant). */
         @Override
         public void onReservationResponse(responses.ReservationResponse response) {
-            // ignore here, desktop will be the handler when reservations are relevant
         }
+
+        /** Not handled here (desktop becomes handler when active). */
         @Override
         public void onReportResponse(responses.ReportResponse reportResponse) {
-            // Not handled here (desktop will handle when active)
         }
 
+        /** Not handled here (terminal becomes handler when active). */
         @Override
         public void onSeatingResponse(responses.SeatingResponse response) {
-            // ignore here, terminal will be the handler when seating is relevant
         }
 
+        /** Not handled here. */
         @Override
         public void onUserHistoryResponse(java.util.List<responses.UserHistoryResponse> rows) {
-            // ignore here
         }
-        
 
+        /**
+         * Displays a history-related error alert.
+         *
+         * @param message error message
+         */
         @Override
         public void onUserHistoryError(String message) {
             showError("History", message);
         }
+
+        /** Not handled here. */
         @Override
         public void onUpcomingReservationsResponse(java.util.List<responses.ReservationResponse> rows) {
-            // ignore here
         }
 
+        /**
+         * Displays an alert for upcoming reservation errors.
+         *
+         * @param message error message
+         */
         @Override
         public void onUpcomingReservationsError(String message) {
             showError("Upcoming Reservations", message);
         }
 
-		@Override
-		public void onManagerResponse(ManagerResponse response) {
-			// not handled by navigation handler
-			
-		}
+        /** Not handled by the navigation handler. */
+        @Override
+        public void onManagerResponse(ManagerResponse response) {
+        }
 
-		// billing callbacks forward to terminal if available
-		@Override
-		public void onBillTotal(double baseTotal, boolean isCash) {
-			terminalController.onBillTotal(baseTotal);
-			
-		}
+        /**
+         * Billing callback (desktop is not active): forwards to terminal controller if available.
+         *
+         * @param baseTotal total bill amount before any client-side discount computation
+         * @param isCash    whether the payment method is cash
+         */
+        @Override
+        public void onBillTotal(double baseTotal, boolean isCash) {
+            terminalController.onBillTotal(baseTotal);
+        }
 
-		@Override
-		public void onBillPaid(Integer tableNumber) {
-			  terminalController.onBillPaid();
-			
-		}
+        /**
+         * Billing callback: forwards payment completion to terminal controller if available.
+         *
+         * @param tableNumber table number freed by the payment (may be {@code null})
+         */
+        @Override
+        public void onBillPaid(Integer tableNumber) {
+            terminalController.onBillPaid();
+        }
 
-		@Override
-		public void onBillError(String message) {
-			terminalController.onBillError(message);
-			
-		}
-		@Override
+        /**
+         * Billing callback: forwards billing errors to terminal controller if available.
+         *
+         * @param message error message
+         */
+        @Override
+        public void onBillError(String message) {
+            terminalController.onBillError(message);
+        }
+
+        /**
+         * Displays subscriber details as an informational alert.
+         *
+         * @param email subscriber email
+         * @param phone subscriber phone number
+         */
+        @Override
         public void onUserDetailsResponse(String email, String phone) {
             showInfo("Subscriber Details", "Email: " + email + "\nPhone: " + phone);
         }
-		@Override
+
+        /**
+         * Displays the result of a waiting list cancellation request.
+         *
+         * @param response cancellation response from the server (may be {@code null})
+         */
+        @Override
         public void onWaitingListCancellation(responses.WaitingListResponse response) {
             boolean cancelled = response != null && response.getHasBeenCancelled();
             showInfo("Waiting List", cancelled
@@ -301,120 +408,187 @@ public class AppNavigator {
                     : "Unable to cancel waiting list entry.");
         }
     }
-    
 
-    // bridge handler for terminal mode
-    // routes terminal-specific responses (seating, billing) to terminal controller
+    /**
+     * UI bridge handler for terminal mode.
+     * <p>
+     * Routes terminal-specific server callbacks (seating, billing, waiting list cancellation)
+     * to the {@link TerminalScreenController}. Non-terminal callbacks are no-ops.
+     */
     private static final class TerminalUIBridge implements ClientUIHandler {
 
+        /** Target terminal controller that receives routed callbacks. */
         private final TerminalScreenController terminalController;
 
+        /**
+         * Creates a new terminal UI bridge.
+         *
+         * @param terminalController the terminal controller to receive routed callbacks
+         */
         private TerminalUIBridge(TerminalScreenController terminalController) {
             this.terminalController = terminalController;
         }
 
-        // generic alerts
+        /**
+         * Displays an informational alert dialog.
+         *
+         * @param title   dialog title
+         * @param message dialog content
+         */
         @Override
         public void showInfo(String title, String message) {
             MainScreenController.showAlert(title, message, javafx.scene.control.Alert.AlertType.INFORMATION);
         }
 
+        /**
+         * Displays a warning alert dialog.
+         *
+         * @param title   dialog title
+         * @param message dialog content
+         */
         @Override
         public void showWarning(String title, String message) {
             MainScreenController.showAlert(title, message, javafx.scene.control.Alert.AlertType.WARNING);
         }
 
+        /**
+         * Displays an error alert dialog.
+         *
+         * @param title   dialog title
+         * @param message dialog content
+         */
         @Override
         public void showError(String title, String message) {
             MainScreenController.showAlert(title, message, javafx.scene.control.Alert.AlertType.ERROR);
         }
 
+        /**
+         * Displays an arbitrary payload as an informational alert.
+         *
+         * @param payload payload to display
+         */
         @Override
         public void showPayload(Object payload) {
             showInfo("Server Message", String.valueOf(payload));
         }
 
+        /** Terminal mode does not route to desktop. */
         @Override
         public void routeToDesktop(DesktopScreenController.Role role, String username) {
-            // terminal does not navigate to desktop
         }
+
+        /** Terminal app doesn't display reports. */
         @Override
         public void onReportResponse(responses.ReportResponse reportResponse) {
-            // Terminal app doesn't display reports
         }
 
+        /** Terminal does not handle reservation creation/edit flows. */
         @Override
         public void onReservationResponse(responses.ReservationResponse response) {
-            // terminal does not handle reservations
         }
 
-        // terminal-specific: seating and check-in operations
+        /**
+         * Routes seating responses to the terminal controller on the JavaFX thread.
+         *
+         * @param response seating response from the server
+         */
         @Override
         public void onSeatingResponse(responses.SeatingResponse response) {
             javafx.application.Platform.runLater(() -> terminalController.onSeatingResponse(response));
         }
 
+        /** Terminal does not handle history. */
         @Override
         public void onUserHistoryResponse(java.util.List<responses.UserHistoryResponse> rows) {
-            // terminal does not handle history
-        }
-        @Override
-        public void onUpcomingReservationsResponse(java.util.List<responses.ReservationResponse> rows) {
-            // terminal does not handle upcoming reservations
         }
 
+        /** Terminal does not handle upcoming reservations. */
+        @Override
+        public void onUpcomingReservationsResponse(java.util.List<responses.ReservationResponse> rows) {
+        }
+
+        /**
+         * Displays an error alert for upcoming reservation errors.
+         *
+         * @param message error message
+         */
         @Override
         public void onUpcomingReservationsError(String message) {
             showError("Upcoming Reservations", message);
         }
 
+        /**
+         * Displays an error alert for history errors.
+         *
+         * @param message error message
+         */
         @Override
         public void onUserHistoryError(String message) {
             showError("History", message);
         }
 
-		@Override
-		public void onManagerResponse(ManagerResponse response) {
-			// terminal does not handle manager responses
-			
-		}
+        /** Terminal does not handle manager responses. */
+        @Override
+        public void onManagerResponse(ManagerResponse response) {
+        }
 
-		// terminal-specific: billing operations for walk-in customers
-		@Override
-		public void onBillTotal(double baseTotal, boolean isCash) {
-			if (terminalController == null) {
+        /**
+         * Routes bill total callback to terminal controller on the JavaFX thread.
+         *
+         * @param baseTotal total bill amount
+         * @param isCash    whether the payment method is cash
+         */
+        @Override
+        public void onBillTotal(double baseTotal, boolean isCash) {
+            if (terminalController == null) {
                 return;
             }
             javafx.application.Platform.runLater(() -> terminalController.onBillTotal(baseTotal));
-			
-		}
+        }
 
-		@Override
-		public void onBillPaid(Integer tableNumber) {
-			if (terminalController == null) {
+        /**
+         * Routes bill paid callback to terminal controller on the JavaFX thread.
+         *
+         * @param tableNumber table number freed by the payment (may be {@code null})
+         */
+        @Override
+        public void onBillPaid(Integer tableNumber) {
+            if (terminalController == null) {
                 return;
             }
             javafx.application.Platform.runLater(() -> terminalController.onBillPaid());
-			
-			
-		}
+        }
 
-		@Override
-		public void onBillError(String message) {
-			if (terminalController == null) {
+        /**
+         * Routes bill error callback to terminal controller on the JavaFX thread.
+         *
+         * @param message error message
+         */
+        @Override
+        public void onBillError(String message) {
+            if (terminalController == null) {
                 return;
             }
             javafx.application.Platform.runLater(() -> terminalController.onBillError(message));
-			
-		}
-		
-		@Override
+        }
+
+        /**
+         * Displays subscriber details as an informational alert.
+         *
+         * @param email subscriber email
+         * @param phone subscriber phone number
+         */
+        @Override
         public void onUserDetailsResponse(String email, String phone) {
             showInfo("Subscriber Details", "Email: " + email + "\nPhone: " + phone);
         }
-        
-        // terminal-specific: waiting list cancellation
-		@Override
+
+        /**
+         * Routes waiting list cancellation results to the terminal controller on the JavaFX thread.
+         *
+         * @param response cancellation response from the server
+         */
+        @Override
         public void onWaitingListCancellation(responses.WaitingListResponse response) {
             if (terminalController == null) {
                 return;

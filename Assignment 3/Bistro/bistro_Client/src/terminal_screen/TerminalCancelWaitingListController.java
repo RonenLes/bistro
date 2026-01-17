@@ -9,8 +9,20 @@ import javafx.scene.control.TextField;
 import responses.WaitingListResponse;
 import javafx.scene.control.TextInputDialog;
 
-// terminal view for cancelling waiting list entries
-// accepts confirmation code or user ID to cancel
+/**
+ * JavaFX controller for a terminal screen that cancels waiting-list entries.
+ * <p>
+ * Supports two cancellation flows:
+ * <ul>
+ *   <li>Cancel by confirmation code (entered directly by the user)</li>
+ *   <li>Cancel by subscriber user ID (resolves the confirmation code from the server, then cancels)</li>
+ * </ul>
+ * </p>
+ * <p>
+ * Server communication is performed via an injected {@link ClientController}. If not connected, the controller
+ * may display offline/demo messages instead of sending real requests.
+ * </p>
+ */
 public class TerminalCancelWaitingListController implements ClientControllerAware {
 
     @FXML private TextField confirmationCodeField;
@@ -19,19 +31,44 @@ public class TerminalCancelWaitingListController implements ClientControllerAwar
     private ClientController clientController;
     private boolean connected;
 
+    /**
+     * JavaFX lifecycle callback invoked after the FXML fields are injected.
+     * Initializes the status label.
+     */
     @FXML
     private void initialize() {
         setStatus("");
     }
 
+    /**
+     * Injects the {@link ClientController} used to communicate with the server and sets the current
+     * connection state.
+     *
+     * @param controller the application-level client controller used for server communication
+     * @param connected  {@code true} if connected to the server; {@code false} otherwise
+     */
     @Override
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
     }
 
+    /**
+     * UI handler that validates the confirmation code and sends a waiting-list cancellation request.
+     * <p>
+     * Validation rules:
+     * <ul>
+     *   <li>Confirmation code must be provided</li>
+     *   <li>Confirmation code must be numeric</li>
+     *   <li>Confirmation code must be positive</li>
+     * </ul>
+     * </p>
+     * <p>
+     * If the client is not connected (or controller is missing), the method shows a demo/offline message
+     * instead of sending a real request.
+     * </p>
+     */
     @FXML
-    // validates confirmation code and sends cancellation request
     private void onCancel() {
         String rawCode = confirmationCodeField == null ? "" : confirmationCodeField.getText().trim();
         if (rawCode.isEmpty()) {
@@ -61,7 +98,15 @@ public class TerminalCancelWaitingListController implements ClientControllerAwar
         setStatus("Submitting cancel request...");
     }
 
-    // called by TerminalScreenController with server response
+    /**
+     * Handles a {@link WaitingListResponse} returned from the server after a cancellation request.
+     * <p>
+     * If the cancellation succeeded, updates the status label and shows an informational alert.
+     * Otherwise, updates the status label with a failure message.
+     * </p>
+     *
+     * @param response server response object; may be {@code null}
+     */
     public void handleWaitingListResponse(WaitingListResponse response) {
         if (response == null) {
             setStatus("No response received. Please try again.");
@@ -79,15 +124,33 @@ public class TerminalCancelWaitingListController implements ClientControllerAwar
         }
     }
 
+    /**
+     * Updates the status label displayed on the screen.
+     *
+     * @param message message to show; if {@code null}, an empty string is displayed
+     */
     private void setStatus(String message) {
         if (statusLabel != null) {
             statusLabel.setText(message == null ? "" : message);
         }
     }
-    
+
+    /**
+     * UI handler for an alternative flow: cancel using subscriber user ID.
+     * <p>
+     * The method:
+     * <ol>
+     *   <li>Prompts the user to enter a subscriber user ID.</li>
+     *   <li>Requests the confirmation code from the server (lost-code flow).</li>
+     *   <li>Registers a callback listener to receive the resolved code.</li>
+     *   <li>When the code is received, populates the confirmation code field and triggers {@link #onCancel()}.</li>
+     * </ol>
+     * </p>
+     * <p>
+     * If not connected, the method displays an offline message and does not attempt resolution.
+     * </p>
+     */
     @FXML
-    // alternative flow: resolve confirmation code from user ID
-    // uses callback pattern to retrieve code from server
     private void onUseUserId() {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Use user ID");
@@ -118,6 +181,7 @@ public class TerminalCancelWaitingListController implements ClientControllerAwar
                 }
                 onCancel();
             });
+
             setStatus("Resolving confirmation code...");
             clientController.requestLostCode(userId);
         });

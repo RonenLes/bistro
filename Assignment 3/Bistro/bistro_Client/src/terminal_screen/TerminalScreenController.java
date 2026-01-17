@@ -11,14 +11,20 @@ import javafx.scene.layout.StackPane;
 
 import java.util.EnumMap;
 import java.util.Map;
+
 /**
- * Terminal shell controller for walk-in
- * Manages toolbar navigation, view loading, and routing of server responses
- * to the currently active terminal view.
+ * JavaFX "terminal mode" shell controller for walk-in operations.
+ * <p>
+ * Responsibilities:
+ * <ul>
+ *   <li>Manage toolbar navigation between terminal sub-views (check-in, waiting list, lost code, billing, etc.).</li>
+ *   <li>Load FXML views on demand and cache both roots and controllers for reuse.</li>
+ *   <li>Inject {@link ClientController} into child controllers that implement {@link ClientControllerAware}.</li>
+ *   <li>Route asynchronous server responses to the currently active terminal view controller.</li>
+ *   <li>Handle online/offline state: disable toolbar and show a message when the terminal is offline.</li>
+ * </ul>
+ * </p>
  */
-// main controller for terminal mode (walk-in customer operations)
-// loads child views on demand and caches them
-// routes server responses to the active child controller
 public class TerminalScreenController {
 
     @FXML private StackPane contentHolder;
@@ -33,22 +39,49 @@ public class TerminalScreenController {
     private ClientController clientController;
     private boolean connected;
 
-    // Back to main callback (set by the ui navigator)
+    /**
+     * Callback that returns the UI to the main screen (provided by the UI navigator).
+     */
     private Runnable onBackToMain;
 
-    // enum for terminal sub-views
+    /**
+     * Internal enum representing the available terminal sub-views.
+     */
     private enum View {
-    	CHECK_IN, WAITING_LIST, CANCEL_WAITLIST, PAY_BILL, LOST_CODE
+        CHECK_IN, WAITING_LIST, CANCEL_WAITLIST, PAY_BILL, LOST_CODE
     }
 
-    // caches loaded FXML roots and controllers for reuse
+    /**
+     * Cache of loaded FXML roots by view (for faster navigation).
+     */
     private final Map<View, Parent> cache = new EnumMap<>(View.class);
+
+    /**
+     * Cache of loaded controllers by view (for dependency injection and response routing).
+     */
     private final Map<View, Object> controllerCache = new EnumMap<>(View.class);
-    // tracks which controller should receive server responses
+
+    /**
+     * The controller instance of the currently displayed terminal view.
+     * Used to decide where to route server responses.
+     */
     private Object currentContentController;
+
+    /**
+     * The currently displayed terminal sub-view.
+     */
     private View currentView;
 
-    // dependency injection from AppNavigator
+    /**
+     * Injects the {@link ClientController} and sets the current connection state.
+     * <p>
+     * This method may be called after FXML injection. It updates the toolbar state and either shows an offline
+     * message or loads a default view.
+     * </p>
+     *
+     * @param controller the application-level client controller used for server communication
+     * @param connected  {@code true} if connected to the server; {@code false} otherwise
+     */
     public void setClientController(ClientController controller, boolean connected) {
         this.clientController = controller;
         this.connected = connected;
@@ -56,34 +89,82 @@ public class TerminalScreenController {
         // FXML fields might already be injected at this point
         applyConnectionState();
     }
-    
+
     /**
      * Sets a callback that returns the UI to the main screen.
-     * @param onBackToMain
+     *
+     * @param onBackToMain callback invoked when the "Back" action is triggered or when flows finish
      */
     public void setOnBackToMain(Runnable onBackToMain) {
         this.onBackToMain = onBackToMain;
     }
 
+    /**
+     * JavaFX lifecycle callback invoked after the FXML fields are injected.
+     * Applies the initial connection state (offline by default until {@link #setClientController(ClientController, boolean)}).
+     */
     @FXML
     private void initialize() {
         // At initialize time, connected is whatever default we have (false until setClientController)
         applyConnectionState();
     }
 
-    // Toolbar actions
-    @FXML private void onBackToMain()      { if (onBackToMain != null) onBackToMain.run(); }//Returns to the main screen.
-    @FXML private void onCheckIn()         { show(View.CHECK_IN); }//Shows the check-in flow.
-    @FXML private void onJoinWaitingList() { show(View.WAITING_LIST); }//Shows the waiting list join flow.
-    @FXML private void onCancelWaitlist()  { show(View.CANCEL_WAITLIST); }//Shows the waiting list cancellation flow.
-    @FXML private void onPayBill()         { show(View.PAY_BILL); }//Shows the pay bill flow.
-    @FXML private void onLostCode()        { show(View.LOST_CODE); }//Shows the lost code flow
+    /**
+     * Toolbar handler: returns to the main screen via {@link #onBackToMain}.
+     */
+    @FXML
+    private void onBackToMain() {
+        if (onBackToMain != null) onBackToMain.run();
+    }
 
     /**
-     * Enables/disables toolbar actions based on connection state and loads a default view.
+     * Toolbar handler: navigates to the check-in view.
      */
-    // updates UI based on connection status
-    // disables all terminal operations if offline
+    @FXML
+    private void onCheckIn() {
+        show(View.CHECK_IN);
+    }
+
+    /**
+     * Toolbar handler: navigates to the join-waiting-list view.
+     */
+    @FXML
+    private void onJoinWaitingList() {
+        show(View.WAITING_LIST);
+    }
+
+    /**
+     * Toolbar handler: navigates to the cancel-waitlist view.
+     */
+    @FXML
+    private void onCancelWaitlist() {
+        show(View.CANCEL_WAITLIST);
+    }
+
+    /**
+     * Toolbar handler: navigates to the pay-bill view.
+     */
+    @FXML
+    private void onPayBill() {
+        show(View.PAY_BILL);
+    }
+
+    /**
+     * Toolbar handler: navigates to the lost-code view.
+     */
+    @FXML
+    private void onLostCode() {
+        show(View.LOST_CODE);
+    }
+
+    /**
+     * Enables/disables toolbar actions based on connection state and loads an appropriate default view.
+     * <p>
+     * If offline, disables terminal operations and shows an offline message.
+     * If online and no current view is active, loads the default check-in view.
+     * If online and a view is active, re-injects controller dependencies.
+     * </p>
+     */
     private void applyConnectionState() {
         boolean online = connected && clientController != null;
 
@@ -100,12 +181,12 @@ public class TerminalScreenController {
         if (payBillBtn != null) {
             payBillBtn.setDisable(!online);
         }
+        if (cancelWaitlistBtn != null) {
+            cancelWaitlistBtn.setDisable(!online);
+        }
 
         if (contentHolder == null) {
             return;
-        }
-        if (cancelWaitlistBtn != null) {
-            cancelWaitlistBtn.setDisable(!online);
         }
 
         if (!online) {
@@ -131,12 +212,12 @@ public class TerminalScreenController {
             }
         }
     }
-    
+
     /**
-     *  Routes waiting list cancellation responses to the active view.
-     * @param response
+     * Routes waiting list cancellation responses to the active view (if it is the cancel-waitlist screen).
+     *
+     * @param response waiting list response received from the server
      */
-    // called by TerminalUIBridge when waiting list cancellation response arrives
     public void onWaitingListCancellation(responses.WaitingListResponse response) {
         javafx.application.Platform.runLater(() -> {
             if (currentContentController instanceof TerminalCancelWaitingListController cancelCtrl) {
@@ -146,30 +227,28 @@ public class TerminalScreenController {
     }
 
     /**
-     * Routes seating responses to the active view and returns to the main screen.
-     * @param response
+     * Routes seating responses to the active view (check-in or waiting-list) and then returns to the main screen.
+     *
+     * @param response seating response received from the server
      */
-    // called by TerminalUIBridge when seating response arrives
-    // handles both check-in and waiting list flows
     public void onSeatingResponse(responses.SeatingResponse response) {
         javafx.application.Platform.runLater(() -> {
             // Route server responses only to the currently displayed view
             if (currentContentController instanceof terminal_screen.TerminalCheckInController checkInCtrl) {
                 checkInCtrl.handleSeatingResponse(response);
-            }else if (currentContentController instanceof terminal_screen.TerminalWaitingListController waitingListController) {
+            } else if (currentContentController instanceof terminal_screen.TerminalWaitingListController waitingListController) {
                 waitingListController.handleSeatingResponse(response);
             }
             // return to main after seating operation completes
             returnToMain();
-            
         });
     }
-    
+
     /**
-     * Routes bill totals to the pay bill view.
-     * @param baseTotal
+     * Routes bill totals to the pay-bill view (if it is currently displayed).
+     *
+     * @param baseTotal bill total returned by the server
      */
-    // called by TerminalUIBridge when bill total arrives
     public void onBillTotal(double baseTotal) {
         javafx.application.Platform.runLater(() -> {
             if (currentContentController instanceof TerminalPayBillController payBillCtrl) {
@@ -177,11 +256,10 @@ public class TerminalScreenController {
             }
         });
     }
-    
+
     /**
-     * Routes payment success and returns to the main screen.
+     * Routes payment success to the pay-bill view and then returns to the main screen.
      */
-    // called by TerminalUIBridge when payment succeeds
     public void onBillPaid() {
         javafx.application.Platform.runLater(() -> {
             if (currentContentController instanceof TerminalPayBillController payBillCtrl) {
@@ -191,12 +269,12 @@ public class TerminalScreenController {
             returnToMain();
         });
     }
-    
+
     /**
-     * Routes billing errors to the pay bill view.
-     * @param message
+     * Routes billing errors to the pay-bill view (if it is currently displayed).
+     *
+     * @param message error message to show
      */
-    // called by TerminalUIBridge when billing operation fails
     public void onBillError(String message) {
         javafx.application.Platform.runLater(() -> {
             if (currentContentController instanceof TerminalPayBillController payBillCtrl) {
@@ -204,12 +282,16 @@ public class TerminalScreenController {
             }
         });
     }
-    
+
     /**
-     * Shows a specific terminal view, loading it if needed.
-     * @param view
+     * Navigates to the specified terminal view, loading it if needed and caching it for reuse.
+     * <p>
+     * This method also updates {@link #currentContentController} and {@link #currentView} so that
+     * server responses can be routed to the correct active controller.
+     * </p>
+     *
+     * @param view terminal sub-view to display
      */
-    // navigates to specified view, loading and caching it on first access
     private void show(View view) {
         if (!isOnline()) {
             // safety - ignore navigation if offline
@@ -233,21 +315,29 @@ public class TerminalScreenController {
         }
     }
 
+    /**
+     * @return {@code true} if connected to the server and {@link #clientController} is available
+     */
     private boolean isOnline() {
         return connected && clientController != null;
     }
-    
-    // returns to main screen via callback
+
+    /**
+     * Returns to the main screen via {@link #onBackToMain} callback.
+     */
     private void returnToMain() {
         if (onBackToMain != null) {
             onBackToMain.run();
         }
     }
-    
+
     /**
-     * Re-injects the client controller into the current view after reconnect.
+     * Re-injects the current {@link ClientController} into the active terminal view after reconnect.
+     * <p>
+     * This is useful when the terminal transitions from offline to online and cached controllers must
+     * receive updated dependencies/state.
+     * </p>
      */
-    // updates cached controller with new connection state
     private void reinjectActiveController() {
         if (!isOnline()) return;
         if (currentView == null) return;
@@ -259,11 +349,13 @@ public class TerminalScreenController {
     }
 
     /**
-     * Loads an FXML view and caches its controller for response routing.
-     * @param view
-     * @return
+     * Loads an FXML view corresponding to the specified {@link View}, caches its controller,
+     * and injects dependencies into it.
+     *
+     * @param view the terminal sub-view to load
+     * @return the root node of the loaded FXML view
+     * @throws RuntimeException if the FXML fails to load
      */
-    // loads FXML for specified view and caches both root and controller
     private Parent loadView(View view) {
         try {
             String fxml = switch (view) {

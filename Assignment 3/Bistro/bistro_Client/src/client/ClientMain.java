@@ -12,8 +12,11 @@ public class ClientMain {
 	// server IP address loaded from properties file
 	private static String host;
 	
-	// loads server connection details from properties file
-	// tries external file first, then falls back to internal resource
+
+	/**
+	 * loads server connection details from properties file
+	 * tries external file first, then falls back to internal resource
+	 */
 	private static void loadServerDetails() {
 		Properties props = new Properties();
 		boolean loaded = false;

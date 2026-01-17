@@ -8,6 +8,21 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * DAO for the {@code opening_hours} table.
+ *
+ * <p>Main idea: manage the restaurant's opening-hours schedule by date.
+ * This class provides methods to:
+ * <ul>
+ *   <li>Fetch opening hours for a specific date</li>
+ *   <li>Insert a new opening-hours entry</li>
+ *   <li>Update an existing opening-hours entry</li>
+ *   <li>Fetch opening hours for the next 30 days starting from a given date</li>
+ * </ul>
+ *
+ * <p>All methods use the provided JDBC {@link java.sql.Connection} and map rows to the
+ * {@link entities.OpeningHours} entity.
+ */
 public class OpeningHoursDAO {
 	//INSERT
 	private final String INSERT_NEW_OPENING_HOUR = "INSERT INTO `opening_hours` (date, day, openTime, closeTime, occasion) VALUES(?, ?, ?, ?, ?)";
@@ -55,7 +70,7 @@ public class OpeningHoursDAO {
 	 * @param close
 	 * @param date
 	 * @param occasion
-	 * @return
+	 * @return true if succeeded 
 	 * @throws SQLException
 	 */
 	public boolean updateOpeningHours(Connection conn,LocalTime open,LocalTime close,LocalDate date,String occasion)throws SQLException{
@@ -78,7 +93,7 @@ public class OpeningHoursDAO {
 	 * @param day
 	 * @param openTime
 	 * @param closeTime
-	 * @return
+	 * @return true if succeeded 
 	 * @throws SQLException
 	 */
 	public boolean insertNewOpeningHour(Connection conn, LocalDate date, String day, LocalTime openTime,LocalTime closeTime)throws SQLException{

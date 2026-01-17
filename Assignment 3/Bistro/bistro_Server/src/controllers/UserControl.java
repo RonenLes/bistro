@@ -16,6 +16,32 @@ import responses.Response;
 import responses.UserHistoryResponse;
 import requests.LoginRequest;
 
+/**
+ * Controller for user-related workflows.
+ *
+ * <p>Main idea:
+ * Handles {@link requests.LoginRequest} commands coming from the server layer and coordinates
+ * user operations such as login, viewing/editing contact details, and retrieving reservation history
+ * and upcoming reservations. All persistence is delegated to DAOs.</p>
+ *
+ * <p>Uses / collaborates with:
+ * <ul>
+ *   <li>{@link database.UserDAO} - authentication (login), user lookup, updating email/phone, and history queries</li>
+ *   <li>{@link database.ReservationDAO} - fetching upcoming reservations for a given user</li>
+ *   <li>{@link database.DBManager} - obtaining JDBC connections</li>
+ * </ul>
+ *
+ * <p>Main methods / features provided:
+ * <ul>
+ *   <li>{@link #handleUserRequest(LoginRequest)} - entry point; routes by {@code LoginRequest.UserCommand}</li>
+ *   <li>Login and session identity ({@code LOGIN_REQUEST})</li>
+ *   <li>Show current user details (email/phone) ({@code SHOW_DETAILS_REQUEST})</li>
+ *   <li>Edit user contact details ({@code EDIT_DETAIL_REQUEST})</li>
+ *   <li>Fetch reservation history ({@code HISTORY_REQUEST})</li>
+ *   <li>Fetch upcoming reservations / waiting / seated states ({@code UPCOMING_RESERVATIONS_REQUEST})</li>
+ *   <li>{@link #generateUserID()} - helper for generating unique user IDs of the form {@code U-xxxxx}</li>
+ * </ul>
+ */
 public class UserControl {
 	private final UserDAO userDAO;
 	private final ReservationDAO reservationDAO;

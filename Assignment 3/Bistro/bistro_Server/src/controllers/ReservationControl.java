@@ -17,9 +17,40 @@ import java.time.LocalTime;
 import java.util.*;
 
 /**
- * Coordinates reservation workflows and delegates persistence to DAOs.
+ * Controller that manages the full reservation workflow.
  *
- * 
+ * <p>Main idea:
+ * Receives {@link requests.ReservationRequest} objects from the server layer and coordinates
+ * reservation actions (availability lookup, creation, edit, cancel, show, and lost-code recovery).
+ * It delegates all database work to DAOs and uses {@link NotificationControl} to send
+ * confirmation messages after successful commits.</p>
+ *
+ * <p>Uses / collaborates with:
+ * <ul>
+ *   <li>{@link database.ReservationDAO} - reservation CRUD, overlap queries, confirmation-code helpers</li>
+ *   <li>{@link database.TableDAO} - capacity rounding and table-count by capacity</li>
+ *   <li>{@link database.OpeningHoursDAO} - open/close time per day</li>
+ *   <li>{@link database.UserDAO} - fetching user contact details for notifications</li>
+ *   <li>{@link database.WaitingListDAO} - cancels related waiting-list entries when cancelling reservations</li>
+ *   <li>{@link controllers.NotificationControl} - sends confirmation code (stubbed in this stage)</li>
+ * </ul>
+ *
+ * <p>Main methods / features provided:
+ * <ul>
+ *   <li>{@link #handleReservationRequest(ReservationRequest)} - entry point; routes by request phase/type</li>
+ *   <li>Phase 1: availability lookup and future-day suggestions</li>
+ *   <li>Phase 2: reservation creation with a second availability check (race-condition protection)</li>
+ *   <li>Edit reservation (re-validates capacity and availability)</li>
+ *   <li>Cancel reservation (also cancels matching waiting-list row if exists)</li>
+ *   <li>Show reservation details by confirmation code</li>
+ *   <li>Retrieve "best" confirmation code for user/guest (supports waiting-list lookup)</li>
+ * </ul>
+ *
+ * <p>Notes:
+ * <ul>
+ *   <li>Reservation duration is treated as 120 minutes and time slots are stepped by 30 minutes.</li>
+ *   <li>Creation/edit/cancel operations use DB transactions and commit before sending notifications.</li>
+ * </ul>
  */
 public class ReservationControl {
 

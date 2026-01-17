@@ -15,14 +15,19 @@ import java.util.Map;
 
 
 /**
- * This class encapsulates all SQL operations related to the @code reservation
- * Inserting new reservations
- * Updating reservation fields and status
- * Fetching reservations by identifiers (confirmation code / reservation ID)
- * Finding reservations due for reminder / no-show processing
- * Computing booked tables per capacity for a time window
- * Detecting overbooking and selecting reservations to cancel
- * 
+ * DAO for the {@code reservation} table.
+ *
+ * <p>Main idea: provides all database operations around reservations, including:
+ * <ul>
+ *   <li>Creating and updating reservations (date/time/status/party size/capacity)</li>
+ *   <li>Fetching reservations by identifiers (confirmation code, reservation ID) or by date/user</li>
+ *   <li>Querying reservations for background processes (reminders, no-show candidates)</li>
+ *   <li>Computing load/overlap information (booked tables per capacity, overbooked slots)</li>
+ *   <li>Selecting reservations that must be cancelled due to capacity reduction or opening-hours changes</li>
+ *   <li>Utility helpers for confirmation-code generation and "best code" selection for check-in flows</li>
+ * </ul>
+ *
+ * <p>This class does not apply business rules by itself; it exposes data needed by controller/service layers.
  */
 public class ReservationDAO {
 	
@@ -204,7 +209,7 @@ public class ReservationDAO {
      * @param guestContact
      * @param userID
      * @param startTime
-     * @return
+     * @return true if succeeded
      * @throws SQLException
      */
 	public boolean updateReservation(Connection conn,LocalDate reservationDate,String status,int partySize,int confirmationCode,

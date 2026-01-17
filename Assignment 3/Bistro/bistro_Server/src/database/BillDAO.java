@@ -9,7 +9,13 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 import entities.Bill;
-
+/**
+ * DAO for the {@code bill} table.
+ *
+ * <p>Main idea: manage bills that belong to a specific seating (via {@code seatingID}).
+ * Supports creating a new OPEN bill, fetching the current open bill (or its total),
+ * and marking an open bill as PAID.</p>
+ */
 public class BillDAO {
 
 	private static final String INSERT_NEW_BILL ="INSERT INTO bill (seatingID, totalPrice, status, createdAt, paidAt) VALUES (?, ?, ?, ?, ?)";
@@ -56,7 +62,7 @@ public class BillDAO {
 	 * update bill status to 'PAID'
 	 * @param conn
 	 * @param seatingId
-	 * @return
+	 * @return true if succeeded 
 	 * @throws SQLException
 	 */
 	public boolean markBillAsPaidBySeatingId(Connection conn, int seatingId) throws SQLException {
@@ -100,10 +106,10 @@ public class BillDAO {
 
 
 	/**
-	 * 
+	 * fetch the bill by seating id
 	 * @param conn
 	 * @param seatingId
-	 * @return
+	 * @return price
 	 * @throws SQLException
 	 */
 	public Double getOpenBillTotalBySeatingId(Connection conn, int seatingId) throws SQLException {

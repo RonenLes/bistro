@@ -17,6 +17,22 @@ import entities.Table;
 import entities.WaitingList;
 import entities.Seating;
 
+/**
+ * DAO for the {@code waiting_list} table.
+ *
+ * <p>Main idea: manages the restaurant waiting list lifecycle for reservations when no table is available.
+ * This DAO supports:
+ * <ul>
+ *   <li>Inserting new waiting-list entries</li>
+ *   <li>Fetching the next waiting entry that can fit a given table capacity (with row locking)</li>
+ *   <li>Updating waiting-list status transitions (WAITING -> CALLED -> ASSIGNED / CANCELLED)</li>
+ *   <li>Looking up waiting-list entries by reservation</li>
+ *   <li>Reporting helpers (daily counts for a time window)</li>
+ *   <li>Queries for operational flows (today's waiting list, expired CALLED entries)</li>
+ * </ul>
+ *
+ * <p>Status usage in this DAO commonly includes: {@code WAITING}, {@code CALLED}, {@code ASSIGNED}, {@code CANCELLED}.
+ */
 public class WaitingListDAO {
 	
 	
@@ -73,6 +89,14 @@ public class WaitingListDAO {
 	        "AND assignedAt <= NOW() - INTERVAL 15 MINUTE";
 
 
+	/**
+     * Fetches the {@link Reservation} linked to a waiting-list entry by waitID.
+     *
+     * @param conn active JDBC connection
+     * @param waitID waiting list primary key
+     * @return reservation if found; otherwise {@code null}
+     * @throws SQLException if a DB error occurs
+     */
 	public Reservation getReservationByWaitingID(Connection conn,int waitID) throws SQLException {
 		try(PreparedStatement ps=conn.prepareStatement(SELECT_RESERVATION_BY_WAIT_ID)){
 			ps.setInt(1,waitID);
@@ -93,6 +117,17 @@ public class WaitingListDAO {
 			
 		}
 	}
+	
+	/**
+     * Returns the next WAITING list entry that can fit a given table capacity.
+     *
+     * <p>This query uses {@code FOR UPDATE} to safely support "pick next in line" in concurrent flows.</p>
+     *
+     * @param conn active JDBC connection
+     * @param tableCapacity the table capacity available
+     * @return the next {@link WaitingList} entry that fits; otherwise {@code null}
+     * @throws SQLException if a DB error occurs
+     */
 	public WaitingList getNextWaitingThatFits(Connection conn, int tableCapacity) throws SQLException {
 	    try (PreparedStatement ps = conn.prepareStatement(SELECT_NEXT_IN_LINE)) {
 	        ps.setInt(1, tableCapacity);
@@ -107,22 +142,32 @@ public class WaitingListDAO {
 	
 
 	
-	//wrapper for insertNewWait for using multi DAO objects
+	/**
+     * Convenience wrapper that opens its own connection and inserts a waiting-list entry.
+     *
+     * @param reservationID reservation foreign key
+     * @param status initial status (typically {@code WAITING})
+     * @param priority priority value used for ordering
+     * @return {@code true} if inserted successfully
+     * @throws SQLException if a DB error occurs
+     */
 	public boolean insertNewWait(int reservationID,String status,int priority) throws SQLException{
 		try(Connection conn =DBManager.getConnection()){
 			return insertNewWait(conn, reservationID, status, priority);
 		}
 	}
 	/**
-	 * method to inset a new row of waiting into database
-	 * used when there is now available table to seat 
-	 * @param conn 
-	 * @param reservationID
-	 * @param status
-	 * @param priority
-	 * @return
-	 * @throws SQLException
-	 */
+     * Inserts a new waiting-list row (transaction-friendly).
+     *
+     * <p>Used when there is no available table to seat a reservation.</p>
+     *
+     * @param conn active JDBC connection
+     * @param reservationId reservation foreign key
+     * @param status initial status (typically {@code WAITING})
+     * @param priority priority value (higher usually means earlier selection)
+     * @return {@code true} if inserted successfully
+     * @throws SQLException if a DB error occurs
+     */
 	public boolean insertNewWait(Connection conn, int reservationId, String status, int priority) throws SQLException {
 
 	    try (PreparedStatement ps = conn.prepareStatement(INSERT_NEW_WAIT)) {
@@ -135,6 +180,16 @@ public class WaitingListDAO {
 	    }
 	}
 	
+	/**
+     * Updates waiting-list status by reservationID.
+     *
+     * @param conn active JDBC connection (must not be null)
+     * @param reservationID reservation foreign key
+     * @param status new status string
+     * @return {@code true} if at least one row was updated
+     * @throws SQLException if a DB error occurs
+     * @throws IllegalArgumentException if {@code conn} is null
+     */
 	public boolean updateWaitingStatus(Connection conn, int reservationID, String status) throws SQLException {
 	    if (conn == null) {
 	        throw new IllegalArgumentException("conn is null (updateWaitingStatus)");
@@ -148,6 +203,16 @@ public class WaitingListDAO {
 	        return affected >= 1; // use == 1 if reservationID is guaranteed unique in waiting_list
 	    }
 	}
+	
+	/**
+     * Fetches the most recent waiting-list entry for a reservation.
+     *
+     * @param conn active JDBC connection (must not be null)
+     * @param reservationID reservation foreign key
+     * @return waiting-list entry if exists; otherwise {@code null}
+     * @throws SQLException if a DB error occurs
+     * @throws IllegalArgumentException if {@code conn} is null
+     */
 	public WaitingList getWaitingListByReservationId(Connection conn, int reservationID) throws SQLException {
 	    if (conn == null) {
 	        throw new IllegalArgumentException("conn is null (getWaitingListByReservationId)");
@@ -175,7 +240,14 @@ public class WaitingListDAO {
 	    }
 	}
 	
-	
+	/**
+     * Marks a waiting-list entry as ASSIGNED if it is currently CALLED (by reservationID).
+     *
+     * @param conn active JDBC connection
+     * @param reservationId reservation foreign key
+     * @return {@code true} if exactly one row was updated
+     * @throws SQLException if a DB error occurs
+     */
 	public boolean markAssignedIfCalled(Connection conn, int reservationId) throws SQLException {
 	    try (PreparedStatement ps = conn.prepareStatement(UPDATE_WAITINGLIST_TO_ASSIGNED)) {
 	        ps.setInt(1, reservationId);
@@ -183,6 +255,14 @@ public class WaitingListDAO {
 	    }
 	}
 	
+	/**
+     * Marks a WAITING entry as CALLED and sets {@code assignedAt = NOW()} (by waitID).
+     *
+     * @param conn active JDBC connection
+     * @param waitId waiting list primary key
+     * @return {@code true} if exactly one row was updated
+     * @throws SQLException if a DB error occurs
+     */
 	public boolean markCalled(Connection conn, int waitId) throws SQLException {
 	    try (PreparedStatement ps = conn.prepareStatement(UPDATE_STATUS_TO_CALLED)) {
 	        ps.setInt(1, waitId);
@@ -190,6 +270,15 @@ public class WaitingListDAO {
 	    }
 	}
 	
+	/**
+     * Computes the count of waiting-list entries per day-of-month between two timestamps.
+     *
+     * @param conn active JDBC connection
+     * @param start start timestamp (inclusive)
+     * @param end end timestamp (exclusive)
+     * @return array of size 31 indexed by day-of-month minus one (0..30)
+     * @throws SQLException if a DB error occurs
+     */
 	public Integer[] getCountOfWaitingListBetween(Connection conn,LocalDateTime start,LocalDateTime end) throws SQLException {
 
 	    Integer[] counts = new Integer[31];
@@ -216,10 +305,12 @@ public class WaitingListDAO {
 	}
 	
 	/**
-	 * @param conn
-	 * @return
-	 * @throws SQLException
-	 */
+     * Fetches all WAITING entries created today (not yet assigned/called).
+     *
+     * @param conn active JDBC connection
+     * @return list of today's waiting list entries (possibly empty)
+     * @throws SQLException if a DB error occurs
+     */
 	public List<WaitingList> fetchWaitingListByCurrentDate(Connection conn) throws SQLException {
 	    List<WaitingList> waitingList = new ArrayList<>();
 
@@ -242,6 +333,14 @@ public class WaitingListDAO {
 
 	    return waitingList;
 	}
+	
+	/**
+     * Fetches CALLED entries that have expired (called more than 15 minutes ago).
+     *
+     * @param conn active JDBC connection
+     * @return list of expired CALLED entries (possibly empty)
+     * @throws SQLException if a DB error occurs
+     */
 	public List<WaitingList> fetchExpiredCalled(Connection conn) throws SQLException {
 	    List<WaitingList> out = new ArrayList<>();
 

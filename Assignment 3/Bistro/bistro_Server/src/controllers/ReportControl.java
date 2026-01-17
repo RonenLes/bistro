@@ -14,7 +14,34 @@ import java.sql.Connection;
 import java.time.YearMonth;
 import java.util.List;
 import java.time.LocalDateTime;
-
+/**
+ * Controls monthly reporting logic.
+ *
+ * <p>This controller handles:
+ * <ul>
+ *   <li>Fetching a monthly report (visitor report + subscriber report) from the DB</li>
+ *   <li>Creating the monthly visitor report for the previous month if missing/invalid</li>
+ *   <li>Creating the monthly reservation/waiting-list report for the previous month if missing/invalid</li>
+ * </ul>
+ *
+ * <p>Reports are stored in the DB as serialized byte arrays (via {@link KryoUtil}).
+ *
+ * <h3>Stored report formats</h3>
+ * <ul>
+ *   <li><b>VISITOR_REPORT</b> payload: {@code List<LocalDateTime[]>}
+ *     where each element is an array with at least 2 items (typically: entry & exit times).</li>
+ *   <li><b>SUBSCRIBER_REPORT</b> payload: {@code Integer[][]} of size {@code [31][2]}:
+ *     <ul>
+ *       <li>{@code payload[dayIndex][0]} = reservations count for that day</li>
+ *       <li>{@code payload[dayIndex][1]} = waiting list count for that day</li>
+ *     </ul>
+ *     Only indices {@code 0..daysInMonth-1} are filled for the actual month.
+ *   </li>
+ * </ul>
+ *
+ * <p>The {@code monthKey} used for storing/fetching is {@code YearMonth.toString()},
+ * usually formatted like {@code "2026-01"}.
+ */
 public class ReportControl {
 	
     private static final String VISITOR_REPORT_TYPE = "VISITOR_REPORT";
@@ -36,7 +63,24 @@ public class ReportControl {
         this.waitingListDAO = waitingListDAO;
     }
 
-   
+   /**
+    * Handles a report request and returns a combined {@link ReportResponse}.
+     *
+     * <p>If {@code request.getMonth()} is null (or {@code request} is null),
+     * this defaults to the <b>previous month</b>.
+     *
+     * <p>This method loads two reports from the DB:
+     * <ul>
+     *   <li>Visitor report: {@code List<LocalDateTime[]>}</li>
+     *   <li>Subscriber report: {@code Integer[][]} daily counts</li>
+     * </ul>
+     *
+     * <p>DB access is done inside a single transaction (auto-commit disabled).
+     *
+     * @param request report request containing an optional target month
+     * @return {@link Response} with {@link ReportResponse} payload on success,
+     *         or {@link Response} with error message on failure
+    */
     public Response<ReportResponse> handleReportRequest(ReportRequest request) {
     	
         YearMonth target = (request != null && request.getMonth() != null)
@@ -99,7 +143,19 @@ public class ReportControl {
     }
 
     
-
+    /**
+     * Creates the monthly visitor report for the <b>previous month</b> if it is missing or invalid.
+     *
+     * <p>Steps:
+     * <ol>
+     *   <li>Check if report exists</li>
+     *   <li>If it exists, validate it by deserializing and checking its structure</li>
+     *   <li>If missing/invalid, query visits from {@link SeatingDAO} and upsert into DB</li>
+     * </ol>
+     *
+     * @return {@code true} if a valid report already existed or was successfully created;
+     *         {@code false} if DB access failed or saving failed
+     */
     public boolean createMonthlyVisitorReportIfMissing() {
         YearMonth target = YearMonth.now().minusMonths(1);
         String monthKey = target.toString();
@@ -149,7 +205,21 @@ public class ReportControl {
         }
     }
 
-
+    /**
+     * Creates the monthly reservation/waiting-list report for the <b>previous month</b>
+     * if it is missing or invalid.
+     *
+     * <p>The stored payload is {@code Integer[31][2]}:
+     * <ul>
+     *   <li>{@code [i][0]} = reservations count for day {@code i+1}</li>
+     *   <li>{@code [i][1]} = waiting-list count for day {@code i+1}</li>
+     * </ul>
+     *
+     * <p>Only the first {@code daysInMonth} rows are filled.
+     *
+     * @return {@code true} if a valid report already existed or was successfully created;
+     *         {@code false} if DB access failed or saving failed
+     */
     public boolean createMonthlyReservationWaitingListReportIfMissing() {
         YearMonth target = YearMonth.now().minusMonths(1);
         String monthKey = target.toString();
@@ -208,7 +278,13 @@ public class ReportControl {
         }
     }
 
-    
+    /**
+     * Validates that the deserialized visitor report payload has the expected structure:
+     * a list where each element is a {@code LocalDateTime[]} with length at least 2.
+     *
+     * @param obj deserialized object from stored bytes
+     * @return {@code true} if payload structure is valid; otherwise {@code false}
+     */
     private boolean isValidVisitsPayload(Object obj) {
         if (!(obj instanceof java.util.List<?> list)) return false;
         for (Object el : list) {

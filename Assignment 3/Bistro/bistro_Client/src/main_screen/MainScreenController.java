@@ -69,7 +69,13 @@ public class MainScreenController extends Application {
 
             updateConnectionLabel();
 
-            stage.setScene(new Scene(root));
+            Scene scene = new Scene(root);
+
+            var css = getClass().getResource("/styles/app.css");
+            System.out.println("CSS url = " + css);
+            if (css != null) scene.getStylesheets().add(css.toExternalForm());
+            stage.setScene(scene);
+
             stage.setTitle("Bistro Client");
             stage.show();
 

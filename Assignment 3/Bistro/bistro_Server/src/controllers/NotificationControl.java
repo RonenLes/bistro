@@ -2,6 +2,26 @@ package controllers;
 
 import entities.User;
 
+/**
+ * Notification service/controller used to simulate sending messages to users and guests.
+ *
+ * <p>Main idea:
+ * Centralizes outgoing notifications (email/SMS/confirmation codes/billing/waiting-list updates).
+ * In the current project stage, all methods are stubbed: they print to the console and return {@code true}.
+ *
+ * <p>Provides methods for:
+ * <ul>
+ *   <li>Automatic reminders (2 hours prior) via email/SMS</li>
+ *   <li>Sending reservation confirmation codes to registered users or guests</li>
+ *   <li>Sending bills and bill confirmations to users/guests</li>
+ *   <li>Sending cancellation messages</li>
+ *   <li>Inviting guests/users to a table</li>
+ *   <li>Notifying about entering the waiting list</li>
+ * </ul>
+ *
+ * <p>Includes private helper stubs for basic email detection and placeholder implementations
+ * of email/SMS sending.
+ */
 public class NotificationControl {
 	
 	public boolean sendAutomaticEmailTwoHourPrior(String email) {

@@ -23,17 +23,39 @@ import kryo.KryoUtil;
 
 
 /**
- * All client-server communication is performed using @code byte
- * serialized and deserialized  via kryo 
- * 
- * the server handles:
- * 1.client login
+ * Main OCSF server for the Bistro system.
+ *
+ * <p>Main idea:
+ * This server receives client messages as {@code byte[]} (Kryo-serialized {@link requests.Request} objects),
+ * deserializes them, dispatches them to the appropriate controller, then Kryo-serializes a
+ * {@link responses.Response} back to the client.</p>
+ *
+ * <p>Core responsibilities:
+ * <ul>
+ *   <li>Maintain connected-client sessions ({@link ClientSession}) keyed by {@link ConnectionToClient}</li>
+ *   <li>Update the JavaFX server GUI ({@link ServerMainScreenControl}) on connect/login/logout/disconnect</li>
+ *   <li>Route incoming commands to controllers: user, reservation, seating, manager, billing, reports, waiting list</li>
+ *   <li>Enforce role-based permissions for manager/report commands</li>
+ *   <li>Enforce "single manager logged in" behavior (manager singleton gate)</li>
+ *   <li>Start/stop background schedulers when the server starts/stops (e.g., {@link BillingScheduler})</li>
+ * </ul>
+ *
+ * <p>Threading:
+ * OCSF callbacks may run on non-JavaFX threads; GUI updates are delegated via the GUI controller which
+ * internally uses {@code Platform.runLater(...)}.</p>
  */
 public class BistroEchoServer extends AbstractServer {
 	
+	/** Server metadata (host name/IP, etc.). */
 	private ServerSession serverSession;
+	
+	/** Connected clients mapped to their current session metadata (role/userId/username/ip). */
 	private final Map<ConnectionToClient,ClientSession> loggedUsers = new ConcurrentHashMap<>();
+	
+	/** JavaFX controller used to reflect client status changes in real time. */
 	private final ServerMainScreenControl serverGUI;
+	
+	/** Tracks the currently logged-in manager client to enforce a single active manager session. */
 	private volatile ConnectionToClient activeManager;
 	
 	//controllers
@@ -44,7 +66,8 @@ public class BistroEchoServer extends AbstractServer {
 	private final BillingControl billingControl;
 	private final ReportControl reportControl;
 	private final WaitingListControl waitingListControl;
-	// scheduler
+	
+	/** Background scheduler (e.g., periodic billing/report/waiting-list maintenance). */
 	private final BillingScheduler billingScheduler;
 
 	 
@@ -79,29 +102,44 @@ public class BistroEchoServer extends AbstractServer {
 		        new OpeningHoursDAO()
 		);
 	}
+	
+	/**
+     * Called by OCSF when the server starts listening.
+     * Starts the background scheduler(s).
+     */
 	@Override
 	protected void serverStarted() {
 	    System.out.println("SERVER started listening on port " + getPort());
 	    billingScheduler.start(); 
 	}
+	
+	/**
+     * Called by OCSF when the server stops listening.
+     * Stops the background scheduler(s).
+     */
 	@Override
 	protected void serverStopped() {
 	    System.out.println("SERVER stopped listening");
 	    billingScheduler.stop();
 	}
+	
 	/**
-	 * 
-	 * @return object containing server metadata
-	 */
+     * Returns server metadata for UI display (host name/IP, etc.).
+     *
+     * @return current {@link ServerSession}
+     */
 	public ServerSession getCurrentSession() {
 		return this.serverSession;
 	}
 	
 	
 	/**
-	 * ClientSession stores the meta data of the connected client
-	 * the server gui is updated using this
-	 */
+     * Called by OCSF when a client connects.
+     *
+     * <p>Creates a {@link ClientSession}, stores it in {@link #loggedUsers}, and notifies the GUI.</p>
+     *
+     * @param client the connected client
+     */
 	@Override
 	protected void clientConnected(ConnectionToClient client) {
 		 String clientIP = client.getInetAddress().getHostAddress();
@@ -112,7 +150,13 @@ public class BistroEchoServer extends AbstractServer {
 	}
 	
 	
-	
+	/**
+     * Called by OCSF when a client disconnects.
+     *
+     * <p>Removes the client session, updates the GUI, and clears {@link #activeManager} if needed.</p>
+     *
+     * @param client the disconnected client
+     */
 	@Override
 	protected void clientDisconnected(ConnectionToClient client) {
 		System.out.println("SERVER clientDisconnected fired!");
@@ -126,6 +170,14 @@ public class BistroEchoServer extends AbstractServer {
 		}
 	}
 	
+	
+	/**
+     * Called by OCSF when a client throws an exception.
+     * Treated as a disconnect for cleanup + GUI update.
+     *
+     * @param client client that threw the exception
+     * @param exception thrown exception
+     */
 	@Override
 	protected void clientException(ConnectionToClient client, Throwable exception) {
 	    System.out.println("Client exception (treat as disconnect): " + exception.getMessage());
@@ -134,17 +186,27 @@ public class BistroEchoServer extends AbstractServer {
 	
 	
 	/**
-	 * The incoming message is expected to be a @code byte containing kyro serialized request object
-	 * The outcoming message is @code byte containing kyro serialized response object
-	 * 
-	 * flow of events:
-	 * Deserialize the incoming byte array using kryo
-	 * Validate that the object is a request object
-	 * Dispatch the request based on its command (enum)
-	 * Invoke the appropriate controller logic
-	 * Update client session and GUI state if necessary
-	 * Serialize and send a Response object back to client 
-	 */
+     * Main message handler (OCSF callback).
+     *
+     * <p>Expected message type is either:
+     * <ul>
+     *   <li>{@code byte[]} containing Kryo-serialized {@link requests.Request}</li>
+     *   <li>or (rarely) an already-decoded {@link requests.Request} object</li>
+     * </ul>
+     *
+     * <p>Flow:
+     * <ol>
+     *   <li>Deserialize byte[] using Kryo (if needed)</li>
+     *   <li>Validate the message is a {@code Request<?>}</li>
+     *   <li>Dispatch by {@code request.getCommand()}</li>
+     *   <li>Call the appropriate controller</li>
+     *   <li>Apply session/GUI side effects (login/logout identity updates)</li>
+     *   <li>Serialize and send back a {@link responses.Response}</li>
+     * </ol>
+     *
+     * @param msg incoming message (usually {@code byte[]})
+     * @param client sending client connection
+     */
 	@Override
 	protected void handleMessageFromClient(Object msg,ConnectionToClient client) {
 		
@@ -275,11 +337,12 @@ public class BistroEchoServer extends AbstractServer {
 	
 	
 	/**
-	 * method to update the client session 
-	 * @param client current client that logged in
-	 * @param logReq the deatils the client entered to login
-	 * @param logRes the response that was handled by UserControl
-	 */
+     * Updates the {@link ClientSession} and server GUI when a login succeeds.
+     *
+     * @param client current client that logged in
+     * @param logReq login request sent by the client
+     * @param logRes response produced by {@link UserControl}
+     */
 	private void handleLoginSuccess(ConnectionToClient client,LoginRequest logReq, Response<LoginResponse> logRes) {
 		if(!logRes.isSuccess() || logRes.getData() == null) return;
 		
@@ -296,13 +359,18 @@ public class BistroEchoServer extends AbstractServer {
 		        + " username=" + logRes.getData().getUsername());
 	}
 	
-	/**
-	 * method to ensure manager singleton
-	 * @param client
-	 * @param loginReq
-	 * @param loginResp
-	 * @return
-	 */
+	 /**
+     * Enforces "single manager logged in" behavior, then applies login side-effects.
+     *
+     * <p>If the incoming login is for a MANAGER and a different manager is already active,
+     * returns a failure response. Otherwise, updates {@link #activeManager} and calls
+     * {@link #handleLoginSuccess(ConnectionToClient, LoginRequest, Response)}.</p>
+     *
+     * @param client client attempting login
+     * @param loginReq login request
+     * @param loginResp login controller response
+     * @return the original login response if allowed, otherwise a failure response
+     */
 	private Response<LoginResponse> handleLoginWithManagerGate(ConnectionToClient client,LoginRequest loginReq,Response<LoginResponse> loginResp) {
 		
 		if (loginReq == null || loginReq.getUserCommand() != LoginRequest.UserCommand.LOGIN_REQUEST) {
@@ -327,9 +395,6 @@ public class BistroEchoServer extends AbstractServer {
 		
 		 handleLoginSuccess(client, loginReq, loginResp);
 		    return loginResp;
-	}
-	
-	
-	
-	
+	}	
+			
 }

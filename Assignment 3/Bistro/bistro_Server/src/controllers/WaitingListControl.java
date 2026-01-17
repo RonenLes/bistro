@@ -13,7 +13,35 @@ import requests.WaitingListRequest;
 import responses.Response;
 import responses.WaitingListResponse;
 /**
- * class to control waitinglist logic
+ * Controller that manages waiting-list workflows.
+ *
+ * <p>Main idea:
+ * Coordinates waiting-list cancellation and timeout handling, while delegating all persistence to DAOs.
+ * It also collaborates with {@link SeatingControl} to free tables and assign the next eligible
+ * waiting-list reservation when a previously "CALLED" reservation expires.</p>
+ *
+ * <p>Uses / collaborates with:
+ * <ul>
+ *   <li>{@link database.WaitingListDAO} - update/fetch waiting list entries (cancel, expired-called queries)</li>
+ *   <li>{@link database.ReservationDAO} - fetch/cancel reservations tied to waiting list entries</li>
+ *   <li>{@link database.SeatingDAO} - find seating/table information for a reservation</li>
+ *   <li>{@link controllers.SeatingControl} - check out a seating and assign the next waiting-list entry to a table</li>
+ *   <li>{@link database.DBManager} - obtain JDBC connections and manage transactions</li>
+ * </ul>
+ *
+ * <p>Main methods / features provided:
+ * <ul>
+ *   <li>{@link #cancelWaitingList(requests.WaitingListRequest)} - cancels a waiting list entry and its reservation
+ *       using a confirmation code (transactional)</li>
+ *   <li>{@link #cancelLateArrivalsFromWaitingListToTable()} - processes expired "CALLED" waiting-list entries:
+ *       cancels them, frees their table (if any), and attempts to assign the next waiting reservation</li>
+ * </ul>
+ *
+ * <p>Notes:
+ * <ul>
+ *   <li>Both workflows use explicit transactions (manual commit/rollback) to keep waiting list, reservation,
+ *       and seating changes consistent.</li>
+ * </ul>
  */
 public class WaitingListControl {
 

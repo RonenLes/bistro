@@ -9,6 +9,21 @@ import java.util.Map;
 import entities.Table;
 import requests.TableInfo;
 
+/**
+ * DAO for the {@code restaurant_table} table.
+ *
+ * <p>Main idea: manages the restaurant's physical tables and their capacities, including:
+ * <ul>
+ *   <li>Creating and updating tables (table number + capacity)</li>
+ *   <li>Fetching table details (by ID) and listing all active tables</li>
+ *   <li>Finding an available (not currently seated) table for a requested capacity</li>
+ *   <li>Capacity helpers (minimal/rounded capacity, totals by capacity, active counts)</li>
+ *   <li>Operational checks (is a table currently occupied)</li>
+ *   <li>Soft-deleting a table by deactivating it ({@code isActive = 0})</li>
+ * </ul>
+ *
+ * <p>All methods assume "active tables" are rows where {@code isActive = 1}.
+ */
 public class TableDAO {
 	
 	//INSERT

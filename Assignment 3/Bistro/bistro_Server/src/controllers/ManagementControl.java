@@ -21,7 +21,9 @@ import responses.ManagerResponse.ManagerResponseCommand;
 import responses.ReservationResponse;
 import responses.Response;
 import responses.WaitingListResponse;
-
+/**
+ * class controller to handle all the requests related to representitve and manager(without reports)
+ */
 public class ManagementControl {
 
 	private TableDAO tableDAO;
@@ -80,7 +82,7 @@ public class ManagementControl {
 	/**
 	 * method to add a new user to the data base
 	 * @param req request contains username password phone and email
-	 * @return response 
+	 * @return Response<ManagerResponse> with new userID (qrcode) 
 	 */
 	public Response<ManagerResponse> addNewUser(ManagerRequest req){
 		
@@ -111,7 +113,7 @@ public class ManagementControl {
 	
 	/**
 	 * method for the manager to view all tables currently in data base
-	 * @return
+	 * @return Response<ManagerResponse> with list of tables currently at available
 	 */
 	public Response<ManagerResponse> getAllTables(){
 		List<TableInfo> tables = new ArrayList<>();
@@ -130,7 +132,7 @@ public class ManagementControl {
 	/**
 	 * method to edit existing table
 	 * @param req contains the table number to edit and the new capacity
-	 * @return
+	 * @return Response<ManagerResponse> with updated table info as an object and if victim contacts whos reservations was cancelled 
 	 */
 	public Response<ManagerResponse> editTalbeCap(ManagerRequest req){
 		Connection conn = null;
@@ -150,8 +152,7 @@ public class ManagementControl {
 			if (req.getNewCap() == currentCap) {
 				conn.rollback();
 				System.out.println("we are here");
-				ManagerResponse resp = new ManagerResponse(
-						ManagerResponseCommand.EDIT_TABLE_RESPONSE,new TableInfo(req.getTableNumber(), req.getNewCap()),List.of());
+				ManagerResponse resp = new ManagerResponse(ManagerResponseCommand.EDIT_TABLE_RESPONSE,new TableInfo(req.getTableNumber(), req.getNewCap()),List.of());
 																
 				return new Response<>(true, "No changes needed (capacity unchanged).", resp);
 			}
@@ -187,6 +188,13 @@ public class ManagementControl {
 		return new Response<>(true, msg, resp);
 	}
 	
+	/**
+	 * method to calculate how much reservations needs to be cancelled
+	 * @param conn
+	 * @param cap
+	 * @return
+	 * @throws SQLException
+	 */
 	private int computeNewTotalAfterReduction(Connection conn, int cap) throws SQLException {
 	    int totalActive = tableDAO.countActiveTablesByCapacity(conn, cap);
 	    return Math.max(totalActive - 1, 0);
@@ -195,7 +203,7 @@ public class ManagementControl {
 	/**
 	 * method to add new table to the data base
 	 * @param req contain the capacity for the new table
-	 * @return
+	 * @return Response<ManagerResponse> with TableInfo object containing the new added table details
 	 */
 	public Response<ManagerResponse> addNewTable(ManagerRequest req){
 		try(Connection conn  = DBManager.getConnection()){
@@ -216,7 +224,7 @@ public class ManagementControl {
 	/**
 	 * method for the manager to view all current seating in the restaurant:
 	 * userID, username, checkInTime, estimated checkout time , partySize, table number
-	 * @return
+	 * @return Response<ManagerResponse> with a list of CurrentSeatingResponse objects containing current seating customers details
 	 */
 	public Response<ManagerResponse> getCurrentSeating(){
 		List<CurrentSeatingResponse> currentSeatingList = new ArrayList<>();
@@ -284,7 +292,7 @@ public class ManagementControl {
 	
 	
 	/**
-	 * 
+	 * method to check if the to delete is now seated 
 	 * @param conn
 	 * @param tableNumber
 	 * @return table capacity if exists+active
@@ -293,10 +301,8 @@ public class ManagementControl {
 	private Integer validateTableCanBeDeactivated(Connection conn, int tableNumber) throws SQLException {
 	    Integer cap = tableDAO.getCapacityByTableNumber(conn, tableNumber);
 	    if (cap == null) return null;
-
-	    if (tableDAO.isTableOccupiedNow(conn, tableNumber)) {
-	        throw new IllegalStateException("Table is occupied right now");
-	    }
+	    if (tableDAO.isTableOccupiedNow(conn, tableNumber)) throw new IllegalStateException("Table is occupied right now");
+	    
 	    return cap;
 	}
 
@@ -380,7 +386,13 @@ public class ManagementControl {
 	    }
 	}
 
-	
+	/**
+	 * tell the DAO to update the table isActive to 0
+	 * @param conn
+	 * @param tableNumber
+	 * @return
+	 * @throws SQLException
+	 */
 	private boolean deactivateTable(Connection conn, int tableNumber) throws SQLException {
 	    return tableDAO.deactivateTableByNumber(conn, tableNumber);
 	}
@@ -454,6 +466,11 @@ public class ManagementControl {
 	}
 	
 	
+	/**
+	 * view the next 30 details of the next 30 dates from today
+	 * @param date
+	 * @return Response<ManagerResponse> a list of CurrentOpeningHoursResponse containing the details of each opening
+	 */
 	public Response<ManagerResponse> viewOpeningHoursNext30Days(LocalDate date){
 		List<CurrentOpeningHoursResponse> openings = new ArrayList<>();
 
@@ -476,7 +493,10 @@ public class ManagementControl {
 	    }
 	}
 	
-	
+	/**
+	 * view current waiting list for the bistro 
+	 * @return Response<ManagerResponse> with a list of WaitingListResponse containing details about the customer
+	 */
 	public Response<ManagerResponse> viewCurrentWaitingList(){
 		List<WaitingListResponse> currWaiting = new ArrayList<>();
 		try(Connection conn = DBManager.getConnection()){
@@ -504,6 +524,11 @@ public class ManagementControl {
 		
 	}
 	
+	/**
+	 * method to view all the reservations for a specific date
+	 * @param date
+	 * @return Response<ManagerResponse> with List<ReservationResponse> cotaining the reservation details
+	 */
 	public Response<ManagerResponse> viewReservationByDate(LocalDate date){
 		List<ReservationResponse> currRes = new ArrayList<>();
 		try(Connection conn = DBManager.getConnection()){
@@ -529,6 +554,10 @@ public class ManagementControl {
 		
 	}
 	
+	/**
+	 * view all subscriber in the system 
+	 * @return Response<ManagerResponse> with List<LoginResponse> containing subscriber details
+	 */
 	public Response<ManagerResponse> viewAllSubscriber(){
 		List<LoginResponse> subs = new ArrayList<>();
 		try(Connection conn = DBManager.getConnection()){
@@ -565,6 +594,10 @@ public class ManagementControl {
 	}
 	
 	
+	/**
+	 * send email/sms to victims about cancelling their reservation
+	 * @param victimContacts
+	 */
 	private void notifyVictims(List<String> victimContacts) {
 	    for (String contact : victimContacts) {
 	        try {

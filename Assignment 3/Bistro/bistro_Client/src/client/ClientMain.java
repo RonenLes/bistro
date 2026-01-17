@@ -55,6 +55,7 @@ public class ClientMain {
         // config connection
         //String host = "localhost";
         int port = 5555;
+        
 
         // networking
         // create OCSF client (does not connect yet)

@@ -14,8 +14,17 @@ import java.time.LocalTime;
 
 
 /**
- * METHODS THIS CLASS HAS:
- * 1.getUserByUsernameAndPassword - fetching user with username and password from database
+ * DAO for the {@code user} table.
+ *
+ * <p>Main idea: handles database operations related to users (mainly subscribers), including:
+ * <ul>
+ *   <li>Creating a new user</li>
+ *   <li>Fetching users (by login credentials, by userID, by username, or all subscribers)</li>
+ *   <li>Updating user contact details (email/phone)</li>
+ *   <li>Fetching a user's reservation/billing history via joins with reservation/seating/table/bill</li>
+ * </ul>
+ *
+ * <p>Note: login/user-fetch queries intentionally do not expose the user's password in returned {@link entities.User} objects.
  */
 public class UserDAO {
 	

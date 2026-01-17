@@ -17,29 +17,29 @@ import java.time.LocalDateTime;
 /**
  * Controls monthly reporting logic.
  *
- * <p>This controller handles:
- * <ul>
- *   <li>Fetching a monthly report (visitor report + subscriber report) from the DB</li>
- *   <li>Creating the monthly visitor report for the previous month if missing/invalid</li>
- *   <li>Creating the monthly reservation/waiting-list report for the previous month if missing/invalid</li>
- * </ul>
+ * This controller handles:
+ * 
+ *   Fetching a monthly report (visitor report + subscriber report) from the DB
+ *   Creating the monthly visitor report for the previous month if missing/invalid
+ *   Creating the monthly reservation/waiting-list report for the previous month if missing/invalid
+ * 
  *
- * <p>Reports are stored in the DB as serialized byte arrays (via {@link KryoUtil}).
+ * Reports are stored in the DB as serialized byte arrays (via {@link KryoUtil}).
  *
- * <h3>Stored report formats</h3>
- * <ul>
- *   <li><b>VISITOR_REPORT</b> payload: {@code List<LocalDateTime[]>}
- *     where each element is an array with at least 2 items (typically: entry & exit times).</li>
- *   <li><b>SUBSCRIBER_REPORT</b> payload: {@code Integer[][]} of size {@code [31][2]}:
- *     <ul>
- *       <li>{@code payload[dayIndex][0]} = reservations count for that day</li>
- *       <li>{@code payload[dayIndex][1]} = waiting list count for that day</li>
- *     </ul>
+ * Stored report formats
+ * 
+ *   VISITOR_REPORT payload: {@code List<LocalDateTime[]>}
+ *     where each element is an array with at least 2 items (typically: entry & exit times)
+ *   SUBSCRIBER_REPORT payload: {@code Integer[][]} of size {@code [31][2]}:
+ *     
+ *      {@code payload[dayIndex][0]} = reservations count for that day
+ *       {@code payload[dayIndex][1]} = waiting list count for that day
+ *    
  *     Only indices {@code 0..daysInMonth-1} are filled for the actual month.
- *   </li>
- * </ul>
+ *   
+ * 
  *
- * <p>The {@code monthKey} used for storing/fetching is {@code YearMonth.toString()},
+ * The {@code monthKey} used for storing/fetching is {@code YearMonth.toString()},
  * usually formatted like {@code "2026-01"}.
  */
 public class ReportControl {
@@ -63,24 +63,23 @@ public class ReportControl {
         this.waitingListDAO = waitingListDAO;
     }
 
-   /**
-    * Handles a report request and returns a combined {@link ReportResponse}.
+    /**
+     * Handles a report request and returns a combined {@link ReportResponse}.
      *
-     * <p>If {@code request.getMonth()} is null (or {@code request} is null),
-     * this defaults to the <b>previous month</b>.
+     * <p>If {@code request} is null or {@code request.getMonth()} is null,
+     * the target month defaults to the previous month.</p>
      *
      * <p>This method loads two reports from the DB:
      * <ul>
-     *   <li>Visitor report: {@code List<LocalDateTime[]>}</li>
-     *   <li>Subscriber report: {@code Integer[][]} daily counts</li>
+     *   <li>Visitor report: a List of LocalDateTime arrays (each entry contains check-in/check-out times)</li>
+     *   <li>Subscriber report: a 2D Integer array containing daily counts</li>
      * </ul>
      *
-     * <p>DB access is done inside a single transaction (auto-commit disabled).
+     * <p>DB access is performed inside a single transaction (auto-commit disabled).</p>
      *
      * @param request report request containing an optional target month
-     * @return {@link Response} with {@link ReportResponse} payload on success,
-     *         or {@link Response} with error message on failure
-    */
+     * @return Response with a ReportResponse payload on success, or Response with an error message on failure
+     */
     public Response<ReportResponse> handleReportRequest(ReportRequest request) {
     	
         YearMonth target = (request != null && request.getMonth() != null)

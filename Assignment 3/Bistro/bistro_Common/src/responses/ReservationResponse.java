@@ -5,6 +5,20 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Response payload for reservation workflows.
+ *
+ * <p>Main idea:
+ * Used across the reservation flow (availability search, suggestions, confirmation, edit/cancel/show,
+ * and walk-in results). The {@link ReservationResponseType} determines which fields are relevant.</p>
+ *
+ * <p>Main parts:
+ * <ul>
+ *   <li>{@code availableTimes} - returned when showing availability</li>
+ *   <li>{@code suggestedDates} - returned when showing alternative dates/times</li>
+ *   <li>{@code confirmationCode} and reservation details - returned when confirming/showing/editing/cancelling</li>
+ * </ul>
+ */
 public class ReservationResponse  {
 	public enum ReservationResponseType{
 		FIRST_PHASE_SHOW_AVAILABILITY,

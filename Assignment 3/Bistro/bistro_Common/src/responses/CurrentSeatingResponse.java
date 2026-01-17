@@ -5,6 +5,22 @@ import java.time.LocalTime;
 
 import requests.TableInfo;
 
+/**
+ * Response payload representing a currently seated party.
+ *
+ * <p>Main idea:
+ * Used for manager views to show active seatings (checked-in but not checked-out), including
+ * identity (subscriber or guest), table details, party size, seating id, confirmation code,
+ * and timing info.</p>
+ *
+ * <p>Main fields:
+ * <ul>
+ *   <li>{@code userID}/{@code username} - present for subscribers</li>
+ *   <li>{@code guestContact} - present for guests</li>
+ *   <li>{@link requests.TableInfo} {@code table} - table number and capacity</li>
+ *   <li>{@code checkInTime} and {@code estimatedCheckOut} - timing info</li>
+ * </ul>
+ */
 public class CurrentSeatingResponse {
 	
 	

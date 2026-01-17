@@ -172,7 +172,7 @@ public class TableDAO {
 	/**
 	 * fetching all tables that isAvailable =1 
 	 * @param conn
-	 * @return List<TableInfo> number table and cap
+	 * @return List of number table and cap
 	 * @throws SQLException
 	 */
 	public List<TableInfo> fetchAllTables(Connection conn)throws SQLException{

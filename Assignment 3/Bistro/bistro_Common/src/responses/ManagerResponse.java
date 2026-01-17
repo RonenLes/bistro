@@ -4,6 +4,14 @@ import java.util.List;
 
 import requests.TableInfo;
 
+/**
+ * Response payload for manager operations.
+ *
+ * <p>Main idea:
+ * Wraps manager-specific results (tables list, current seating list, opening hours, subscribers, etc.).
+ * The {@link ManagerResponseCommand} tells the client what kind of data is stored in {@code infoList}
+ * and whether {@code table} or {@code userID} is relevant.</p>
+ */
 public class ManagerResponse {
 	
 	private ManagerResponseCommand responseCommand;

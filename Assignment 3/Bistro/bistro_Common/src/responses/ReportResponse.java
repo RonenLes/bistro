@@ -3,6 +3,16 @@ package responses;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Response payload for monthly reports.
+ *
+ * <p>Main idea:
+ * Combines two report datasets for a given month:
+ * <ul>
+ *   <li>{@code visits}: list of visit time ranges (check-in/check-out pairs)</li>
+ *   <li>{@code dailyCounts}: daily counts matrix (e.g., subscribers/visitors per day)</li>
+ * </ul>
+ */
 public class ReportResponse {
 
     

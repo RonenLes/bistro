@@ -3,6 +3,13 @@ package responses;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+/**
+ * DTO representing a single row of user reservation history (and also reused for upcoming reservations).
+ *
+ * <p>Main idea:
+ * Contains reservation date/time, check-in/check-out, table number, total price (if billed),
+ * party size, status, and confirmation code.</p>
+ */
 public class UserHistoryResponse {
 
 	private LocalDate reservationDate;

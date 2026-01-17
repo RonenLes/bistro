@@ -1,5 +1,20 @@
 package requests;
 
+
+/**
+ * Request payload for seating-related operations.
+ *
+ * <p>Main idea:
+ * Supports seating actions either by a reservation confirmation code or by providing a full
+ * {@link ReservationRequest} object (depending on {@link SeatingRequestType}).</p>
+ *
+ * <p>Main parts:
+ * <ul>
+ *   <li>{@link SeatingRequestType} - indicates how the seating operation should be resolved</li>
+ *   <li>{@code confirmationCode} - used when seating is requested by confirmation code</li>
+ *   <li>{@code reservation} - used when seating is requested by reservation details</li>
+ * </ul>
+ */
 public class SeatingRequest {
 	public enum SeatingRequestType{
 		BY_CONFIRMATIONCODE,

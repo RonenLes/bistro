@@ -191,7 +191,7 @@ public class UserDAO {
 		     * method to fetch user history by userID after checkout 
 		     * @param conn
 		     * @param userID
-		     * @return List<UserHistoryResponse> containing reservationDate,startTime,check in/out time, table number, total price,partySize, status
+		     * @return List containing reservationDate,startTime,check in/out time, table number, total price,partySize, status
 		     * @throws SQLException
 		     */
 		    public List<UserHistoryResponse> getHistoryByUserID(Connection conn,String userID) throws SQLException{

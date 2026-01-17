@@ -3,6 +3,13 @@ package responses;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+/**
+ * Response payload that describes opening hours for a specific date.
+ *
+ * <p>Main idea:
+ * Used by manager/client views that need to display opening hours (date, day name, open/close times)
+ * and an optional occasion label (e.g., REGULAR, HOLIDAY).</p>
+ */
 public class CurrentOpeningHoursResponse {
 
 	private LocalDate date;

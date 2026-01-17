@@ -1,5 +1,19 @@
 package requests;
 
+
+/**
+ * Request payload for billing actions.
+ *
+ * <p>Main idea:
+ * Identifies the target reservation using {@code confirmationCode} and specifies the billing action
+ * using {@link BillRequestType} (view bill vs pay bill).</p>
+ *
+ * <p>Main fields:
+ * <ul>
+ *   <li>{@code confirmationCode} - reservation confirmation code</li>
+ *   <li>{@link BillRequestType} - billing action type</li>
+ * </ul>
+ */
 public class BillRequest {
 	
 	private BillRequestType type;

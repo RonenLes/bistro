@@ -1,5 +1,22 @@
 package requests;
 
+/**
+ * Generic network request wrapper sent from client to server.
+ *
+ * <p>Main idea:
+ * A {@code Request} bundles a {@link Command} (what action the server should perform)
+ * together with a payload object ({@code data}) that contains the command-specific data
+ * (for example: login details, reservation details, seating actions, etc.).</p>
+ *
+ * <p>Typically serialized (e.g., with Kryo in your project) and dispatched on the server
+ * using {@link #getCommand()} to decide how to interpret {@link #getData()}.</p>
+ *
+ * <p>Key parts:
+ * <ul>
+ *   <li>{@link Command} - enum of supported request types</li>
+ *   <li>{@code data} - the payload object for the selected command</li>
+ * </ul>
+ */
 public class Request<T> {
 	private Command command;
 	private T data;

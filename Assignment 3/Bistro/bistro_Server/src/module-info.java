@@ -9,7 +9,6 @@ module bistro_Server {
 	requires javafx.controls;
 	requires javafx.fxml;
 	requires javafx.graphics;
-	requires junit;
 	opens serverGUI to javafx.fxml;
 	opens server to javafx.graphics;
 	

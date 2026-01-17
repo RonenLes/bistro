@@ -1,5 +1,20 @@
 package responses;
 
+/**
+ * Response payload for billing operations.
+ *
+ * <p>Main idea:
+ * Sent back to the client after a billing request (view bill / pay bill). It may also indicate
+ * whether a notification was sent and whether the next waiting customer was called.</p>
+ *
+ * <p>Main parts:
+ * <ul>
+ *   <li>{@link BillResponseType} - which billing response this represents</li>
+ *   <li>{@code bill} - the bill amount</li>
+ *   <li>{@code notificationSent} - whether a notification was sent to the customer</li>
+ *   <li>{@code calledNextCustomer} - whether the system advanced the waiting list (optional)</li>
+ * </ul>
+ */
 public class BillResponse {	
 	private BillResponseType type;
 	private double bill;

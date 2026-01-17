@@ -3,6 +3,23 @@ package requests;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+
+/**
+ * Request payload for reservation workflows.
+ *
+ * <p>Main idea:
+ * Represents the client input for reservation operations across multiple phases:
+ * availability lookup, creation, edit, cancel, and show reservation.</p>
+ *
+ * <p>Main parts:
+ * <ul>
+ *   <li>{@link ReservationRequestType} - which reservation operation to perform</li>
+ *   <li>{@code reservationDate} and {@code startTime} - desired reservation date/time</li>
+ *   <li>{@code partySize} - number of guests</li>
+ *   <li>{@code userID} or {@code guestContact} - identity (subscriber vs guest)</li>
+ *   <li>{@code confirmationCode} - used for show/edit/cancel after creation</li>
+ * </ul>
+ */
 public class ReservationRequest   {
 	public enum ReservationRequestType{
 		FIRST_PHASE,

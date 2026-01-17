@@ -2,6 +2,13 @@ package responses;
 
 import java.time.LocalTime;
 
+/**
+ * Response payload for seating operations.
+ *
+ * <p>Main idea:
+ * Returned after attempting to seat a customer (check-in) or placing them into the waiting list.
+ * Includes table number/capacity (if seated) and check-in time.</p>
+ */
 public class SeatingResponse {
 	public enum SeatingResponseType{
 		CUSTOMER_CHECKED_IN,

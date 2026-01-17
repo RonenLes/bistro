@@ -1,5 +1,20 @@
 package requests;
 
+
+/**
+ * Request payload for user-related operations.
+ *
+ * <p>Main idea:
+ * Carries a {@link UserCommand} plus the relevant data for that command:
+ * login (username/password), view/edit contact details, history, and upcoming reservations.</p>
+ *
+ * <p>Main parts:
+ * <ul>
+ *   <li>{@link UserCommand} - which user operation to perform</li>
+ *   <li>{@code username}/{@code password} - used for login</li>
+ *   <li>{@code phone}/{@code email} - used for editing details</li>
+ * </ul>
+ */
 public class LoginRequest {
 	
 	

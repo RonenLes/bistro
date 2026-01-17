@@ -2,6 +2,23 @@ package responses;
 
 import java.util.List;
 
+/**
+ * Response payload for user-related operations.
+ *
+ * <p>Main idea:
+ * Used for multiple user flows: login, viewing/editing details, viewing reservation history,
+ * and showing upcoming reservations. The {@link UserReponseCommand} field indicates which
+ * response variant the client should interpret.</p>
+ *
+ * <p>Main parts:
+ * <ul>
+ *   <li>{@link UserReponseCommand} - which user response this represents</li>
+ *   <li>{@code userID}/{@code role}/{@code username} - for login</li>
+ *   <li>{@code email}/{@code phone} - for showing/editing details</li>
+ *   <li>{@code userHistory} - reservation history rows</li>
+ *   <li>{@code upcomingReservations} - future/active reservations</li>
+ * </ul>
+ */
 public class LoginResponse {
 	
 	private String userID;

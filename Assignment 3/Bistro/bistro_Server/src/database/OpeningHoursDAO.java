@@ -114,7 +114,7 @@ public class OpeningHoursDAO {
 	 * fetching the next 30 days details of opening hours
 	 * @param conn
 	 * @param startDate
-	 * @return List<OpeningHours>
+	 * @return List
 	 * @throws SQLException
 	 */
 	public List<OpeningHours> fetchOpeningHoursNext30Days(Connection conn,LocalDate startDate)throws SQLException{

@@ -101,9 +101,9 @@ public class ReservationControl {
     // ---------------- FIRST PHASE ----------------
     /**
      * method to handle first phase where client enters desired reservation date and party size
-     * @param @ReservationRequest req contains @LocalDate reservationDate request and @int party size
-     * @return @Response<ReservationResponse> containing a list of @LocalTime available times if exist
-     * if not than @Map<LocalDate, List<LocalTime>> of future dates and their available times
+     * @param req contains  reservationDate request and  party size
+     * @return  containing a list of available times if exist
+     * if not than of future dates and their available times
      * of failed
      */
     private Response<ReservationResponse> handleFirstPhase(ReservationRequest req) {
@@ -149,8 +149,8 @@ public class ReservationControl {
     
     /**
      * method to create a reservation with chosen time after finishing first phase
-     * @param @ReservationRequest req with @LocalTime chosen time
-     * @return @Response<ReservationResponse>
+     * @param  req with  chosen time
+     * @return ReservationResponse
      */
     private Response<ReservationResponse> handleSecondPhase(ReservationRequest req) {    	
         if (req.getReservationDate() == null || req.getStartTime() == null)
@@ -176,7 +176,7 @@ public class ReservationControl {
      * generating unique confirmation code and sending it to the client
      * @param ReservationRequest req with userID/guestContact
      * @param type type of ReservationRequest
-     * @return Response<ReservationResponse> with all the details of the reservation
+     * @return Response with all the details of the reservation
      * @throws SQLException
      */
     private Response<ReservationResponse> createReservation(ReservationRequest req, ReservationResponseType type) throws SQLException {                                                          

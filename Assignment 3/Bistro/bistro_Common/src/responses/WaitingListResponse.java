@@ -2,6 +2,16 @@ package responses;
 
 import java.time.LocalDateTime;
 
+/**
+ * Response payload for waiting list operations.
+ *
+ * <p>Main idea:
+ * Used for waiting list display and cancellation flows. Can represent either:
+ * <ul>
+ *   <li>Cancellation result ({@code hasBeenCancelled})</li>
+ *   <li>Waiting list entry details (priority, createdAt, contact)</li>
+ * </ul>
+ */
 public class WaitingListResponse {
 	boolean hasBeenCancelled;
 	private String priority;
